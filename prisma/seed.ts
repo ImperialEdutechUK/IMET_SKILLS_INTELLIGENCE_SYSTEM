@@ -102,7 +102,10 @@ async function main() {
   const deptNames = ["CDD", "Sales", "Marketing", "Customer Service", "IT", "Finance", "Operations", "Academic"];
 
   const namedEmployeeDefs = [
-    { name: "Emma Watson", email: "employee@imperiallearning.co.uk", dept: "CDD" },
+    { name: "Yenushka", email: "yenushka@imperiallearning.co.uk", dept: "CDD" },
+    { name: "Nandika", email: "nandika@imperiallearning.co.uk", dept: "CDD" },
+    { name: "Menuka", email: "menuka@imperiallearning.co.uk", dept: "CDD" },
+    { name: "Anjani", email: "anjani@imperiallearning.co.uk", dept: "CDD" },
   ];
 
   const extraFirstNames = [

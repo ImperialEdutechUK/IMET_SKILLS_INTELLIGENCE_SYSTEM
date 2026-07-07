@@ -5,7 +5,7 @@ import type { Role } from "@/types";
 
 const { auth } = NextAuth(authConfig);
 
-const PUBLIC_PATHS = ["/login", "/set-password", "/forgot-password"];
+const PUBLIC_PATHS = ["/login", "/register", "/set-password", "/forgot-password"];
 
 const ROLE_PREFIX: Record<Role, string> = {
   employee: "/me",

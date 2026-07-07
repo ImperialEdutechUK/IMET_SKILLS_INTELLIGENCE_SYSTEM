@@ -24,6 +24,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const valid = await compare(password, user.passwordHash);
         if (!valid) return null;
 
+        if (user.status === "pending_approval") return null;
+
         return {
           id: user.id,
           email: user.email,

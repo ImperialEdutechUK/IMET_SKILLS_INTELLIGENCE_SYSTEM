@@ -1,5 +1,5 @@
 import LearnAreaChart from "@/components/charts/LearnAreaChart";
-import { BookOpen, Target, BarChart3, Sparkles } from "lucide-react";
+import { BookOpen, Target, BarChart3, Sparkles, Bell } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import ProgressRing from "@/components/cpd/ProgressRing";
 import RecommendationCard from "@/components/dashboard/RecommendationCard";
@@ -33,6 +33,18 @@ export default async function EmployeeDashboardPage() {
     );
   }
 
+  // Unread notifications: fetch, then mark read so they show only once
+  const unreadNotifications = await prisma.notification.findMany({
+    where: { userId: user.id, readAt: null },
+    orderBy: { createdAt: "desc" },
+  });
+  if (unreadNotifications.length > 0) {
+    await prisma.notification.updateMany({
+      where: { userId: user.id, readAt: null },
+      data: { readAt: new Date() },
+    });
+  }
+
   const inProgress = user.enrollments.filter((e) => e.status === "in_progress");
   const cpdHours = user.cpdRecords.reduce((sum, r) => sum + r.hours, 0);
   const cpdPercent = Math.min(100, Math.round((cpdHours / CPD_TARGET_HOURS) * 100));
@@ -56,6 +68,21 @@ export default async function EmployeeDashboardPage() {
 
   return (
     <div>
+      {unreadNotifications.length > 0 && (
+        <div className="mb-6 space-y-2">
+          {unreadNotifications.map((n) => (
+            <div key={n.id} className="flex items-start gap-3 rounded-xl border border-[var(--brand)]/30 bg-[var(--brand-tint)] p-4">
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--brand)] text-white">
+                <Bell className="h-4 w-4" />
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-[var(--ink)]">{n.title}</p>
+                <p className="mt-0.5 text-sm text-[var(--muted)]">{n.body}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-[var(--ink)]">Welcome back, {user.fullName.split(" ")[0]}! ��</h1>
         <p className="mt-1 text-sm text-[var(--muted)]">Let&apos;s continue your learning journey today.</p>

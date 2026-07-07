@@ -101,12 +101,7 @@ async function main() {
 
   const deptNames = ["CDD", "Sales", "Marketing", "Customer Service", "IT", "Finance", "Operations", "Academic"];
 
-  const namedEmployeeDefs = [
-    { name: "Yenushka", email: "yenushka@imperiallearning.co.uk", dept: "CDD" },
-    { name: "Nandika", email: "nandika@imperiallearning.co.uk", dept: "CDD" },
-    { name: "Menuka", email: "menuka@imperiallearning.co.uk", dept: "CDD" },
-    { name: "Anjani", email: "anjani@imperiallearning.co.uk", dept: "CDD" },
-  ];
+  const namedEmployeeDefs: { name: string; email: string; dept: string }[] = [];
 
   const extraFirstNames = [
     "Kasun", "Nimali", "Tharindu", "Sanduni", "Chamath", "Hasini", "Ruwan", "Malith",
@@ -188,6 +183,7 @@ async function main() {
   );
   console.log("  ✓ Courses");
 
+  if (emma) {
   await prisma.enrollment.upsert({
     where: { userId_courseId: { userId: emma.id, courseId: courses[0].id } },
     update: {},
@@ -267,6 +263,7 @@ async function main() {
     )
   );
   console.log("  ✓ Recommendations");
+  }
 
   await Promise.all(
     depts.map((d) =>

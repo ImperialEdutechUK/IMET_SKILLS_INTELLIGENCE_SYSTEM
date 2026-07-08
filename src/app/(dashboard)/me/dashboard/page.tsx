@@ -84,7 +84,7 @@ export default async function EmployeeDashboardPage() {
         </div>
       )}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[var(--ink)]">Welcome back, {user.fullName.split(" ")[0]}! ��</h1>
+        <h1 className="text-2xl font-bold text-[var(--ink)]">Welcome back, {user.fullName.split(" ")[0]}!</h1>
         <p className="mt-1 text-sm text-[var(--muted)]">Let&apos;s continue your learning journey today.</p>
       </div>
 

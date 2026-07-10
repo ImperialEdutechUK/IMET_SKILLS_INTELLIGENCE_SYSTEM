@@ -59,6 +59,7 @@ async function main() {
   const adminDemoPw = await hash("ImA7xK92pQr", 12);
   const managerDemoPw = await hash("ImM4vN38tYs", 12);
   const authorDemoPw = await hash("ImT6bL74qXe", 12);
+  const employeeDemoPw = await hash("ImE9cR51wZu", 12);
 
   await prisma.user.upsert({
     where: { email: "admin@imperiallearning.co.uk" },
@@ -144,7 +145,19 @@ async function main() {
       })
     )
   );
-  const emma = employees[0];
+  const emma = await prisma.user.upsert({
+    where: { email: "employee@imperiallearning.co.uk" },
+    update: {},
+    create: {
+      email: "employee@imperiallearning.co.uk",
+      fullName: "Emma Stone",
+      role: "employee",
+      status: "active",
+      passwordHash: employeeDemoPw,
+      departmentId: deptMap["CDD"].id,
+      managedBy: manager.id,
+    },
+  });
   console.log(`  ✓ Users (admin, manager, author, ${employeeDefs.length} employees)`);
 
   const courseDefs = [

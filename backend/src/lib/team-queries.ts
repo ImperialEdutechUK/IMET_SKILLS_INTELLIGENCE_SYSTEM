@@ -1,8 +1,9 @@
 import { prisma } from "@/lib/db";
 
-const CPD_TARGET_HOURS = 40;
+import { getCpdTargetHours } from "@/lib/cpd-target";
 
 export async function getTeamMembers(departmentId: string) {
+  const targetHours = await getCpdTargetHours(departmentId);
   const members = await prisma.user.findMany({
     where: { departmentId, role: "employee" },
     include: {
@@ -17,7 +18,7 @@ export async function getTeamMembers(departmentId: string) {
     const completed = m.enrollments.filter((e) => e.status === "completed");
     const inProgress = m.enrollments.filter((e) => e.status === "in_progress");
     const cpdHours = m.cpdRecords.reduce((sum, r) => sum + r.hours, 0);
-    const cpdProgress = Math.min(100, Math.round((cpdHours / CPD_TARGET_HOURS) * 100));
+    const cpdProgress = Math.min(100, Math.round((cpdHours / targetHours) * 100));
     const avgSkillLevel = m.userSkills.length
       ? m.userSkills.reduce((sum, s) => sum + s.currentLevel, 0) / m.userSkills.length
       : 0;

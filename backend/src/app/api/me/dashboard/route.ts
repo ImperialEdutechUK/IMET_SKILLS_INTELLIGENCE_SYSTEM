@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { verifyToken } from "@/lib/verifyToken";
 
-const CPD_TARGET_HOURS = 40;
+import { getCpdTargetHours } from "@/lib/cpd-target";
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 export async function GET(req: Request) {
@@ -42,7 +42,8 @@ export async function GET(req: Request) {
 
   const inProgress = user.enrollments.filter((e) => e.status === "in_progress");
   const cpdHours = user.cpdRecords.reduce((sum, r) => sum + r.hours, 0);
-  const cpdPercent = Math.min(100, Math.round((cpdHours / CPD_TARGET_HOURS) * 100));
+  const cpdTargetHours = await getCpdTargetHours(user.departmentId);
+  const cpdPercent = Math.min(100, Math.round((cpdHours / cpdTargetHours) * 100));
   const skillsImproving = user.userSkills.filter((s) => s.currentLevel < s.targetLevel).length;
   const topRecs = user.recommendations.slice(0, 2);
 
@@ -64,7 +65,7 @@ export async function GET(req: Request) {
     fullName: user.fullName,
     cpdHours,
     cpdPercent,
-    cpdTarget: CPD_TARGET_HOURS,
+    cpdTarget: cpdTargetHours,
     enrolledCount: user.enrollments.length,
     skillsImproving,
     notifications: unreadNotifications.map((n) => ({ id: n.id, title: n.title, body: n.body })),

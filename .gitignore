@@ -6,3 +6,13 @@ out
 *.tsbuildinfo
 next-env.d.ts
 .DS_Store
+
+# Recommendation engine: uploaded documents are stored on disk at runtime
+backend/uploads/
+uploads/
+
+# Coursera sync: resumable scrape checkpoint
+backend/.cache/
+
+# Apify actor: not needed in the remote repo
+apify-actor/

@@ -1,6 +1,3 @@
-// LearnSmart AI — Prisma Schema
-// iMET / Imperial Edutech · PostgreSQL
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,7 +6,384 @@ datasource db {
   provider = "postgresql"
 }
 
-// ── Enums ─────────────────────────────────────────────────────────────────────
+model Department {
+  id          String        @id @default(cuid())
+  name        String        @unique
+  createdAt   DateTime      @default(now())
+  priority    Int           @default(0)
+  cpdTargets  CpdTarget[]
+  RoleProfile RoleProfile[]
+  users       User[]
+}
+
+model User {
+  id              String           @id @default(cuid())
+  email           String           @unique
+  fullName        String
+  role            Role             @default(employee)
+  status          UserStatus       @default(invited)
+  passwordHash    String?
+  avatarUrl       String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  departmentId    String?
+  managedBy       String?
+  position        String?
+  activities      Activity[]
+  certificates    Certificate[]
+  cpdRecords      CpdRecord[]
+  dailyReports    DailyReport[]
+  Document        Document[]
+  enrollments     Enrollment[]
+  evaluations     Evaluation[]
+  notifications   Notification[]
+  passwordTokens  PasswordToken[]
+  recommendations Recommendation[]
+  SkillGap        SkillGap[]
+  department      Department?      @relation(fields: [departmentId], references: [id])
+  manager         User?            @relation("ManagerReports", fields: [managedBy], references: [id])
+  reports         User[]           @relation("ManagerReports")
+  userSkills      UserSkill[]
+}
+
+model PasswordToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  type      TokenType
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  courses   Course[]
+  skills    Skill[]
+}
+
+model Skill {
+  id                   String                 @id @default(cuid())
+  name                 String                 @unique
+  description          String?
+  createdAt            DateTime               @default(now())
+  categoryId           String?
+  courseSkills         CourseSkill[]
+  jdSkills             JobDescriptionSkill[]
+  RoleSkillRequirement RoleSkillRequirement[]
+  category             Category?              @relation(fields: [categoryId], references: [id])
+  SkillAlias           SkillAlias[]
+  SkillGap             SkillGap[]
+  userSkills           UserSkill[]
+}
+
+model Course {
+  id                String             @id @default(cuid())
+  title             String             @unique
+  description       String?
+  curriculum        String?
+  learningOutcomes  String?
+  source            CourseSource
+  externalUrl       String?
+  level             String?
+  durationHours     Float?
+  cpdHours          Float              @default(0)
+  rating            Float?
+  status            CourseStatus       @default(draft)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  categoryId        String?
+  approved          Boolean            @default(false)
+  availableToOrg    Boolean            @default(false)
+  costType          String?
+  externalId        String?
+  externalSource    String?
+  language          String?
+  preferredProvider Boolean            @default(false)
+  provider          String?
+  category          Category?          @relation(fields: [categoryId], references: [id])
+  courseSkills      CourseSkill[]
+  enrollments       Enrollment[]
+  learningPathItems LearningPathItem[]
+  recommendations   Recommendation[]
+
+  @@unique([externalSource, externalId])
+}
+
+model CourseSkill {
+  id       String @id @default(cuid())
+  weight   Float  @default(1.0)
+  courseId String
+  skillId  String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  skill    Skill  @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, skillId])
+}
+
+model Enrollment {
+  id          String           @id @default(cuid())
+  status      EnrollmentStatus @default(not_started)
+  progress    Int              @default(0)
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  userId      String
+  courseId    String
+  cpdRecord   CpdRecord?
+  course      Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+}
+
+model LearningPath {
+  id          String             @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime           @default(now())
+  items       LearningPathItem[]
+}
+
+model LearningPathItem {
+  id             String       @id @default(cuid())
+  position       Int
+  learningPathId String
+  courseId       String
+  course         Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  learningPath   LearningPath @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
+
+  @@unique([learningPathId, courseId])
+}
+
+model CpdTarget {
+  id           String      @id @default(cuid())
+  hoursPerYear Int         @default(40)
+  year         Int
+  createdAt    DateTime    @default(now())
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+
+  @@unique([departmentId, year])
+}
+
+model CpdRecord {
+  id            String       @id @default(cuid())
+  hours         Float
+  source        CpdSource
+  description   String?
+  loggedAt      DateTime     @default(now())
+  createdAt     DateTime     @default(now())
+  userId        String
+  enrollmentId  String?      @unique
+  certificateId String?      @unique
+  certificate   Certificate? @relation(fields: [certificateId], references: [id])
+  enrollment    Enrollment?  @relation(fields: [enrollmentId], references: [id])
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Certificate {
+  id         String            @id @default(cuid())
+  title      String
+  issuer     String
+  cpdHours   Float
+  issuedDate String
+  fileUrl    String?
+  status     CertificateStatus @default(pending)
+  createdAt  DateTime          @default(now())
+  userId     String
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cpdRecord  CpdRecord?
+
+  @@unique([userId, title])
+}
+
+model UserSkill {
+  id           String   @id @default(cuid())
+  currentLevel Int      @default(1)
+  targetLevel  Int      @default(3)
+  updatedAt    DateTime @updatedAt
+  userId       String
+  skillId      String
+  skill        Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skillId])
+}
+
+model Recommendation {
+  id             String     @id @default(cuid())
+  matchLabel     MatchLabel
+  matchScore     Int
+  reason         String
+  dismissed      Boolean    @default(false)
+  createdAt      DateTime   @default(now())
+  userId         String
+  courseId       String
+  gapsCovered    Json?
+  rank           Int?
+  rawScore       Int?
+  scoreBreakdown Json?
+  source         String?    @default("engine")
+  course         Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+}
+
+model JobDescription {
+  id          String                @id @default(cuid())
+  title       String
+  description String
+  createdAt   DateTime              @default(now())
+  skills      JobDescriptionSkill[]
+}
+
+model JobDescriptionSkill {
+  id            String         @id @default(cuid())
+  requiredLevel Int            @default(3)
+  jdId          String
+  skillId       String
+  jd            JobDescription @relation(fields: [jdId], references: [id], onDelete: Cascade)
+  skill         Skill          @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([jdId, skillId])
+}
+
+model OrgStatement {
+  id        String   @id @default(cuid())
+  content   String
+  year      Int      @unique
+  createdAt DateTime @default(now())
+}
+
+model DailyReport {
+  id        String   @id @default(cuid())
+  date      DateTime @db.Date
+  metrics   Json
+  createdAt DateTime @default(now())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@unique([userId, date])
+}
+
+model Evaluation {
+  id        String   @id @default(cuid())
+  period    String
+  rating    Int
+  notes     String?
+  createdAt DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Activity {
+  id        String   @id @default(cuid())
+  type      String
+  payload   Json
+  createdAt DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  title     String
+  body      String
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+}
+
+model Document {
+  id           String         @id
+  type         DocumentType
+  originalName String
+  mimeType     String?
+  storagePath  String?
+  status       DocumentStatus @default(UPLOADED)
+  parsedText   String?
+  extraction   Json?
+  errorMessage String?
+  roleTitle    String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime
+  userId       String?
+  User         User?          @relation(fields: [userId], references: [id])
+
+  @@index([status])
+  @@index([type])
+}
+
+model RoleProfile {
+  id                   String                 @id
+  title                String                 @unique
+  description          String?
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime
+  departmentId         String?
+  Department           Department?            @relation(fields: [departmentId], references: [id])
+  RoleSkillRequirement RoleSkillRequirement[]
+  SkillGap             SkillGap[]
+}
+
+model RoleSkillRequirement {
+  id            String          @id
+  requiredLevel Int             @default(2)
+  importance    SkillImportance @default(MEDIUM)
+  reason        String?
+  roleProfileId String
+  skillId       String
+  RoleProfile   RoleProfile     @relation(fields: [roleProfileId], references: [id], onDelete: Cascade)
+  Skill         Skill           @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([roleProfileId, skillId])
+}
+
+model SkillAlias {
+  id        String   @id
+  alias     String   @unique
+  createdAt DateTime @default(now())
+  skillId   String
+  Skill     Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@index([skillId])
+}
+
+model SkillGap {
+  id            String          @id
+  requiredLevel Int
+  currentLevel  Int
+  gapValue      Int
+  status        GapStatus
+  priority      GapPriority
+  priorityScore Int             @default(0)
+  importance    SkillImportance @default(MEDIUM)
+  confidence    Float           @default(1.0)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime
+  userId        String
+  skillId       String
+  roleProfileId String?
+  RoleProfile   RoleProfile?    @relation(fields: [roleProfileId], references: [id])
+  Skill         Skill           @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  User          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skillId])
+  @@index([userId])
+}
 
 enum Role {
   employee
@@ -65,323 +439,40 @@ enum CertificateStatus {
   rejected
 }
 
-// ── Core ──────────────────────────────────────────────────────────────────────
-
-model Department {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  createdAt DateTime @default(now())
-
-  users      User[]
-  cpdTargets CpdTarget[]
+enum DocumentStatus {
+  UPLOADED
+  PROCESSING
+  PROCESSED
+  NEEDS_REVIEW
+  FAILED
 }
 
-model User {
-  id           String     @id @default(cuid())
-  email        String     @unique
-  fullName     String
-  role         Role       @default(employee)
-  status       UserStatus @default(invited)
-  passwordHash String?
-  position     String?
-  avatarUrl    String?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-
-  departmentId String?
-  department   Department? @relation(fields: [departmentId], references: [id])
-
-  managedBy   String?
-  manager     User?   @relation("ManagerReports", fields: [managedBy], references: [id])
-  reports     User[]  @relation("ManagerReports")
-
-  passwordTokens PasswordToken[]
-  enrollments    Enrollment[]
-  cpdRecords     CpdRecord[]
-  certificates   Certificate[]
-  userSkills     UserSkill[]
-  recommendations Recommendation[]
-  activities     Activity[]
-  notifications  Notification[]
-  evaluations    Evaluation[]
-  dailyReports   DailyReport[]
+enum DocumentType {
+  DAILY_REPORT
+  CPD_RECORD
+  ROLE_REQUIREMENT
+  JOB_DESCRIPTION
+  MANAGER_EVALUATION
+  SKILL_MATRIX
 }
 
-model PasswordToken {
-  id        String    @id @default(cuid())
-  token     String    @unique
-  type      TokenType
-  expiresAt DateTime
-  usedAt    DateTime?
-  createdAt DateTime  @default(now())
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([token])
+enum GapPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
 }
 
-// ── Content ───────────────────────────────────────────────────────────────────
-
-model Category {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  createdAt DateTime @default(now())
-
-  courses Course[]
-  skills  Skill[]
+enum GapStatus {
+  MEETS_REQUIREMENT
+  NEEDS_IMPROVEMENT
+  CRITICAL_GAP
+  MISSING_SKILL
 }
 
-model Skill {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  description String?
-  createdAt   DateTime @default(now())
-
-  categoryId String?
-  category   Category? @relation(fields: [categoryId], references: [id])
-
-  courseSkills CourseSkill[]
-  userSkills   UserSkill[]
-  jdSkills     JobDescriptionSkill[]
-}
-
-model Course {
-  id               String       @id @default(cuid())
-  title            String       @unique
-  description      String?
-  curriculum       String?
-  learningOutcomes String?
-  source           CourseSource
-  externalUrl      String?
-  level            String?      // Beginner | Intermediate | Advanced
-  durationHours    Float?
-  cpdHours         Float        @default(0)
-  rating           Float?
-  status           CourseStatus @default(draft)
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-
-  categoryId String?
-  category   Category? @relation(fields: [categoryId], references: [id])
-
-  courseSkills    CourseSkill[]
-  enrollments     Enrollment[]
-  recommendations Recommendation[]
-  learningPathItems LearningPathItem[]
-}
-
-model CourseSkill {
-  id        String  @id @default(cuid())
-  weight    Float   @default(1.0)
-
-  courseId String
-  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  skillId  String
-  skill    Skill  @relation(fields: [skillId], references: [id], onDelete: Cascade)
-
-  @@unique([courseId, skillId])
-}
-
-// ── Learning ──────────────────────────────────────────────────────────────────
-
-model Enrollment {
-  id           String           @id @default(cuid())
-  status       EnrollmentStatus @default(not_started)
-  progress     Int              @default(0)  // 0–100
-  startedAt    DateTime?
-  completedAt  DateTime?
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-
-  userId   String
-  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  courseId String
-  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  cpdRecord CpdRecord?
-
-  @@unique([userId, courseId])
-}
-
-model LearningPath {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  createdAt   DateTime @default(now())
-
-  items LearningPathItem[]
-}
-
-model LearningPathItem {
-  id       String @id @default(cuid())
-  position Int
-
-  learningPathId String
-  learningPath   LearningPath @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
-  courseId       String
-  course         Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@unique([learningPathId, courseId])
-}
-
-// ── CPD & Certificates ────────────────────────────────────────────────────────
-
-model CpdTarget {
-  id           String   @id @default(cuid())
-  hoursPerYear Int      @default(40)
-  year         Int
-  createdAt    DateTime @default(now())
-
-  departmentId String?
-  department   Department? @relation(fields: [departmentId], references: [id])
-
-  @@unique([departmentId, year])
-}
-
-model CpdRecord {
-  id          String    @id @default(cuid())
-  hours       Float
-  source      CpdSource
-  description String?
-  loggedAt    DateTime  @default(now())
-  createdAt   DateTime  @default(now())
-
-  userId       String
-  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  enrollmentId String?    @unique
-  enrollment   Enrollment? @relation(fields: [enrollmentId], references: [id])
-  certificateId String?   @unique
-  certificate   Certificate? @relation(fields: [certificateId], references: [id])
-}
-
-model Certificate {
-  id          String            @id @default(cuid())
-  title       String
-  issuer      String
-  cpdHours    Float
-  issuedDate  String
-  fileUrl     String?
-  status      CertificateStatus @default(pending)
-  createdAt   DateTime          @default(now())
-
-  userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  cpdRecord CpdRecord?
-
-  @@unique([userId, title])
-}
-
-// ── Skills ────────────────────────────────────────────────────────────────────
-
-model UserSkill {
-  id           String   @id @default(cuid())
-  currentLevel Int      @default(1)  // 1–5
-  targetLevel  Int      @default(3)  // 1–5
-  updatedAt    DateTime @updatedAt
-
-  userId  String
-  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  skillId String
-  skill   Skill  @relation(fields: [skillId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, skillId])
-}
-
-// ── AI ────────────────────────────────────────────────────────────────────────
-
-model Recommendation {
-  id          String     @id @default(cuid())
-  matchLabel  MatchLabel
-  matchScore  Int        // 0–100
-  reason      String
-  dismissed   Boolean    @default(false)
-  createdAt   DateTime   @default(now())
-
-  userId   String
-  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  courseId String
-  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, courseId])
-}
-
-model JobDescription {
-  id          String   @id @default(cuid())
-  title       String
-  description String
-  createdAt   DateTime @default(now())
-
-  skills JobDescriptionSkill[]
-}
-
-model JobDescriptionSkill {
-  id             String @id @default(cuid())
-  requiredLevel  Int    @default(3)
-
-  jdId    String
-  jd      JobDescription @relation(fields: [jdId], references: [id], onDelete: Cascade)
-  skillId String
-  skill   Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
-
-  @@unique([jdId, skillId])
-}
-
-model OrgStatement {
-  id        String   @id @default(cuid())
-  content   String
-  year      Int      @unique
-  createdAt DateTime @default(now())
-}
-
-// ── Reporting ─────────────────────────────────────────────────────────────────
-
-model DailyReport {
-  id        String   @id @default(cuid())
-  date      DateTime @db.Date
-  metrics   Json
-  createdAt DateTime @default(now())
-
-  userId String?
-  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@unique([userId, date])
-}
-
-model Evaluation {
-  id          String   @id @default(cuid())
-  period      String
-  rating      Int      // 1–5
-  notes       String?
-  createdAt   DateTime @default(now())
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-// ── Activity & Notifications ──────────────────────────────────────────────────
-
-model Activity {
-  id        String   @id @default(cuid())
-  type      String
-  payload   Json
-  createdAt DateTime @default(now())
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, createdAt])
-}
-
-model Notification {
-  id        String   @id @default(cuid())
-  title     String
-  body      String
-  readAt    DateTime?
-  createdAt DateTime @default(now())
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId, readAt])
+enum SkillImportance {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
 }

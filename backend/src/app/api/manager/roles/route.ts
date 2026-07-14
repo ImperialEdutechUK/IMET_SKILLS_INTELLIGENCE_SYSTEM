@@ -13,8 +13,8 @@ export async function GET(req: Request) {
       prisma.roleProfile.findMany({
         orderBy: { title: "asc" },
         include: {
-          Department: true,
-          RoleSkillRequirement: { include: { Skill: true } },
+          department: true,
+          requirements: { include: { skill: true } },
         },
       }),
       prisma.user.findMany({
@@ -33,11 +33,11 @@ export async function GET(req: Request) {
         id: r.id,
         title: r.title,
         description: r.description,
-        department: r.Department?.name ?? null,
+        department: r.department?.name ?? null,
         hasMatchingEmployees: positions.includes(r.title),
-        requirements: r.RoleSkillRequirement.map((req) => ({
+        requirements: r.requirements.map((req) => ({
           id: req.id,
-          skill: req.Skill.name,
+          skill: req.skill.name,
           requiredLevel: req.requiredLevel,
           importance: req.importance,
           reason: req.reason,

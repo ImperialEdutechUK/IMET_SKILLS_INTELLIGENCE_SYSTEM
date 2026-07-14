@@ -14,7 +14,7 @@ export async function GET(req: Request) {
 
     // Roles with their required skills
     const roles = await prisma.roleProfile.findMany({
-      include: { RoleSkillRequirement: { include: { Skill: true } } },
+      include: { requirements: { include: { skill: true } } },
     });
     const roleByTitle = new Map(roles.map((r) => [r.title, r]));
 
@@ -53,11 +53,11 @@ export async function GET(req: Request) {
       withRole++;
 
       const currentBySkill = new Map(emp.userSkills.map((us) => [us.skill.name, us.currentLevel]));
-      const gaps = role.RoleSkillRequirement.map((rq) => {
-        const current = currentBySkill.get(rq.Skill.name) ?? 0;
+      const gaps = role.requirements.map((rq) => {
+        const current = currentBySkill.get(rq.skill.name) ?? 0;
         const gap = Math.max(0, rq.requiredLevel - current);
         return {
-          skill: rq.Skill.name,
+          skill: rq.skill.name,
           required: rq.requiredLevel,
           current,
           gap,

@@ -9,8 +9,10 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
+  const url = new URL(req.url);
+  const departmentId = url.searchParams.get("departmentId");
   const users = await prisma.user.findMany({
-    where: { role: "employee" },
+    where: { role: "employee", ...(departmentId ? { departmentId } : {}) },
     include: { enrollments: true, cpdRecords: true, department: true },
     orderBy: { fullName: "asc" },
   });

@@ -65,15 +65,57 @@ enum CertificateStatus {
   rejected
 }
 
+// ── Recommendation engine enums ───────────────────────────────────────────────
+
+enum DocumentType {
+  DAILY_REPORT
+  CPD_RECORD
+  ROLE_REQUIREMENT
+  JOB_DESCRIPTION
+  MANAGER_EVALUATION
+  SKILL_MATRIX
+}
+
+enum DocumentStatus {
+  UPLOADED
+  PROCESSING
+  PROCESSED
+  NEEDS_REVIEW
+  FAILED
+}
+
+enum SkillImportance {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum GapStatus {
+  MEETS_REQUIREMENT
+  NEEDS_IMPROVEMENT
+  CRITICAL_GAP
+  MISSING_SKILL
+}
+
+enum GapPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
 // ── Core ──────────────────────────────────────────────────────────────────────
 
 model Department {
   id        String   @id @default(cuid())
   name      String   @unique
+  priority  Int      @default(0)  // higher = higher strategic priority for gap ranking
   createdAt DateTime @default(now())
 
-  users      User[]
-  cpdTargets CpdTarget[]
+  users        User[]
+  cpdTargets   CpdTarget[]
+  roleProfiles RoleProfile[]
 }
 
 model User {
@@ -105,6 +147,8 @@ model User {
   notifications  Notification[]
   evaluations    Evaluation[]
   dailyReports   DailyReport[]
+  documents      Document[]
+  skillGaps      SkillGap[]
 }
 
 model PasswordToken {
@@ -144,6 +188,9 @@ model Skill {
   courseSkills CourseSkill[]
   userSkills   UserSkill[]
   jdSkills     JobDescriptionSkill[]
+  roleRequirements RoleSkillRequirement[]
+  skillGaps    SkillGap[]
+  aliases      SkillAlias[]
 }
 
 model Course {
@@ -162,6 +209,16 @@ model Course {
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
+  // ── Recommendation-engine metadata ──
+  provider          String?     // e.g. "edX", "Coursera", "iMET Internal"
+  approved          Boolean     @default(false)  // only approved courses are recommended
+  preferredProvider Boolean     @default(false)  // organisation-preferred provider
+  availableToOrg    Boolean     @default(false)  // already licensed/available internally
+  costType          String?     // free | paid | subscription
+  language          String?     // e.g. "English"
+  externalSource    String?     // connector source name (edx, apify, manual…)
+  externalId        String?     // stable id from the external source
+
   categoryId String?
   category   Category? @relation(fields: [categoryId], references: [id])
 
@@ -169,6 +226,8 @@ model Course {
   enrollments     Enrollment[]
   recommendations Recommendation[]
   learningPathItems LearningPathItem[]
+
+  @@unique([externalSource, externalId])
 }
 
 model CourseSkill {
@@ -293,10 +352,17 @@ model UserSkill {
 model Recommendation {
   id          String     @id @default(cuid())
   matchLabel  MatchLabel
-  matchScore  Int        // 0–100
+  matchScore  Int        // 0–100 (normalised deterministic score)
   reason      String
   dismissed   Boolean    @default(false)
   createdAt   DateTime   @default(now())
+
+  // ── Deterministic scoring detail ──
+  rawScore       Int?     // raw additive score before normalisation
+  rank           Int?     // 1-based position within this employee's list
+  scoreBreakdown Json?    // [{ code, label, points }]
+  gapsCovered    Json?    // [{ skill, currentLevel, requiredLevel, status }]
+  source         String?  @default("engine")  // engine | ai | manual
 
   userId   String
   user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -304,6 +370,92 @@ model Recommendation {
   course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@unique([userId, courseId])
+}
+
+// ── Recommendation engine: documents, roles, gaps, aliases ───────────────────
+
+model Document {
+  id           String         @id @default(cuid())
+  type         DocumentType
+  originalName String
+  mimeType     String?
+  storagePath  String?        // path on disk (uploads dir)
+  status       DocumentStatus @default(UPLOADED)
+  parsedText   String?        // extracted plain text / flattened rows
+  extraction   Json?          // validated AI extraction result
+  errorMessage String?
+  roleTitle    String?        // for role/JD docs
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  userId String?              // employee the doc belongs to (if known)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([type])
+}
+
+model RoleProfile {
+  id          String   @id @default(cuid())
+  title       String   @unique  // matches User.position
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+
+  requirements RoleSkillRequirement[]
+  skillGaps    SkillGap[]
+}
+
+model RoleSkillRequirement {
+  id            String          @id @default(cuid())
+  requiredLevel Int             @default(2)  // 0–4 (None…Expert)
+  importance    SkillImportance @default(MEDIUM)
+  reason        String?
+
+  roleProfileId String
+  roleProfile   RoleProfile @relation(fields: [roleProfileId], references: [id], onDelete: Cascade)
+  skillId       String
+  skill         Skill       @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([roleProfileId, skillId])
+}
+
+model SkillGap {
+  id            String      @id @default(cuid())
+  requiredLevel Int         // 0–4
+  currentLevel  Int         // 0–4 (0 when missing)
+  gapValue      Int         // requiredLevel - currentLevel
+  status        GapStatus
+  priority      GapPriority
+  priorityScore Int         @default(0)  // deterministic ranking score
+  importance    SkillImportance @default(MEDIUM)
+  confidence    Float       @default(1.0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skillId String
+  skill   Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  roleProfileId String?
+  roleProfile   RoleProfile? @relation(fields: [roleProfileId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, skillId])
+  @@index([userId])
+}
+
+model SkillAlias {
+  id        String   @id @default(cuid())
+  alias     String   @unique  // normalised lowercase alias
+  createdAt DateTime @default(now())
+
+  skillId String
+  skill   Skill  @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@index([skillId])
 }
 
 model JobDescription {

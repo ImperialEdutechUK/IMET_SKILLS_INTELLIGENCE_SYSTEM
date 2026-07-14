@@ -27,6 +27,7 @@ export const navConfig: Record<Role, NavSection[]> = {
         { label: "Dashboard", href: "/manager/dashboard", icon: LayoutDashboard },
         { label: "Team Skills", href: "/manager/team-skills", icon: Target },
         { label: "Team CPD", href: "/manager/team-cpd", icon: Award },
+        { label: "Role Profiles", href: "/manager/roles", icon: UserCog },
         { label: "AI Insights", href: "/manager/ai-insights", icon: Sparkles },
         { label: "Reports", href: "/manager/reports", icon: BarChart3 },
       ],

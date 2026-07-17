@@ -10,7 +10,12 @@
     "test:watch": "vitest",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
-    "sync:coursera": "tsx --env-file=.env scripts/coursera-sync.ts"
+    "sync:coursera": "tsx --env-file=.env scripts/coursera-sync.ts",
+    "sync:linkedin": "tsx --env-file=.env scripts/linkedin-learning-sync.ts",
+    "cleanup:linkedin": "tsx --env-file=.env scripts/linkedin-cleanup.ts",
+    "prune:non-english": "tsx --env-file=.env scripts/prune-non-english-courses.ts",
+    "sync:edx": "tsx --env-file=.env scripts/edx-sync.ts",
+    "sync:all": "tsx --env-file=.env scripts/sync-all.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",

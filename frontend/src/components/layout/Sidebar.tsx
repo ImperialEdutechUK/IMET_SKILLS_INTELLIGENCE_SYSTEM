@@ -3,15 +3,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { clearAuth } from "@/lib/authClient";
-import { GraduationCap, LogOut } from "lucide-react";
-import { navConfig } from "@/lib/nav";
+import { GraduationCap, LogOut, ArrowLeft } from "lucide-react";
+import { navConfig, departmentNav } from "@/lib/nav";
 import Avatar from "@/components/ui/Avatar";
 import type { SessionUser } from "@/types";
 
 export default function Sidebar({ user }: { user: SessionUser }) {
   const pathname = usePathname();
   const router = useRouter();
-  const sections = navConfig[user.role];
+  const deptMatch = pathname.match(/^\/manager\/departments\/([^/]+)/);
+  const inDepartment = user.role === "manager" && !!deptMatch;
+  const departmentId = deptMatch?.[1] ?? null;
+  const sections = inDepartment && departmentId ? departmentNav(departmentId) : navConfig[user.role];
 
   return (
     <aside className="flex h-screen w-64 shrink-0 flex-col border-r border-[var(--border)] bg-white">
@@ -25,6 +28,11 @@ export default function Sidebar({ user }: { user: SessionUser }) {
         </div>
       </div>
 
+      {inDepartment && (
+        <Link href="/manager/dashboard" className="mx-3 mt-3 flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-xs font-medium text-[var(--muted)] transition-colors hover:text-[var(--ink)]">
+          <ArrowLeft className="h-3.5 w-3.5" /> All Departments
+        </Link>
+      )}
       <nav className="flex-1 overflow-y-auto p-3">
         {sections.map((section, si) => (
           <div key={si} className={si > 0 ? "mt-4" : ""}>

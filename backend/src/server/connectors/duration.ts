@@ -42,6 +42,20 @@ function midpoint(match: RegExpMatchArray): number {
 const round2 = (n: number): number => Math.round(n * 100) / 100;
 
 /**
+ * Parse an ISO-8601 duration ("PT3H41M22S") into hours. This is the shape
+ * LinkedIn Learning emits in its `courseWorkload` JSON-LD field, distinct from
+ * Coursera's free-text `workload`. Only the time part (PTnHnMnS) is honoured;
+ * a course length is never expressed in days/months, so those are ignored.
+ */
+export function parseIsoDuration(raw?: string | null): number | undefined {
+  if (!raw) return undefined;
+  const m = /^P(?:\d+D)?T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/i.exec(raw.trim());
+  if (!m || (!m[1] && !m[2] && !m[3])) return undefined;
+  const hours = Number(m[1] ?? 0) + Number(m[2] ?? 0) / 60 + Number(m[3] ?? 0) / 3600;
+  return hours > 0 && hours <= MAX_PLAUSIBLE_HOURS ? round2(hours) : undefined;
+}
+
+/**
  * Parse a free-text workload string into whole hours of study.
  * Returns `undefined` when no defensible total can be derived.
  */

@@ -8,6 +8,7 @@ import { ManualCourseImportConnector } from "./manual";
 import { EdxCourseCatalogConnector } from "./edx";
 import { CourseraCatalogConnector, CourseraBusinessConnector } from "./coursera";
 import { LinkedInLearningConnector } from "./linkedin";
+import { LinkedInLearningCatalogConnector } from "./linkedinLearningCatalog";
 import { ApifyAllowedSitesConnector } from "./apify";
 
 export {
@@ -16,6 +17,7 @@ export {
   CourseraCatalogConnector,
   CourseraBusinessConnector,
   LinkedInLearningConnector,
+  LinkedInLearningCatalogConnector,
   ApifyAllowedSitesConnector,
 };
 
@@ -24,6 +26,7 @@ export function connectorStatus() {
     new EdxCourseCatalogConnector(),
     new CourseraCatalogConnector(),
     new LinkedInLearningConnector(),
+    new LinkedInLearningCatalogConnector(),
     new ApifyAllowedSitesConnector(),
   ];
   return connectors.map((c) => ({ source: c.sourceName, configured: c.isConfigured() }));

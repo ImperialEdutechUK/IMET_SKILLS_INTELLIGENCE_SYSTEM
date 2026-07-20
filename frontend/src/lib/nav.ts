@@ -31,14 +31,6 @@ export const navConfig: Record<Role, NavSection[]> = {
         { label: "Skill Gaps", href: "/manager/gaps", icon: BarChart3 },
         { label: "AI Insights", href: "/manager/ai-insights", icon: Sparkles },
         { label: "Reports", href: "/manager/reports", icon: BarChart3 },
-      ],
-    },
-    {
-      title: "Personal",
-      items: [
-        { label: "My Learning", href: "/me/learning", icon: BookOpen },
-        { label: "My Skills", href: "/me/skills", icon: Target },
-        { label: "My CPD", href: "/me/cpd", icon: Award },
         { label: "Settings", href: "/me/settings", icon: Settings },
       ],
     },

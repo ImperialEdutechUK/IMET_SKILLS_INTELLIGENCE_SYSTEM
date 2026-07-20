@@ -70,30 +70,30 @@ export default function ManagerDashboardPage() {
             <Link
               key={dept.id}
               href={`/manager/departments/${dept.id}`}
-              className="group rounded-xl border border-[var(--border)] p-5 transition-shadow hover:shadow-md"
-              style={{ backgroundColor: style.bg }}
+              className="group relative overflow-hidden rounded-xl border border-[var(--border)] bg-white p-5 transition-all hover:-translate-y-0.5 hover:border-[var(--muted)]/40 hover:shadow-sm"
             >
+              <span className="absolute inset-x-0 top-0 h-0.5" style={{ backgroundColor: style.fg }} />
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/70" style={{ color: style.fg }}>
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg" style={{ color: style.fg, backgroundColor: style.bg }}>
                     <Icon className="h-5 w-5" />
                   </span>
                   <h3 className="font-semibold text-[var(--ink)]">{dept.name}</h3>
                 </div>
                 <ArrowRight className="h-4 w-4 text-[var(--muted)] transition-transform group-hover:translate-x-0.5" />
               </div>
-              <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+              <div className="mt-5 grid grid-cols-3 gap-3">
                 <div>
-                  <p className="text-lg font-bold text-[var(--ink)]">{dept.teamMembers}</p>
-                  <p className="text-[10px] text-[var(--muted)]">Employees</p>
+                  <p className="text-2xl font-bold leading-none text-[var(--ink)]">{dept.teamMembers}</p>
+                  <p className="mt-1.5 text-[11px] font-medium uppercase tracking-wide text-[var(--muted)]">Employees</p>
                 </div>
                 <div>
-                  <p className="text-lg font-bold text-[var(--brand)]">{dept.avgCpd}%</p>
-                  <p className="text-[10px] text-[var(--muted)]">Avg CPD</p>
+                  <p className="text-2xl font-bold leading-none text-[var(--ink)]">{dept.avgCpd}<span className="text-base font-semibold text-[var(--muted)]">%</span></p>
+                  <p className="mt-1.5 text-[11px] font-medium uppercase tracking-wide text-[var(--muted)]">Avg CPD</p>
                 </div>
                 <div>
-                  <p className="text-lg font-bold text-[var(--ink)]">{dept.avgSkillLevel}/5</p>
-                  <p className="text-[10px] text-[var(--muted)]">Avg Skill</p>
+                  <p className="text-2xl font-bold leading-none text-[var(--ink)]">{dept.avgSkillLevel}<span className="text-base font-semibold text-[var(--muted)]">/5</span></p>
+                  <p className="mt-1.5 text-[11px] font-medium uppercase tracking-wide text-[var(--muted)]">Avg Skill</p>
                 </div>
               </div>
             </Link>

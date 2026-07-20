@@ -174,7 +174,8 @@ export async function generateRecommendations(
     };
   });
 
-  await prisma.$transaction([
+  await prisma.$transaction(
+    [
     prisma.recommendation.deleteMany({ where: { userId, source: "engine" } }),
     ...rows.map((r) =>
       prisma.recommendation.upsert({
@@ -204,7 +205,10 @@ export async function generateRecommendations(
         },
       })
     ),
-  ]);
+    ],
+    // Remote-DB latency headroom so N upserts can't expire the default 5s tx (P2028).
+    { timeout: 15000 }
+  );
 
   return {
     userId,

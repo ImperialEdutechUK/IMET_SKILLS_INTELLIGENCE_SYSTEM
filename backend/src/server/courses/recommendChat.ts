@@ -478,7 +478,8 @@ async function broadRecommendations(
  */
 async function persistChatRecommendations(userId: string, recommendations: ChatRecommendation[]) {
   const newIds = recommendations.map((r) => r.courseId);
-  await prisma.$transaction([
+  await prisma.$transaction(
+    [
     prisma.recommendation.deleteMany({ where: { userId, source: "ai", courseId: { notIn: newIds } } }),
     ...recommendations.map((r) =>
       prisma.recommendation.upsert({
@@ -504,7 +505,10 @@ async function persistChatRecommendations(userId: string, recommendations: ChatR
         },
       })
     ),
-  ]);
+    ],
+    // Remote-DB latency headroom so N upserts can't expire the default 5s tx (P2028).
+    { timeout: 15000 }
+  );
 }
 
 /** Read this employee's stored chat recommendations in display order. */

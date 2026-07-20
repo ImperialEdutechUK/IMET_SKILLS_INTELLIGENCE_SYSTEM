@@ -195,11 +195,14 @@ export async function runGapAnalysis(userId: string): Promise<GapAnalysisResult>
   }
 
   // Persist: replace this user's SkillGap set with the fresh computation.
-  await prisma.$transaction([
-    prisma.skillGap.deleteMany({ where: { userId } }),
-    ...gaps.map((g) =>
-      prisma.skillGap.create({
-        data: {
+  // Use a single deleteMany + createMany (2 round-trips) instead of one
+  // create() per gap (N+1 round-trips), which against a remote DB blows past
+  // the default 5s interactive-transaction timeout (P2028).
+  await prisma.$transaction(
+    [
+      prisma.skillGap.deleteMany({ where: { userId } }),
+      prisma.skillGap.createMany({
+        data: gaps.map((g) => ({
           userId,
           skillId: g.skillId,
           roleProfileId: role.id,
@@ -211,10 +214,11 @@ export async function runGapAnalysis(userId: string): Promise<GapAnalysisResult>
           priorityScore: g.priorityScore,
           importance: g.importance,
           confidence: g.confidence,
-        },
-      })
-    ),
-  ]);
+        })),
+      }),
+    ],
+    { timeout: 15000 }
+  );
 
   gaps.sort((a, b) => b.priorityScore - a.priorityScore);
 

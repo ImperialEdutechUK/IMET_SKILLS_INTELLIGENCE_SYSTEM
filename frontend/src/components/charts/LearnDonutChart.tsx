@@ -23,15 +23,15 @@ export default function LearnDonutChart({
 }: LearnDonutChartProps) {
   return (
     <div className="flex items-center gap-4">
-      <div style={{ height }} className="relative w-36 shrink-0">
+      <div style={{ height, width: height }} className="relative shrink-0">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
               data={data}
               cx="50%"
               cy="50%"
-              innerRadius="58%"
-              outerRadius="78%"
+              innerRadius="60%"
+              outerRadius="80%"
               dataKey="value"
               startAngle={90}
               endAngle={-270}
@@ -54,12 +54,12 @@ export default function LearnDonutChart({
           </div>
         )}
       </div>
-      <ul className="space-y-2">
+      <ul className="min-w-0 flex-1 space-y-2">
         {data.map((seg) => (
           <li key={seg.name} className="flex items-center gap-2 text-sm">
             <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: seg.color }} />
-            <span className="text-[var(--muted)]">{seg.name}</span>
-            <span className="ml-auto font-medium text-[var(--ink)]">{seg.value.toLocaleString()}</span>
+            <span className="min-w-0 flex-1 truncate text-[var(--muted)]" title={seg.name}>{seg.name}</span>
+            <span className="shrink-0 pl-1 font-medium tabular-nums text-[var(--ink)]">{seg.value.toLocaleString()}</span>
           </li>
         ))}
       </ul>

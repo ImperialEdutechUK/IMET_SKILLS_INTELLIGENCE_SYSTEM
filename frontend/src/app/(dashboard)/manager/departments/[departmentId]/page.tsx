@@ -10,7 +10,7 @@ import StatCard from "@/components/dashboard/StatCard";
 import AttentionList from "@/components/dashboard/AttentionList";
 import ActivityFeed from "@/components/dashboard/ActivityFeed";
 
-const CATEGORY_COLORS = ["#2e7d5b", "#378add", "#7f77dd", "#f59e0b", "#ef4444", "#9ca3af"];
+const CATEGORY_COLORS = ["#2e7d5b", "#3b82f6", "#8b5cf6", "#f59e0b", "#f43f5e", "#64748b"];
 
 interface MemberCourse {
   id: string;

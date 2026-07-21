@@ -41,13 +41,6 @@ export const navConfig: Record<Role, NavSection[]> = {
         { label: "User Management", href: "/admin/users", icon: UserCog },
         { label: "Pending Approvals", href: "/admin/approvals", icon: UserCheck },
         { label: "AI Recommendations", href: "/admin/recommendations", icon: Sparkles },
-      ],
-    },
-    {
-      title: "Personal",
-      items: [
-        { label: "My Learning", href: "/me/learning", icon: BookOpen },
-        { label: "My CPD", href: "/me/cpd", icon: Award },
         { label: "Settings", href: "/me/settings", icon: Settings },
       ],
     },

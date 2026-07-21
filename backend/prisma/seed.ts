@@ -75,7 +75,7 @@ async function main() {
     update: {},
     create: {
       email: "admin@imperiallearning.co.uk",
-      fullName: "Admin User",
+      fullName: "Admin",
       role: "admin",
       status: "active",
       passwordHash: adminDemoPw,

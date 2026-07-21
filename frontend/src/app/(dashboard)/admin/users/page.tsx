@@ -40,6 +40,16 @@ export default function UserManagementPage() {
 
   const filtered = data.users.filter((u) => u.fullName.toLowerCase().includes(search.toLowerCase()) || u.department.toLowerCase().includes(search.toLowerCase()));
 
+  // Group users by department so the list is organised and scannable.
+  const groups = filtered.reduce((acc, u) => {
+    const dept = u.department && u.department !== "—" ? u.department : "Unassigned";
+    (acc[dept] ??= []).push(u);
+    return acc;
+  }, {} as Record<string, User[]>);
+  const departments = Object.keys(groups).sort((a, b) =>
+    a === "Unassigned" ? 1 : b === "Unassigned" ? -1 : a.localeCompare(b)
+  );
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
@@ -59,20 +69,30 @@ export default function UserManagementPage() {
         {filtered.length === 0 ? (
           <p className="p-5 text-sm text-[var(--muted)]">No users match your search.</p>
         ) : (
-          <ul className="divide-y divide-[var(--border)]">
-            {filtered.map((user) => (
-              <li key={user.id} className="flex items-center gap-4 px-5 py-4">
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--brand-tint)] text-xs font-semibold text-[var(--brand-dark)]">{user.fullName.split(" ").map((p) => p[0]).join("").toUpperCase()}</span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-[var(--ink)]">{user.fullName}</p>
-                  <p className="text-xs text-[var(--muted)]">{user.department} · Last active: {user.lastActive}</p>
+          <div className="divide-y divide-[var(--border)]">
+            {departments.map((dept) => (
+              <div key={dept}>
+                <div className="flex items-center justify-between bg-slate-50/70 px-5 py-2">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">{dept}</h3>
+                  <span className="text-xs font-medium text-[var(--muted)]">{groups[dept].length}</span>
                 </div>
-                <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${roleConfig[user.role] ?? "bg-slate-100 text-slate-600"}`}>{user.role}</span>
-                <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${statusConfig[user.status] ?? "bg-slate-100 text-slate-600"}`}>{user.status.replace("_", " ")}</span>
-                <button className="shrink-0 text-xs text-[var(--brand)] hover:text-[var(--brand-dark)]">Edit</button>
-              </li>
+                <ul className="divide-y divide-[var(--border)]">
+                  {groups[dept].map((user) => (
+                    <li key={user.id} className="flex items-center gap-4 px-5 py-4">
+                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--brand-tint)] text-xs font-semibold text-[var(--brand-dark)]">{user.fullName.split(" ").map((p) => p[0]).join("").toUpperCase()}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-[var(--ink)]">{user.fullName}</p>
+                        <p className="text-xs text-[var(--muted)]">Last active: {user.lastActive}</p>
+                      </div>
+                      <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${roleConfig[user.role] ?? "bg-slate-100 text-slate-600"}`}>{user.role}</span>
+                      <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${statusConfig[user.status] ?? "bg-slate-100 text-slate-600"}`}>{user.status.replace("_", " ")}</span>
+                      <button className="shrink-0 text-xs text-[var(--brand)] hover:text-[var(--brand-dark)]">Edit</button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </div>
     </div>

@@ -88,7 +88,7 @@ async function main() {
     update: {},
     create: {
       email: "manager@imperiallearning.co.uk",
-      fullName: "Sarah Johnson",
+      fullName: "Manager",
       role: "manager",
       status: "active",
       passwordHash: managerDemoPw,
@@ -181,7 +181,7 @@ async function main() {
       })
     )
   );
-  const emma = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: { email: "employee@imperiallearning.co.uk" },
     update: {},
     create: {

@@ -20,14 +20,16 @@
  */
 import { DocumentType, type MatchLabel, type Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { numberToLevel, clampLevel, MAX_LEVEL } from "@/lib/levels";
-import { rankCourses, type ScoringGap, type ScoringCourse, type CourseScore } from "./scoring";
-import { runGapAnalysis, GapAnalysisError } from "@/server/gaps/gapAnalysis";
+import { withLock } from "@/lib/locks";
+import { numberToLevel } from "@/lib/levels";
+import { rankCourses, selectDiverseTop, type ScoringGap, type ScoringCourse, type CourseScore } from "./scoring";
+import { runGapAnalysis, GapAnalysisError, loadSelfAssessedGaps } from "@/server/gaps/gapAnalysis";
 import { generateJson, isConfigured, activeProvider } from "@/server/ai/aiClient";
 import {
   PREFERENCE_QUESTIONS,
   readablePreferences,
   applyPreferences,
+  compareBoosted,
   type ChatAnswers,
   type Boosted,
 } from "./recommendPreferences";
@@ -85,7 +87,11 @@ async function loadGaps(userId: string): Promise<{ gaps: ScoringGap[] } | { note
     if (err instanceof GapAnalysisError) return { note: err.message };
     throw err;
   }
-  const stored = await prisma.skillGap.findMany({ where: { userId }, include: { skill: true } });
+  const stored = await prisma.skillGap.findMany({
+    where: { userId },
+    include: { skill: true },
+    orderBy: { priorityScore: "desc" },
+  });
   const gaps = stored
     .filter((g) => g.status !== "MEETS_REQUIREMENT")
     .map((g) => ({
@@ -104,10 +110,11 @@ async function loadGaps(userId: string): Promise<{ gaps: ScoringGap[] } | { note
 //
 // Gap analysis needs the role's *required* skill levels (a RoleProfile, set up
 // by a manager/admin) to compare against. When that doesn't exist yet we can't
-// compute true gaps — but we can still help by treating the employee's own
-// recorded skills as things to deepen, and, failing even that, by surfacing
-// solid catalogue picks. These paths always carry a note nudging the employee
-// (or their manager) toward the inputs that sharpen the results.
+// compute true gaps — but we can still help via `loadSelfAssessedGaps`
+// (gapAnalysis.ts), which treats the employee's own recorded skills as things
+// to deepen, and, failing even that, by surfacing solid catalogue picks. These
+// paths always carry a note nudging the employee (or their manager) toward the
+// inputs that sharpen the results.
 
 const FALLBACK_SKILLS_NOTE =
   "Heads up: I don't have a full role profile for your position yet, so these picks " +
@@ -120,32 +127,6 @@ const FALLBACK_BROAD_NOTE =
   "are solid, well-rated starting points rather than tailored picks. Upload your Skills " +
   "Matrix, CPD Log or Daily Report — or ask your manager to set up your role profile — " +
   "and I'll tailor these to close your specific gaps.";
-
-/**
- * Synthesise "improvement gaps" from the employee's own recorded skills, used
- * when there is no role profile to compute real gaps against. Each skill below
- * the ceiling becomes a gap to move one level up (or toward its target level).
- */
-async function loadFallbackGaps(userId: string): Promise<ScoringGap[]> {
-  const userSkills = await prisma.userSkill.findMany({ where: { userId }, include: { skill: true } });
-  const gaps: ScoringGap[] = [];
-  for (const us of userSkills) {
-    const currentLevel = clampLevel(us.currentLevel);
-    if (currentLevel >= MAX_LEVEL) continue; // already at the ceiling — nothing to target
-    const requiredLevel = Math.min(MAX_LEVEL, Math.max(currentLevel + 1, clampLevel(us.targetLevel)));
-    const gapValue = requiredLevel - currentLevel;
-    gaps.push({
-      skillId: us.skillId,
-      skill: us.skill.name,
-      currentLevel,
-      requiredLevel,
-      gapValue,
-      status: gapValue >= 2 ? "CRITICAL_GAP" : "NEEDS_IMPROVEMENT",
-      priorityScore: gapValue * 30,
-    });
-  }
-  return gaps;
-}
 
 // ── AI selection + explanation ────────────────────────────────────────────────
 
@@ -170,7 +151,11 @@ STRICT RULES:
   cybersecurity course for a security team vs. an AI-agent course for an AI developer),
   even if its skill tags match. When two courses fit the role equally well, prefer the
   higher "rating".
-- Order best-first. Return at most ${limit}.
+- Return EXACTLY ${limit} picks when the list has at least ${limit} candidates (every candidate
+  covers a real skill gap, so a longer list is more helpful than a short one); return all of
+  them only if fewer than ${limit} exist. Order best-first.
+- Spread your picks across DIFFERENT skill gaps when the candidates allow it — don't spend
+  every slot on the same gap while another gap with matching candidates gets nothing.
 - For each pick write a 1–2 sentence "reason" in plain, encouraging English that ties the
   course to (a) the employee's ROLE, (b) the specific skill GAP(s) it closes, and (c) the
   employee's stated PREFERENCES where relevant. Do not mention scores, algorithms, or JSON.
@@ -213,7 +198,7 @@ export async function generateChatRecommendations(
   if (!user) throw new RecommendationChatError("Employee not found.");
 
   const answers = opts.answers ?? {};
-  const limit = Math.min(Math.max(opts.limit ?? 4, 1), 6);
+  const limit = Math.min(Math.max(opts.limit ?? 5, 1), 6);
   const provider = activeProvider();
 
   const base = {
@@ -234,7 +219,7 @@ export async function generateChatRecommendations(
 
   const gapResult = await loadGaps(userId);
   if ("note" in gapResult) {
-    gaps = await loadFallbackGaps(userId);
+    gaps = await loadSelfAssessedGaps(userId);
     if (gaps.length === 0) {
       // Nothing personal to go on — surface solid catalogue picks instead.
       return broadRecommendations(userId, base, limit);
@@ -303,8 +288,33 @@ export async function generateChatRecommendations(
     enrollmentCount: c.enrollmentCount,
   }));
 
+  // Be transparent about gaps NO approved course covers: silently recommending
+  // around them reads as a vague/wrong answer ("why nothing for X?"), and the
+  // L&D team never learns the catalogue has a hole.
+  const candidateSkillIds = new Set(candidates.flatMap((c) => c.skillIds));
+  const uncoveredGaps = gaps.filter((g) => !candidateSkillIds.has(g.skillId));
+  if (uncoveredGaps.length > 0) {
+    const names = uncoveredGaps.map((g) => g.skill).join(", ");
+    const uncoveredNote =
+      `Heads up: the approved catalogue doesn't yet have a course covering ${names} — ` +
+      `I've focused your picks on the gaps it does cover. Ask your L&D team to add or approve courses for the rest.`;
+    generalNote = generalNote ? `${generalNote} ${uncoveredNote}` : uncoveredNote;
+  }
+
   const ranked = rankCourses(scoringCourses, gaps);
-  const boosted = applyPreferences(ranked, courseById, answers).slice(0, Math.max(limit * 2, 8));
+  const boostedAll = applyPreferences(ranked, courseById, answers);
+  // Diversity-aware candidate pool: without this, a gap the catalogue serves
+  // especially well (e.g. a dozen Excel courses) can crowd out every slot,
+  // leaving the AI nothing to pick for the employee's other, possibly more
+  // urgent, gaps. selectDiverseTop keeps the pool bounded but ensures each
+  // high-priority gap gets a fair shot at a candidate before backfilling by score.
+  const boosted = selectDiverseTop(
+    boostedAll,
+    gaps,
+    Math.max(limit * 2, 8),
+    (b) => b.score.coveredGaps.map((g) => g.skillId),
+    compareBoosted
+  );
   if (boosted.length === 0) {
     return { ...base, note: "No suitable approved courses matched your skill gaps." };
   }
@@ -364,11 +374,35 @@ export async function generateChatRecommendations(
     }
   }
 
-  // Final ordering: AI order if we have it, else the boosted deterministic order.
+  // Final ordering: the AI's picks first (when we have them), backfilled from
+  // the deterministic order so a terse AI response can never shrink the list
+  // below `limit` — the employee always gets the full top-N whenever that many
+  // candidates exist.
   const boostedById = new Map(boosted.map((b) => [b.score.courseId, b]));
-  const orderedIds = (aiOrder ?? boosted.map((b) => b.score.courseId))
-    .filter((id) => boostedById.has(id))
-    .slice(0, limit);
+  const fallbackOrder = selectDiverseTop(
+    boosted,
+    gaps,
+    limit,
+    (b) => b.score.coveredGaps.map((g) => g.skillId),
+    compareBoosted
+  ).map((b) => b.score.courseId);
+  const prelimIds: string[] = [];
+  for (const id of [...(aiOrder ?? []), ...fallbackOrder, ...boosted.map((b) => b.score.courseId)]) {
+    if (boostedById.has(id) && !prelimIds.includes(id)) prelimIds.push(id);
+  }
+  // Enforce gap diversity on the final slice — even over the AI's picks. The
+  // candidate pool is diversity-selected, but the AI could still spend every
+  // slot on the same well-served gap; this pass guarantees each of the
+  // employee's gaps that HAS a candidate gets a fair shot at a slot, while
+  // preserving the AI/deterministic preference order within that constraint.
+  const rankOf = new Map(prelimIds.map((id, i) => [id, i]));
+  const orderedIds = selectDiverseTop(
+    prelimIds.map((id) => boostedById.get(id)!),
+    gaps,
+    limit,
+    (b) => b.score.coveredGaps.map((g) => g.skillId),
+    (a, b) => rankOf.get(a.score.courseId)! - rankOf.get(b.score.courseId)!
+  ).map((b) => b.score.courseId);
 
   const recommendations: ChatRecommendation[] = orderedIds.map((id, i) => {
     const b = boostedById.get(id)!;
@@ -478,33 +512,43 @@ async function broadRecommendations(
  */
 async function persistChatRecommendations(userId: string, recommendations: ChatRecommendation[]) {
   const newIds = recommendations.map((r) => r.courseId);
-  await prisma.$transaction([
-    prisma.recommendation.deleteMany({ where: { userId, source: "ai", courseId: { notIn: newIds } } }),
-    ...recommendations.map((r) =>
-      prisma.recommendation.upsert({
-        where: { userId_courseId: { userId, courseId: r.courseId } },
-        update: {
-          matchLabel: r.matchLabel,
-          matchScore: r.matchScore,
-          reason: r.reason,
-          rank: r.rank,
-          gapsCovered: r.gapsCovered as unknown as Prisma.InputJsonValue,
-          source: "ai",
-          dismissed: false,
-        },
-        create: {
-          userId,
-          courseId: r.courseId,
-          matchLabel: r.matchLabel,
-          matchScore: r.matchScore,
-          reason: r.reason,
-          rank: r.rank,
-          gapsCovered: r.gapsCovered as unknown as Prisma.InputJsonValue,
-          source: "ai",
-        },
-      })
-    ),
-  ]);
+  // Exactly 2 statements (delete + createMany), NOT one upsert per row: against
+  // the remote DB, N upserts hold a pooled connection for 2N round-trips, which
+  // both expires the transaction (P2028 "expired") and — under concurrent
+  // requests — starves the pool so new transactions can't even start (P2028
+  // "unable to start"). The delete clears this user's previous "ai" picks plus
+  // any row (e.g. an "engine" one) colliding on the (userId, courseId) unique
+  // key, which is what the old upsert's update branch handled.
+  //
+  // withLock serialises the replace per user so two concurrent generations
+  // can't interleave their delete+insert and trip the unique key (P2002);
+  // skipDuplicates absorbs any race the in-process lock can't see.
+  await withLock(`recommendations:${userId}`, () =>
+    prisma.$transaction(
+      [
+        prisma.recommendation.deleteMany({
+          where: { userId, OR: [{ source: "ai" }, { courseId: { in: newIds } }] },
+        }),
+        prisma.recommendation.createMany({
+          data: recommendations.map((r) => ({
+            userId,
+            courseId: r.courseId,
+            matchLabel: r.matchLabel,
+            matchScore: r.matchScore,
+            reason: r.reason,
+            rank: r.rank,
+            gapsCovered: r.gapsCovered as unknown as Prisma.InputJsonValue,
+            source: "ai",
+          })),
+          skipDuplicates: true,
+        }),
+      ],
+      // maxWait: allow up to 10s to *acquire* a connection when the pool is busy
+      // (default 2s is what threw P2028 "unable to start a transaction in the
+      // given time"); timeout: headroom for the work itself on a remote DB.
+      { maxWait: 10000, timeout: 15000 }
+    )
+  );
 }
 
 /** Read this employee's stored chat recommendations in display order. */

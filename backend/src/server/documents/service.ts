@@ -25,6 +25,10 @@ const EMPLOYEE_DOC_TYPES: DocumentType[] = [
   "SKILL_MATRIX",
 ];
 const ROLE_DOC_TYPES: DocumentType[] = ["ROLE_REQUIREMENT", "JOB_DESCRIPTION"];
+// Documents that state the employee's level outright (vs. incidental evidence
+// of use). These SET the stored level — including lowering a stale record —
+// while daily reports / CPD logs only ever raise it.
+const AUTHORITATIVE_DOC_TYPES: DocumentType[] = ["SKILL_MATRIX", "MANAGER_EVALUATION"];
 
 export interface SaveUploadInput {
   buffer: Buffer;
@@ -130,7 +134,10 @@ export async function processDocument(documentId: string, opts: ProcessOptions =
       };
     }
 
-    const { stored } = await storeEmployeeSkills(targetUserId, outcome.data.detectedSkills, { useAI });
+    const { stored } = await storeEmployeeSkills(targetUserId, outcome.data.detectedSkills, {
+      useAI,
+      mode: AUTHORITATIVE_DOC_TYPES.includes(doc.type) ? "authoritative" : "observational",
+    });
     await prisma.document.update({
       where: { id: doc.id },
       data: {

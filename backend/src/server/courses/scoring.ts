@@ -4,9 +4,15 @@
  * Pure functions (no DB, no AI) so they are fully unit-testable. The AI only
  * ever *explains* the ranking afterwards — it never changes these numbers.
  *
- * Scoring rules (from the spec):
- *   +50  covers a missing/weak skill (at least one gap)
- *   +20  covers more than one gap
+ * Scoring rules:
+ *   +25..+55  covers the learner's highest-priority gap, scaled by that gap's
+ *             priorityScore (severity × role importance × confidence × dept
+ *             weight) — a CRITICAL, high-importance gap scores well above a
+ *             trivial one-level, low-importance gap, instead of both getting
+ *             an identical flat bonus
+ *   +0..+30   covers additional gaps beyond the top one, same priority
+ *             scaling, capped so a multi-gap course can't spiral past a
+ *             tightly-focused one
  *   +15  level is suitable for the employee
  *   +10  duration is short/reasonable
  *   +10  provider is approved/preferred
@@ -17,8 +23,11 @@
 import { courseLevelToNumber, courseLevelFit, numberToLevel, type GapStatus } from "@/lib/levels";
 
 export const SCORE = {
-  COVERS_GAP: 50,
-  MULTI_GAP: 20,
+  // COVERS_GAP and MULTI_GAP are no longer flat — see gapCoveragePoints()
+  // below. Kept here (values unused) only so ScoreBreakdownItem.code stays
+  // typed against the full set of scoring codes.
+  COVERS_GAP: 0,
+  MULTI_GAP: 0,
   LEVEL_SUITABLE: 15,
   DURATION_REASONABLE: 10,
   PREFERRED_PROVIDER: 10,
@@ -33,6 +42,16 @@ export const REASONABLE_DURATION_HOURS = 40;
 export const HIGH_MATCH_THRESHOLD = 75;
 /** Ceiling on the quality (rating + reach) signal used only to break ties. */
 export const MAX_QUALITY_BONUS = 10;
+/** Baseline coverage points for the lowest-priority gap a course still covers. */
+export const GAP_COVERAGE_MIN = 25;
+/** Ceiling of coverage points for a critical, high-priority gap. */
+export const GAP_COVERAGE_MAX = 55;
+/** priorityScore at/above this is treated as "as urgent as it gets" for scaling. */
+export const GAP_PRIORITY_CEILING = 100;
+/** Each additional covered gap (beyond the top-priority one) contributes this fraction of its own coverage value. */
+export const ADDITIONAL_GAP_FACTOR = 0.35;
+/** Ceiling on the combined bonus from additional covered gaps. */
+export const ADDITIONAL_GAP_CAP = 30;
 
 export interface ScoringGap {
   skillId: string;
@@ -91,26 +110,47 @@ export function computeQualityScore(rating?: number | null, enrollmentCount = 0)
 }
 
 /**
+ * Points for covering one gap, scaled by its priorityScore so a course that
+ * closes a critical, high-importance gap scores meaningfully higher than one
+ * that only nudges a low-priority, one-level gap — instead of a flat bonus
+ * that treated every covered gap identically until tie-breaks.
+ */
+export function gapCoveragePoints(gap: ScoringGap): number {
+  const fraction = Math.max(0, Math.min(1, gap.priorityScore / GAP_PRIORITY_CEILING));
+  return Math.round(GAP_COVERAGE_MIN + (GAP_COVERAGE_MAX - GAP_COVERAGE_MIN) * fraction);
+}
+
+/**
  * Score one course against an employee's gaps. Returns `null` when the course
  * covers no outstanding gap (it is simply not a candidate).
  */
 export function scoreCourse(course: ScoringCourse, gaps: ScoringGap[]): CourseScore | null {
   const skillSet = new Set(course.skillIds);
-  const coveredGaps = gaps.filter(
-    (g) => skillSet.has(g.skillId) && g.status !== "MEETS_REQUIREMENT"
-  );
+  // Highest-priority covered gap first, so both the score and the reason text
+  // (which quotes coveredGaps[0]) foreground what matters most to this learner.
+  const coveredGaps = gaps
+    .filter((g) => skillSet.has(g.skillId) && g.status !== "MEETS_REQUIREMENT")
+    .sort((a, b) => b.priorityScore - a.priorityScore);
   if (coveredGaps.length === 0) return null;
 
   const breakdown: ScoreBreakdownItem[] = [];
-  const add = (code: keyof typeof SCORE, label: string) =>
-    breakdown.push({ code, label, points: SCORE[code] });
+  const add = (code: keyof typeof SCORE, label: string, points: number = SCORE[code]) =>
+    breakdown.push({ code, label, points });
 
-  // +50 covers a missing/weak skill
-  add("COVERS_GAP", `Addresses ${coveredGaps[0].skill}`);
+  // Covers the top-priority gap — scaled, not flat (see gapCoveragePoints).
+  add("COVERS_GAP", `Addresses ${coveredGaps[0].skill}`, gapCoveragePoints(coveredGaps[0]));
 
-  // +20 covers more than one gap
+  // Covers more than one gap — each additional gap contributes a scaled,
+  // capped share of its own coverage value rather than a flat +20 regardless
+  // of how many gaps or how important they are.
   if (coveredGaps.length >= 2) {
-    add("MULTI_GAP", `Covers ${coveredGaps.length} skill gaps at once`);
+    const extraPoints = Math.min(
+      ADDITIONAL_GAP_CAP,
+      Math.round(
+        coveredGaps.slice(1).reduce((sum, g) => sum + gapCoveragePoints(g) * ADDITIONAL_GAP_FACTOR, 0)
+      )
+    );
+    add("MULTI_GAP", `Covers ${coveredGaps.length} skill gaps at once`, extraPoints);
   }
 
   // Level suitability, driven by the weakest covered skill.
@@ -178,6 +218,23 @@ export function buildReason(course: ScoringCourse, coveredGaps: ScoringGap[]): s
 }
 
 /**
+ * Deterministic ranking order: normalised score, then the combined priority of
+ * the gaps covered, then coverage breadth, relevance and quality tie-breaks.
+ * Exported so callers can re-sort a subset (e.g. after `selectDiverseTop`)
+ * without duplicating the comparator.
+ */
+export function compareCourseScore(a: CourseScore, b: CourseScore): number {
+  return (
+    b.normalized - a.normalized ||
+    b.gapPriorityScore - a.gapPriorityScore ||
+    b.coveredGaps.length - a.coveredGaps.length ||
+    b.relevanceRatio - a.relevanceRatio || // prefer the more on-target course
+    b.qualityScore - a.qualityScore || // then the better-rated / more-taken one
+    a.title.localeCompare(b.title)
+  );
+}
+
+/**
  * Score and rank a set of courses. Sorted by normalised score, then by the
  * combined priority of the gaps covered (so higher-priority gaps win ties).
  */
@@ -186,14 +243,52 @@ export function rankCourses(courses: ScoringCourse[], gaps: ScoringGap[]): Cours
     .map((c) => scoreCourse(c, gaps))
     .filter((s): s is CourseScore => s !== null && s.rawScore > 0);
 
-  scored.sort(
-    (a, b) =>
-      b.normalized - a.normalized ||
-      b.gapPriorityScore - a.gapPriorityScore ||
-      b.coveredGaps.length - a.coveredGaps.length ||
-      b.relevanceRatio - a.relevanceRatio || // prefer the more on-target course
-      b.qualityScore - a.qualityScore || // then the better-rated / more-taken one
-      a.title.localeCompare(b.title)
-  );
+  scored.sort(compareCourseScore);
   return scored;
+}
+
+/**
+ * Trim a ranked list to `limit` while giving each of the learner's
+ * highest-priority gaps a fair shot at representation, instead of letting
+ * whichever gap happens to be best-served by the catalogue crowd out every
+ * slot (e.g. ten great Excel courses pushing out the only course covering a
+ * CRITICAL SQL gap). Purely a reshuffle: it never adds a course that wasn't
+ * already in `items` and never returns more than `limit`.
+ *
+ * Pass 1 walks the learner's gaps in priority order and claims, for each gap
+ * not yet represented, the single best-ranked remaining item that covers it.
+ * Pass 2 fills any leftover slots with the next-best items overall, so once
+ * every gap has a foothold the list still favours quality and legitimate
+ * overlap (e.g. two strong courses for the one CRITICAL gap).
+ */
+export function selectDiverseTop<T>(
+  items: T[],
+  gaps: ScoringGap[],
+  limit: number,
+  coveredSkillIdsOf: (item: T) => string[],
+  compare: (a: T, b: T) => number
+): T[] {
+  if (items.length <= limit) return items;
+
+  const gapsByPriority = [...gaps].sort((a, b) => b.priorityScore - a.priorityScore);
+  const remaining = [...items];
+  const picked: T[] = [];
+  const representedSkillIds = new Set<string>();
+
+  for (const gap of gapsByPriority) {
+    if (picked.length >= limit) break;
+    if (representedSkillIds.has(gap.skillId)) continue;
+    const idx = remaining.findIndex((item) => coveredSkillIdsOf(item).includes(gap.skillId));
+    if (idx === -1) continue;
+    const [item] = remaining.splice(idx, 1);
+    picked.push(item);
+    for (const skillId of coveredSkillIdsOf(item)) representedSkillIds.add(skillId);
+  }
+
+  for (const item of remaining) {
+    if (picked.length >= limit) break;
+    picked.push(item);
+  }
+
+  return picked.sort(compare);
 }

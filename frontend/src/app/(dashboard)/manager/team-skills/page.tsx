@@ -37,7 +37,7 @@ export default function TeamSkillsPage() {
   return (
     <div>
       <div className="mb-6 flex items-start justify-between gap-4">
-        <div><h1 className="text-2xl font-bold text-[var(--ink)]">Team Skills</h1><p className="mt-1 text-sm text-[var(--muted)]">Skill levels and gaps across your team.</p></div>
+        <div><h1 className="text-2xl font-bold text-[var(--ink)]">Skills</h1><p className="mt-1 text-sm text-[var(--muted)]">Skill levels and gaps across your team.</p></div>
         <select value={deptId} onChange={e => setDeptId(e.target.value)} className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm outline-none focus:border-[var(--brand)]">
           <option value="">All Departments</option>
           {depts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}

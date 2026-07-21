@@ -17,7 +17,7 @@ export default function DeptTeamLearningPage() {
   if (!data) return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load team learning.</p></div>;
   return (
     <div>
-      <div className="mb-6"><h1 className="text-2xl font-bold text-[var(--ink)]">Team Learning</h1><p className="mt-1 text-sm text-[var(--muted)]">Learning progress for this department.</p></div>
+      <div className="mb-6"><h1 className="text-2xl font-bold text-[var(--ink)]">Learning</h1><p className="mt-1 text-sm text-[var(--muted)]">Learning progress for this department.</p></div>
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-4">
         <StatCard icon={Users} label="Team Members" value={data.teamMembers} />
         <StatCard icon={BookOpen} label="In Progress" value={data.inProgress} />

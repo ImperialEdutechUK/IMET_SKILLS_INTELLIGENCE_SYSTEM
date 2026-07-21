@@ -1,21 +1,8 @@
 import type { NextConfig } from "next";
 
-const corsOrigin = process.env.CORS_ORIGIN ?? "http://localhost:3000";
-
-const nextConfig: NextConfig = {
-  async headers() {
-    return [
-      {
-        source: "/api/:path*",
-        headers: [
-          { key: "Access-Control-Allow-Origin", value: corsOrigin },
-          { key: "Access-Control-Allow-Methods", value: "GET, POST, PUT, DELETE, OPTIONS" },
-          { key: "Access-Control-Allow-Headers", value: "Content-Type, Authorization" },
-          { key: "Access-Control-Allow-Credentials", value: "true" },
-        ],
-      },
-    ];
-  },
-};
+// CORS (including the OPTIONS preflight) is handled in src/middleware.ts.
+// It is intentionally NOT set here too: emitting the headers from both places
+// produces duplicate Access-Control-Allow-Origin values, which browsers reject.
+const nextConfig: NextConfig = {};
 
 export default nextConfig;

@@ -3,10 +3,14 @@ import {
   scoreCourse,
   rankCourses,
   computeQualityScore,
+  gapCoveragePoints,
+  selectDiverseTop,
+  compareCourseScore,
   MAX_QUALITY_BONUS,
   SCORE,
   type ScoringGap,
   type ScoringCourse,
+  type CourseScore,
 } from "./scoring";
 
 const gaGap: ScoringGap = {
@@ -46,10 +50,28 @@ describe("scoreCourse", () => {
     expect(scoreCourse(c, [gaGap])).toBeNull();
   });
 
-  it("awards +50 for covering a gap", () => {
+  it("awards points for covering a gap, scaled by that gap's priority", () => {
     const c = course({ id: "x", skillIds: ["ga"], level: "Beginner", durationHours: null, approved: true });
     const s = scoreCourse(c, [gaGap])!;
-    expect(s.breakdown.find((b) => b.code === "COVERS_GAP")?.points).toBe(SCORE.COVERS_GAP);
+    const expected = gapCoveragePoints(gaGap);
+    expect(s.breakdown.find((b) => b.code === "COVERS_GAP")?.points).toBe(expected);
+    expect(expected).toBeGreaterThan(0);
+  });
+
+  it("gives a higher-priority gap more coverage points than a low-priority one", () => {
+    const criticalGap: ScoringGap = {
+      skillId: "sec", skill: "Cloud Security", currentLevel: 0, requiredLevel: 4,
+      gapValue: 4, status: "CRITICAL_GAP", priorityScore: 150,
+    };
+    const minorGap: ScoringGap = {
+      skillId: "note", skill: "Note Taking", currentLevel: 3, requiredLevel: 4,
+      gapValue: 1, status: "NEEDS_IMPROVEMENT", priorityScore: 20,
+    };
+    const critical = scoreCourse(course({ id: "c1", skillIds: ["sec"], level: "Beginner", durationHours: null }), [criticalGap])!;
+    const minor = scoreCourse(course({ id: "c2", skillIds: ["note"], level: "Advanced", durationHours: null }), [minorGap])!;
+    const criticalPoints = critical.breakdown.find((b) => b.code === "COVERS_GAP")!.points;
+    const minorPoints = minor.breakdown.find((b) => b.code === "COVERS_GAP")!.points;
+    expect(criticalPoints).toBeGreaterThan(minorPoints);
   });
 
   it("awards +20 for covering more than one gap", () => {
@@ -87,7 +109,9 @@ describe("scoreCourse", () => {
       course({ id: "x", skillIds: ["ga", "cr"], level: "Intermediate", durationHours: 10, preferredProvider: true, availableToOrg: true }),
       [gaGap, crGap]
     )!;
-    expect(s.rawScore).toBe(115); // 50+20+15+10+10+10
+    // Both gaps + level fit + duration + provider + availability comfortably
+    // saturate the 0–100 scale for this well-served, well-fitting course.
+    expect(s.rawScore).toBeGreaterThanOrEqual(100);
     expect(s.normalized).toBe(100);
     expect(s.matchLabel).toBe("high");
   });
@@ -165,5 +189,62 @@ describe("rankCourses — quality & relevance tie-breaks", () => {
     // spends all its skills on what the learner needs — it wins on relevance.
     expect(ranked[0].title).toBe("ZZZ Focused");
     expect(ranked[0].relevanceRatio).toBeGreaterThan(ranked[1].relevanceRatio);
+  });
+});
+
+describe("selectDiverseTop", () => {
+  const sqlGap: ScoringGap = {
+    skillId: "sql", skill: "SQL", currentLevel: 0, requiredLevel: 3,
+    gapValue: 3, status: "CRITICAL_GAP", priorityScore: 120,
+  };
+
+  it("gives an under-served CRITICAL gap a slot instead of letting an over-served gap take every slot", () => {
+    // Five well-rounded, multi-gap Excel/reporting courses all outscore the
+    // single course covering the learner's separate CRITICAL SQL gap.
+    const excelCourses: ScoringCourse[] = Array.from({ length: 5 }, (_, i) =>
+      course({
+        id: `excel-${i}`,
+        title: `Excel Course ${i}`,
+        skillIds: ["ga", "cr"],
+        level: "Intermediate",
+        durationHours: 10,
+        preferredProvider: true,
+        availableToOrg: true,
+      })
+    );
+    const sqlCourse = course({ id: "sql-1", title: "SQL Fundamentals", skillIds: ["sql"], level: "Beginner" });
+    const gaps = [gaGap, crGap, sqlGap];
+
+    const ranked = rankCourses([...excelCourses, sqlCourse], gaps);
+    // Without diversification the SQL course falls outside a naive top-3 slice.
+    const naiveTop3 = ranked.slice(0, 3);
+    expect(naiveTop3.some((r) => r.courseId === "sql-1")).toBe(false);
+
+    const diverse = selectDiverseTop(ranked, gaps, 3, (r) => r.coveredGaps.map((g) => g.skillId), compareCourseScore);
+    expect(diverse).toHaveLength(3);
+    expect(diverse.some((r) => r.courseId === "sql-1")).toBe(true);
+  });
+
+  it("is a no-op when there are already fewer items than the limit", () => {
+    const ranked = rankCourses(
+      [course({ id: "a", skillIds: ["ga"], level: "Beginner" })],
+      [gaGap]
+    );
+    const diverse = selectDiverseTop(ranked, [gaGap], 5, (r) => r.coveredGaps.map((g) => g.skillId), compareCourseScore);
+    expect(diverse).toEqual(ranked);
+  });
+
+  it("never returns more than the requested limit or invents items", () => {
+    const items: CourseScore[] = rankCourses(
+      [
+        course({ id: "a", skillIds: ["ga"], level: "Beginner" }),
+        course({ id: "b", skillIds: ["cr"], level: "Beginner" }),
+        course({ id: "c", skillIds: ["ga", "cr"], level: "Beginner" }),
+      ],
+      [gaGap, crGap]
+    );
+    const diverse = selectDiverseTop(items, [gaGap, crGap], 2, (r) => r.coveredGaps.map((g) => g.skillId), compareCourseScore);
+    expect(diverse.length).toBeLessThanOrEqual(2);
+    for (const d of diverse) expect(items.map((i) => i.courseId)).toContain(d.courseId);
   });
 });

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { verifyToken } from "@/lib/verifyToken";
 import { getCpdTargetHours } from "@/lib/cpd-target";
+import { cpdRiskStatus } from "@/lib/cpd-risk";
 
 export async function GET(req: Request) {
   const authUser = verifyToken(req);
@@ -24,12 +25,13 @@ export async function GET(req: Request) {
       if (!targetCache.has(key)) targetCache.set(key, await getCpdTargetHours(key));
       const target = targetCache.get(key)!;
       const cpdHours = u.cpdRecords.reduce((s, r) => s + r.hours, 0);
-      const cpdProgress = Math.min(100, Math.round((cpdHours / target) * 100));
-      return { id: u.id, fullName: u.fullName, cpdProgress };
+      const { cpdProgress, status } = cpdRiskStatus(cpdHours, target);
+      return { id: u.id, fullName: u.fullName, cpdProgress, status };
     })
   );
 
-  const onTrack = members.filter((m) => m.cpdProgress >= 60).length;
+  const atRisk = members.filter((m) => m.status === "at_risk").length;
+  const onTrack = members.length - members.filter((m) => m.status).length;
   const avg = members.length
     ? Math.round(members.reduce((s, m) => s + m.cpdProgress, 0) / members.length)
     : 0;
@@ -37,7 +39,7 @@ export async function GET(req: Request) {
   return NextResponse.json({
     avg,
     onTrack,
-    atRisk: members.length - onTrack,
+    atRisk,
     members,
   });
 }

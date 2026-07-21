@@ -34,8 +34,8 @@ export default function DeptTeamCpdPage() {
                   <p className="text-sm font-medium text-[var(--ink)]">{m.fullName}</p>
                   <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-[var(--brand)]" style={{width:`${m.cpdProgress}%`}} /></div>
                 </div>
-                <span className={`shrink-0 text-sm font-semibold ${m.cpdProgress >= 60 ? "text-[var(--brand)]" : "text-amber-600"}`}>{m.cpdProgress}%</span>
-                <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${m.cpdProgress >= 60 ? "bg-[var(--brand-tint)] text-[var(--brand-dark)]" : "bg-amber-50 text-amber-700"}`}>{m.cpdProgress >= 60 ? "On Track" : "At Risk"}</span>
+                <span className={`shrink-0 text-sm font-semibold ${m.status ? "text-amber-600" : "text-[var(--brand)]"}`}>{m.cpdProgress}%</span>
+                <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${m.status === "at_risk" ? "bg-red-50 text-red-700" : m.status === "attention" ? "bg-amber-50 text-amber-700" : "bg-[var(--brand-tint)] text-[var(--brand-dark)]"}`}>{m.status === "at_risk" ? "At Risk" : m.status === "attention" ? "Attention" : "On Track"}</span>
               </li>
             ))}
           </ul>

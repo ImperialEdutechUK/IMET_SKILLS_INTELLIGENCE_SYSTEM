@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 
 import { getCpdTargetHours } from "@/lib/cpd-target";
+import { cpdRiskStatus } from "@/lib/cpd-risk";
 
 export async function getTeamMembers(departmentId: string) {
   const targetHours = await getCpdTargetHours(departmentId);
@@ -18,14 +19,10 @@ export async function getTeamMembers(departmentId: string) {
     const completed = m.enrollments.filter((e) => e.status === "completed");
     const inProgress = m.enrollments.filter((e) => e.status === "in_progress");
     const cpdHours = m.cpdRecords.reduce((sum, r) => sum + r.hours, 0);
-    const cpdProgress = Math.min(100, Math.round((cpdHours / targetHours) * 100));
+    const { cpdProgress, status: attentionStatus } = cpdRiskStatus(cpdHours, targetHours);
     const avgSkillLevel = m.userSkills.length
       ? m.userSkills.reduce((sum, s) => sum + s.currentLevel, 0) / m.userSkills.length
       : 0;
-
-    let attentionStatus: "at_risk" | "attention" | null = null;
-    if (cpdProgress < 50) attentionStatus = "at_risk";
-    else if (cpdProgress < 75) attentionStatus = "attention";
 
     return {
       id: m.id,
@@ -63,6 +60,8 @@ export async function getTeamSummary(departmentId: string) {
     coursesInProgress: members.reduce((s, m) => s + m.coursesInProgress, 0),
     coursesCompleted: members.reduce((s, m) => s + m.coursesCompleted, 0),
     notStarted,
+    atRisk: members.filter((m) => m.attentionStatus === "at_risk").length,
+    attention: members.filter((m) => m.attentionStatus === "attention").length,
     avgCpd: members.length
       ? Math.round(members.reduce((s, m) => s + m.cpdProgress, 0) / members.length)
       : 0,

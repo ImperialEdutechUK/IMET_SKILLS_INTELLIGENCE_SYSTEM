@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight, BookOpen, TrendingUp, Megaphone, Headphones,
-  Cpu, Wallet, Settings, GraduationCap, Users,
+  Cpu, Wallet, Settings, GraduationCap, Users, AlertTriangle,
 } from "lucide-react";
 import { getToken } from "@/lib/authClient";
 
@@ -26,6 +26,7 @@ interface DeptSummary {
   teamMembers: number;
   avgCpd: number;
   avgSkillLevel: number;
+  atRisk: number;
 }
 
 export default function ManagerDashboardPage() {
@@ -80,7 +81,14 @@ export default function ManagerDashboardPage() {
                   </span>
                   <h3 className="font-semibold text-[var(--ink)]">{dept.name}</h3>
                 </div>
-                <ArrowRight className="h-4 w-4 text-[var(--muted)] transition-transform group-hover:translate-x-0.5" />
+                <div className="flex items-center gap-2">
+                  {dept.atRisk > 0 && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+                      <AlertTriangle className="h-3 w-3" /> {dept.atRisk} at risk
+                    </span>
+                  )}
+                  <ArrowRight className="h-4 w-4 text-[var(--muted)] transition-transform group-hover:translate-x-0.5" />
+                </div>
               </div>
               <div className="mt-5 grid grid-cols-3 gap-3">
                 <div>

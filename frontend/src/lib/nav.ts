@@ -67,6 +67,26 @@ export const navConfig: Record<Role, NavSection[]> = {
 };
 
 
+// HR / Director are the `admin` role (no schema change) but get an org-wide,
+// read-only variant of the admin nav — everything except Pending Approvals.
+// They are identified by email since there is no separate role.
+export const ORG_VIEWER_EMAILS = ["hr@imet.lk", "director@imet.lk"];
+
+export function isOrgViewer(user: { role: string; email: string }): boolean {
+  return user.role === "admin" && ORG_VIEWER_EMAILS.includes(user.email.toLowerCase());
+}
+
+// Resolve the sidebar nav for a user, applying the HR/Director variant.
+export function navFor(user: { role: Role; email: string }): NavSection[] {
+  if (isOrgViewer(user)) {
+    return navConfig.admin.map((section) => ({
+      ...section,
+      items: section.items.filter((i) => i.href !== "/admin/approvals"),
+    }));
+  }
+  return navConfig[user.role];
+}
+
 // Department-scoped nav (Model 1): shown when a manager is inside a department.
 export function departmentNav(departmentId: string): NavSection[] {
   const base = `/manager/departments/${departmentId}`;

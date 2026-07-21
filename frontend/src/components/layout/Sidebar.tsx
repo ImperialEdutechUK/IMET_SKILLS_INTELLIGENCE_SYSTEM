@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { clearAuth } from "@/lib/authClient";
 import { GraduationCap, LogOut, ArrowLeft } from "lucide-react";
-import { navConfig, departmentNav } from "@/lib/nav";
+import { navFor, departmentNav } from "@/lib/nav";
 import Avatar from "@/components/ui/Avatar";
 import type { SessionUser } from "@/types";
 
@@ -14,7 +14,7 @@ export default function Sidebar({ user }: { user: SessionUser }) {
   const deptMatch = pathname.match(/^\/manager\/departments\/([^/]+)/);
   const inDepartment = user.role === "manager" && !!deptMatch;
   const departmentId = deptMatch?.[1] ?? null;
-  const sections = inDepartment && departmentId ? departmentNav(departmentId) : navConfig[user.role];
+  const sections = inDepartment && departmentId ? departmentNav(departmentId) : navFor(user);
 
   return (
     <aside className="flex h-screen w-64 shrink-0 flex-col border-r border-[var(--border)] bg-white">

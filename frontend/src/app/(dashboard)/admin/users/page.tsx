@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Users, UserPlus, Search } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import { getToken } from "@/lib/authClient";
@@ -79,11 +80,23 @@ export default function UserManagementPage() {
                 <ul className="divide-y divide-[var(--border)]">
                   {groups[dept].map((user) => (
                     <li key={user.id} className="flex items-center gap-4 px-5 py-4">
-                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--brand-tint)] text-xs font-semibold text-[var(--brand-dark)]">{user.fullName.split(" ").map((p) => p[0]).join("").toUpperCase()}</span>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-[var(--ink)]">{user.fullName}</p>
-                        <p className="text-xs text-[var(--muted)]">Last active: {user.lastActive}</p>
-                      </div>
+                      {user.role === "employee" ? (
+                        <Link href={`/admin/employee/${user.id}`} className="group flex min-w-0 flex-1 items-center gap-4">
+                          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--brand-tint)] text-xs font-semibold text-[var(--brand-dark)]">{user.fullName.split(" ").map((p) => p[0]).join("").toUpperCase()}</span>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-[var(--ink)] group-hover:text-[var(--brand)]">{user.fullName}</p>
+                            <p className="text-xs text-[var(--muted)]">Last active: {user.lastActive}</p>
+                          </div>
+                        </Link>
+                      ) : (
+                        <div className="flex min-w-0 flex-1 items-center gap-4">
+                          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--brand-tint)] text-xs font-semibold text-[var(--brand-dark)]">{user.fullName.split(" ").map((p) => p[0]).join("").toUpperCase()}</span>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-[var(--ink)]">{user.fullName}</p>
+                            <p className="text-xs text-[var(--muted)]">Last active: {user.lastActive}</p>
+                          </div>
+                        </div>
+                      )}
                       <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${roleConfig[user.role] ?? "bg-slate-100 text-slate-600"}`}>{user.role}</span>
                       <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${statusConfig[user.status] ?? "bg-slate-100 text-slate-600"}`}>{user.status.replace("_", " ")}</span>
                       <button className="shrink-0 text-xs text-[var(--brand)] hover:text-[var(--brand-dark)]">Edit</button>

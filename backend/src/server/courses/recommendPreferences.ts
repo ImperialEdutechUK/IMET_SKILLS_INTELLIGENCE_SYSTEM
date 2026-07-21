@@ -188,13 +188,22 @@ export function applyPreferences<C extends PreferenceCourse>(
     return { score, adjustedScore: score.normalized + bonus, preferenceMatches: matches };
   });
 
-  boosted.sort(
-    (a, b) =>
-      b.adjustedScore - a.adjustedScore ||
-      b.score.gapPriorityScore - a.score.gapPriorityScore ||
-      b.score.relevanceRatio - a.score.relevanceRatio || // prefer the more on-target course
-      b.score.qualityScore - a.score.qualityScore || // then the better-rated / more-taken one
-      a.score.title.localeCompare(b.score.title)
-  );
+  boosted.sort(compareBoosted);
   return boosted;
+}
+
+/**
+ * Deterministic ranking order for preference-boosted scores: adjusted score,
+ * then the same priority/relevance/quality tie-breaks as the unboosted core.
+ * Exported so callers can re-sort a subset (e.g. after `selectDiverseTop`)
+ * without duplicating the comparator.
+ */
+export function compareBoosted(a: Boosted, b: Boosted): number {
+  return (
+    b.adjustedScore - a.adjustedScore ||
+    b.score.gapPriorityScore - a.score.gapPriorityScore ||
+    b.score.relevanceRatio - a.score.relevanceRatio || // prefer the more on-target course
+    b.score.qualityScore - a.score.qualityScore || // then the better-rated / more-taken one
+    a.score.title.localeCompare(b.score.title)
+  );
 }

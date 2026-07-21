@@ -87,14 +87,22 @@ confidence×10 + departmentPriority(0–10)` → `LOW / MEDIUM / HIGH / CRITICAL
 
 | Rule | Points |
 |------|-------:|
-| Covers a missing/weak skill | **+50** |
-| Covers more than one gap | **+20** |
+| Covers the learner's top-priority gap, scaled by that gap's `priorityScore` | **+25..+55** |
+| Covers additional gaps beyond the top one (same scaling, capped) | **+0..+30** |
 | Level suitable for the learner | **+15** |
 | Duration short/reasonable (≤ 40h) | **+10** |
 | Preferred provider | **+10** |
 | Already available to the org | **+10** |
 | Too advanced for the learner | **−20** |
 | Not approved | **−30** |
+
+Gap coverage is no longer a flat bonus: `gapCoveragePoints()` scales +25..+55 by
+the covered gap's `priorityScore` (itself built from gap size × role importance ×
+confidence × department weight — see Priority above), so a course closing a
+CRITICAL, high-importance gap scores well above one that only nudges a trivial,
+low-importance, one-level gap. Extra gaps beyond the highest-priority one add a
+capped, similarly-scaled bonus instead of a flat +20 regardless of how many or how
+important they are.
 
 Score is clamped to 0–100; ≥ 75 ⇒ `high` match, else `good`. **Recommended course
 levels**: None/Basic → Beginner/Intermediate; Intermediate → Intermediate/Advanced;
@@ -109,6 +117,24 @@ off-domain topics) → **quality** (0–10 from catalogue `rating` and enrollmen
 and role-agnostic, and are surfaced to — but never overridden by — the AI selector,
 which additionally reads each course's title/description to prefer role-appropriate
 courses over ones aimed at a different profession.
+
+**Diversity-aware final selection** (`selectDiverseTop`): trimming the ranked list
+to the requested count is not a plain top-N slice. If one gap happens to be served
+by many strong courses (e.g. a dozen Excel courses) it can otherwise crowd out
+every slot, leaving none for the employee's other — possibly more urgent — gaps.
+`selectDiverseTop` walks the employee's gaps in priority order and claims the
+single best remaining course for each not-yet-represented gap first, then fills
+any leftover slots with the next-best courses overall. It only ever reshuffles
+courses already in the ranked list — it can't invent one — so a learner with one
+dominant gap and nothing else still gets a full, quality-ranked list.
+
+**Graceful degradation for missing role profiles**: both `recommend.ts` (the
+manager-run "engine" recommendations) and `recommendChat.ts` (the employee chat)
+fall back to `loadSelfAssessedGaps` (gapAnalysis.ts) when an employee has no
+`User.position` or no matching `RoleProfile` — treating their own recorded skills
+as gaps to deepen one level at a time, with a `note` explaining that a role
+profile would sharpen the results. This keeps both surfaces useful instead of one
+hard-erroring while the other quietly recovers.
 
 ---
 

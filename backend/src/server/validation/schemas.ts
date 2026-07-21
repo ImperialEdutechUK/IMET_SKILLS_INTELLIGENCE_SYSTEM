@@ -26,6 +26,8 @@ export type DocumentTypeInput = z.infer<typeof documentTypeSchema>;
 export const detectedSkillSchema = z.object({
   skill: z.string().min(1),
   estimatedLevel: levelNameSchema,
+  /** Only set when the document explicitly states a target/expected level for this skill. */
+  targetLevel: levelNameSchema.nullable().default(null),
   evidence: z.string().default(""),
   confidence: z.number().min(0).max(1).default(0.6),
 });

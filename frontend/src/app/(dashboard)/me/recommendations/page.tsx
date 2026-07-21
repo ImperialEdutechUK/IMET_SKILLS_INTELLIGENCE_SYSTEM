@@ -180,7 +180,7 @@ export default function RecommendationChatPage() {
       const res = await fetch(`${API}/api/recommendations/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
-        body: JSON.stringify({ answers: finalAnswers, limit: 4 }),
+        body: JSON.stringify({ answers: finalAnswers, limit: 5 }),
       });
       const data: ChatResult = await res.json();
       if (!res.ok) {

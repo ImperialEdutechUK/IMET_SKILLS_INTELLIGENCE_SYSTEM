@@ -14,6 +14,12 @@ From the ${sourceType} below, extract the skills the employee demonstrably USED 
 ${LEVELS_DOC}
 Estimate each skill's level from the concrete evidence in the text, not from job titles.
 Only include skills with real supporting evidence. Do not invent skills.
+IMPORTANT: include skills the document assesses at a LOW level ("None" or "Basic") too —
+capturing what the employee is LACKING matters as much as their strengths, because weak
+skills drive their learning recommendations. Never skip a skill because its level is low.
+When the document explicitly states a target / expected / required level for a skill
+(e.g. a "Target Level" column in a skill matrix), return it as "targetLevel"; otherwise
+set "targetLevel" to null. Never guess a target.
 
 Return STRICT JSON ONLY matching this shape (no markdown, no commentary):
 {
@@ -23,6 +29,7 @@ Return STRICT JSON ONLY matching this shape (no markdown, no commentary):
     {
       "skill": string,                // concise skill name, e.g. "Google Analytics"
       "estimatedLevel": "None|Basic|Intermediate|Advanced|Expert",
+      "targetLevel": "None|Basic|Intermediate|Advanced|Expert" | null,
       "evidence": string,             // one short sentence quoting/paraphrasing the source
       "confidence": number            // 0.0–1.0
     }

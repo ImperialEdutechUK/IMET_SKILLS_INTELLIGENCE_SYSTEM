@@ -9,9 +9,10 @@
  */
 import type { MatchLabel, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { withLock } from "@/lib/locks";
 import { numberToLevel } from "@/lib/levels";
-import { rankCourses, type ScoringGap, type ScoringCourse, type CourseScore } from "./scoring";
-import { runGapAnalysis } from "@/server/gaps/gapAnalysis";
+import { rankCourses, selectDiverseTop, compareCourseScore, type ScoringGap, type ScoringCourse, type CourseScore } from "./scoring";
+import { runGapAnalysis, GapAnalysisError, loadSelfAssessedGaps } from "@/server/gaps/gapAnalysis";
 import { explainRecommendations } from "@/server/ai/skillExtraction";
 import { isConfigured } from "@/server/ai/aiClient";
 
@@ -41,6 +42,8 @@ export interface GenerateResult {
   generated: number;
   aiExplained: boolean;
   recommendations: RecommendationRow[];
+  /** Set when gaps came from a fallback path rather than a full role-profile analysis. */
+  note?: string;
 }
 
 export interface GenerateOptions {
@@ -49,30 +52,76 @@ export interface GenerateOptions {
   rerunGaps?: boolean;
 }
 
-async function loadGaps(userId: string, rerun: boolean): Promise<ScoringGap[]> {
+/**
+ * Attempt (re)running the deterministic gap analysis. Returns false — rather
+ * than throwing — when the employee simply has no role profile to compare
+ * against yet, so callers can degrade gracefully instead of hard-failing.
+ */
+async function tryRunGapAnalysis(userId: string): Promise<boolean> {
+  try {
+    await runGapAnalysis(userId);
+    return true;
+  } catch (err) {
+    if (err instanceof GapAnalysisError) return false;
+    throw err;
+  }
+}
+
+const NO_ROLE_PROFILE_NOTE =
+  "No role profile found for this employee's position yet, so these recommendations target " +
+  "improving their own recorded skills rather than specific role requirements. Set up a role " +
+  "profile for a sharper, gap-targeted list.";
+
+/**
+ * Load this employee's outstanding gaps. Prefers the role-profile-driven
+ * analysis; when that can't run (no `User.position`, or no matching
+ * RoleProfile/requirements), falls back to the employee's own recorded skills
+ * — the same graceful degradation `recommendChat.ts` already gives employees,
+ * so a manager generating recommendations never hits a hard error here either.
+ */
+async function loadGaps(userId: string, rerun: boolean): Promise<{ gaps: ScoringGap[]; note?: string }> {
+  let hasRoleGaps = true;
   if (rerun) {
-    await runGapAnalysis(userId);
+    hasRoleGaps = await tryRunGapAnalysis(userId);
   }
-  let stored = await prisma.skillGap.findMany({
-    where: { userId },
-    include: { skill: true },
-  });
-  if (stored.length === 0 && !rerun) {
-    // Auto-run once if nothing has been computed yet.
-    await runGapAnalysis(userId);
-    stored = await prisma.skillGap.findMany({ where: { userId }, include: { skill: true } });
+
+  let stored: Prisma.SkillGapGetPayload<{ include: { skill: true } }>[] = [];
+  if (hasRoleGaps) {
+    stored = await prisma.skillGap.findMany({
+      where: { userId },
+      include: { skill: true },
+      orderBy: { priorityScore: "desc" },
+    });
+    if (stored.length === 0 && !rerun) {
+      // Auto-run once if nothing has been computed yet.
+      hasRoleGaps = await tryRunGapAnalysis(userId);
+      if (hasRoleGaps) {
+        stored = await prisma.skillGap.findMany({
+          where: { userId },
+          include: { skill: true },
+          orderBy: { priorityScore: "desc" },
+        });
+      }
+    }
   }
-  return stored
-    .filter((g) => g.status !== "MEETS_REQUIREMENT")
-    .map((g) => ({
-      skillId: g.skillId,
-      skill: g.skill.name,
-      currentLevel: g.currentLevel,
-      requiredLevel: g.requiredLevel,
-      gapValue: g.gapValue,
-      status: g.status,
-      priorityScore: g.priorityScore,
-    }));
+
+  if (hasRoleGaps) {
+    const gaps = stored
+      .filter((g) => g.status !== "MEETS_REQUIREMENT")
+      .map((g) => ({
+        skillId: g.skillId,
+        skill: g.skill.name,
+        currentLevel: g.currentLevel,
+        requiredLevel: g.requiredLevel,
+        gapValue: g.gapValue,
+        status: g.status,
+        priorityScore: g.priorityScore,
+      }));
+    return { gaps };
+  }
+
+  const gaps = await loadSelfAssessedGaps(userId);
+  return { gaps, note: NO_ROLE_PROFILE_NOTE };
 }
 
 export async function generateRecommendations(
@@ -83,7 +132,7 @@ export async function generateRecommendations(
   if (!user) throw new RecommendationError("Employee not found.");
 
   const limit = opts.limit ?? 6;
-  const gaps = await loadGaps(userId, opts.rerunGaps ?? false);
+  const { gaps, note: gapsNote } = await loadGaps(userId, opts.rerunGaps ?? false);
 
   if (gaps.length === 0) {
     // No outstanding gaps → clear stale engine recs and return empty.
@@ -95,6 +144,7 @@ export async function generateRecommendations(
       generated: 0,
       aiExplained: false,
       recommendations: [],
+      note: gapsNote,
     };
   }
 
@@ -119,7 +169,19 @@ export async function generateRecommendations(
     skillIds: c.courseSkills.map((cs) => cs.skillId),
   }));
 
-  const ranked = rankCourses(scoringCourses, gaps).slice(0, limit);
+  // Diversity-aware trim: a pure top-N by score can let a well-served gap
+  // crowd out the rest of the employee's gaps (e.g. many strong Excel courses
+  // pushing out the only course for a CRITICAL SQL gap). selectDiverseTop
+  // gives each high-priority gap a fair shot at one slot before backfilling
+  // with the next-best courses overall.
+  const rankedAll = rankCourses(scoringCourses, gaps);
+  const ranked = selectDiverseTop(
+    rankedAll,
+    gaps,
+    limit,
+    (s) => s.coveredGaps.map((g) => g.skillId),
+    compareCourseScore
+  );
   const courseById = new Map(candidates.map((c) => [c.id, c]));
 
   // Build fact payload + attempt AI explanation for the top few.
@@ -174,40 +236,45 @@ export async function generateRecommendations(
     };
   });
 
-  await prisma.$transaction(
-    [
-    prisma.recommendation.deleteMany({ where: { userId, source: "engine" } }),
-    ...rows.map((r) =>
-      prisma.recommendation.upsert({
-        where: { userId_courseId: { userId, courseId: r.courseId } },
-        update: {
-          matchLabel: r.matchLabel,
-          matchScore: r.matchScore,
-          reason: r.reason,
-          rawScore: r.breakdown.reduce((s, b) => s + b.points, 0),
-          rank: r.rank,
-          scoreBreakdown: r.breakdown as unknown as Prisma.InputJsonValue,
-          gapsCovered: r.gapsCovered as unknown as Prisma.InputJsonValue,
-          source: "engine",
-          dismissed: false,
-        },
-        create: {
-          userId,
-          courseId: r.courseId,
-          matchLabel: r.matchLabel,
-          matchScore: r.matchScore,
-          reason: r.reason,
-          rawScore: r.breakdown.reduce((s, b) => s + b.points, 0),
-          rank: r.rank,
-          scoreBreakdown: r.breakdown as unknown as Prisma.InputJsonValue,
-          gapsCovered: r.gapsCovered as unknown as Prisma.InputJsonValue,
-          source: "engine",
-        },
-      })
-    ),
-    ],
-    // Remote-DB latency headroom so N upserts can't expire the default 5s tx (P2028).
-    { timeout: 15000 }
+  // Exactly 2 statements (delete + createMany), NOT one upsert per row: against
+  // the remote DB, N upserts hold a pooled connection for 2N round-trips, which
+  // both expires the transaction (P2028 "expired") and — under concurrent
+  // requests — starves the pool so new transactions can't even start (P2028
+  // "unable to start"). The delete clears this user's previous "engine" picks
+  // plus any row (e.g. an "ai" one) colliding on the (userId, courseId) unique
+  // key, which is what the old upsert's update branch handled.
+  //
+  // withLock serialises the replace per user so two concurrent generations
+  // can't interleave their delete+insert and trip the unique key (P2002);
+  // skipDuplicates absorbs any race the in-process lock can't see. Same lock
+  // key as the chat path — both write to Recommendation for this user.
+  await withLock(`recommendations:${userId}`, () =>
+    prisma.$transaction(
+      [
+        prisma.recommendation.deleteMany({
+          where: { userId, OR: [{ source: "engine" }, { courseId: { in: rows.map((r) => r.courseId) } }] },
+        }),
+        prisma.recommendation.createMany({
+          data: rows.map((r) => ({
+            userId,
+            courseId: r.courseId,
+            matchLabel: r.matchLabel,
+            matchScore: r.matchScore,
+            reason: r.reason,
+            rawScore: r.breakdown.reduce((s, b) => s + b.points, 0),
+            rank: r.rank,
+            scoreBreakdown: r.breakdown as unknown as Prisma.InputJsonValue,
+            gapsCovered: r.gapsCovered as unknown as Prisma.InputJsonValue,
+            source: "engine",
+          })),
+          skipDuplicates: true,
+        }),
+      ],
+      // maxWait: allow up to 10s to *acquire* a connection when the pool is busy
+      // (default 2s is what threw P2028 "unable to start a transaction in the
+      // given time"); timeout: headroom for the work itself on a remote DB.
+      { maxWait: 10000, timeout: 15000 }
+    )
   );
 
   return {
@@ -217,6 +284,7 @@ export async function generateRecommendations(
     generated: rows.length,
     aiExplained: !!aiReasons && rows.some((r) => r.reasonSource === "ai"),
     recommendations: rows,
+    note: gapsNote,
   };
 }
 

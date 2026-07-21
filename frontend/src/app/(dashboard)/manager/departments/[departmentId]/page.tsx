@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Users, BookOpen, Award, BarChart3 } from "lucide-react";
+import { ArrowLeft, Users, BookOpen, Award, BarChart3, ChevronDown } from "lucide-react";
 import { getToken } from "@/lib/authClient";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
 import StatCard from "@/components/dashboard/StatCard";
@@ -12,6 +12,15 @@ import ActivityFeed from "@/components/dashboard/ActivityFeed";
 
 const CATEGORY_COLORS = ["#2e7d5b", "#378add", "#7f77dd", "#f59e0b", "#ef4444", "#9ca3af"];
 
+interface MemberCourse {
+  id: string;
+  title: string;
+  provider: string | null;
+  category: string | null;
+  status: "not_started" | "in_progress" | "completed";
+  progress: number;
+  externalUrl: string | null;
+}
 interface Member {
   id: string;
   fullName: string;
@@ -19,6 +28,7 @@ interface Member {
   coursesInProgress: number;
   cpdProgress: number;
   attentionStatus: "at_risk" | "attention" | null;
+  courses: MemberCourse[];
 }
 interface Summary {
   teamMembers: number;
@@ -41,6 +51,7 @@ export default function DepartmentDetailPage() {
   const departmentId = params.departmentId as string;
   const [data, setData] = useState<DeptData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/manager/departments/${departmentId}`, {
@@ -150,21 +161,58 @@ export default function DepartmentDetailPage() {
           <p className="p-5 text-sm text-[var(--muted)]">No employees are assigned to this department yet.</p>
         ) : (
           <ul className="divide-y divide-[var(--border)]">
-            {members.map((m) => (
-              <li key={m.id} className="flex items-center gap-4 p-4">
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--brand-tint)] text-xs font-semibold text-[var(--brand-dark)]">
-                  {m.fullName.split(" ").map((p) => p[0]).join("").toUpperCase()}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-[var(--ink)]">{m.fullName}</p>
-                  <p className="text-xs text-[var(--muted)]">{m.coursesCompleted} completed · {m.coursesInProgress} in progress</p>
-                </div>
-                <div className="w-32">
-                  <div className="mb-1 flex justify-between text-xs"><span className="text-[var(--muted)]">CPD</span><span className="font-medium">{m.cpdProgress}%</span></div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-[var(--brand)]" style={{ width: `${m.cpdProgress}%` }} /></div>
-                </div>
-              </li>
-            ))}
+            {members.map((m) => {
+              const expanded = expandedId === m.id;
+              const hasCourses = m.courses.length > 0;
+              return (
+                <li key={m.id}>
+                  <button
+                    type="button"
+                    onClick={() => setExpandedId(expanded ? null : m.id)}
+                    aria-expanded={expanded}
+                    className="flex w-full items-center gap-4 p-4 text-left transition-colors hover:bg-slate-50"
+                  >
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--brand-tint)] text-xs font-semibold text-[var(--brand-dark)]">
+                      {m.fullName.split(" ").map((p) => p[0]).join("").toUpperCase()}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-[var(--ink)]">{m.fullName}</p>
+                      <p className="text-xs text-[var(--muted)]">{m.coursesCompleted} completed · {m.coursesInProgress} in progress</p>
+                    </div>
+                    <div className="w-32">
+                      <div className="mb-1 flex justify-between text-xs"><span className="text-[var(--muted)]">CPD</span><span className="font-medium">{m.cpdProgress}%</span></div>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-[var(--brand)]" style={{ width: `${m.cpdProgress}%` }} /></div>
+                    </div>
+                    <ChevronDown className={`h-4 w-4 shrink-0 text-[var(--muted)] transition-transform ${expanded ? "rotate-180" : ""}`} />
+                  </button>
+                  {expanded && (
+                    <div className="border-t border-[var(--border)] bg-slate-50/60 px-4 py-3 pl-16">
+                      {!hasCourses ? (
+                        <p className="text-xs text-[var(--muted)]">No enrolled courses yet.</p>
+                      ) : (
+                        <ul className="space-y-2">
+                          {m.courses.map((c) => (
+                            <li key={c.id} className="flex items-center gap-3">
+                              <div className="min-w-0 flex-1">
+                                {c.externalUrl ? (
+                                  <a href={c.externalUrl} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-[var(--ink)] hover:text-[var(--brand)] hover:underline">{c.title}</a>
+                                ) : (
+                                  <p className="text-sm font-medium text-[var(--ink)]">{c.title}</p>
+                                )}
+                                <p className="text-xs text-[var(--muted)]">{c.provider ?? "—"}{c.category ? ` · ${c.category}` : ""}</p>
+                              </div>
+                              <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${c.status === "completed" ? "bg-[var(--brand-tint)] text-[var(--brand-dark)]" : c.status === "in_progress" ? "bg-blue-50 text-blue-700" : "bg-slate-100 text-[var(--muted)]"}`}>
+                                {c.status === "completed" ? "Completed" : c.status === "in_progress" ? `In progress · ${c.progress}%` : "Not started"}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

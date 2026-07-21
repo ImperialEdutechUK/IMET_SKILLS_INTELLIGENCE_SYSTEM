@@ -39,6 +39,15 @@ export async function GET(
       coursesInProgress: m.coursesInProgress,
       cpdProgress: m.cpdProgress,
       attentionStatus: m.attentionStatus,
+      courses: m.enrollments.map((e) => ({
+        id: e.id,
+        title: e.course.title,
+        provider: e.course.provider,
+        category: e.course.category?.name ?? null,
+        status: e.status,
+        progress: e.progress,
+        externalUrl: e.course.externalUrl,
+      })),
     })),
     activities: activities.map((a) => ({
       id: a.id,

@@ -70,7 +70,7 @@ export default function TeamCpdPage() {
       ) : (
         <>
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <StatCard icon={Award} label="Team CPD Avg" value={`${data.avg}%`} />
+            <StatCard icon={Award} label="CPD Avg" value={`${data.avg}%`} />
             <StatCard icon={Award} label="On Track" value={data.onTrack} sub="members" />
             <StatCard icon={Award} iconBg="bg-amber-50" label="At Risk" value={data.atRisk} sub="needs attention" />
           </div>

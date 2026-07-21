@@ -48,13 +48,13 @@ export default function TeamLearningPage() {
       ) : (
         <>
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-4">
-            <StatCard icon={Users} label="Team Members" value={data.teamMembers} />
+            <StatCard icon={Users} label="Members" value={data.teamMembers} />
             <StatCard icon={BookOpen} label="In Progress" value={data.inProgress} />
             <StatCard icon={CheckCircle} label="Completed" value={data.completed} />
             <StatCard icon={BarChart3} label="Avg Completion" value={`${data.avgCompletion}%`} />
           </div>
           <div className="rounded-xl border border-[var(--border)] bg-white">
-            <div className="border-b border-[var(--border)] p-5"><h3 className="font-semibold text-[var(--ink)]">Team Members</h3></div>
+            <div className="border-b border-[var(--border)] p-5"><h3 className="font-semibold text-[var(--ink)]">Members</h3></div>
             {data.members.length === 0 ? (
               <p className="p-5 text-sm text-[var(--muted)]">No team members in this view.</p>
             ) : (

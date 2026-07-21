@@ -19,7 +19,7 @@ export default function DeptTeamCpdPage() {
     <div>
       <div className="mb-6"><h1 className="text-2xl font-bold text-[var(--ink)]">CPD</h1><p className="mt-1 text-sm text-[var(--muted)]">CPD progress for this department.</p></div>
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatCard icon={Award} label="Team CPD Avg" value={`${data.avg}%`} />
+        <StatCard icon={Award} label="CPD Avg" value={`${data.avg}%`} />
         <StatCard icon={Award} label="On Track" value={data.onTrack} sub="members" />
         <StatCard icon={Award} iconBg="bg-amber-50" label="At Risk" value={data.atRisk} sub="needs attention" />
       </div>

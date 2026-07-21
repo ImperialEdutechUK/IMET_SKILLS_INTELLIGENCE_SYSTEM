@@ -60,7 +60,7 @@ export default function TeamSkillsPage() {
               {data.gaps.length === 0 ? <p className="text-sm text-[var(--muted)]">No gaps to show.</p> : <BarList items={data.gaps.map(g => ({ name: g.name, value: g.value, max: 5 }))} unit="" />}
             </div>
             <div className="rounded-xl border border-[var(--border)] bg-white p-5">
-              <h3 className="mb-4 font-semibold text-[var(--ink)]">Team Average Levels</h3>
+              <h3 className="mb-4 font-semibold text-[var(--ink)]">Average Levels</h3>
               {data.matrix.length === 0 ? <p className="text-sm text-[var(--muted)]">No skills tracked in this view.</p> : (
                 <ul className="space-y-4">
                   {data.matrix.map((s) => (

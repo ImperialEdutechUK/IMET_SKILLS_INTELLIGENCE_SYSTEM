@@ -100,10 +100,10 @@ export default function DepartmentDetailPage() {
       </Link>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-[var(--ink)]">{department.name}</h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">Team learning, skills, and CPD status for this department.</p>
+        <p className="mt-1 text-sm text-[var(--muted)]">Learning, skills, and CPD status for this department.</p>
       </div>
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={Users} label="Team Members" value={summary.teamMembers} />
+        <StatCard icon={Users} label="Members" value={summary.teamMembers} />
         <StatCard icon={BookOpen} label="Courses in Progress" value={summary.coursesInProgress} />
         <StatCard icon={Award} label="CPD Completion (avg)" value={`${summary.avgCpd}%`} />
         <StatCard icon={BarChart3} label="Average Skill Level" value={`${summary.avgSkillLevel}/5`} />
@@ -155,7 +155,7 @@ export default function DepartmentDetailPage() {
       </div>
       <div className="rounded-xl border border-[var(--border)] bg-white">
         <div className="border-b border-[var(--border)] p-5">
-          <h3 className="font-semibold text-[var(--ink)]">Team Members</h3>
+          <h3 className="font-semibold text-[var(--ink)]">Members</h3>
         </div>
         {members.length === 0 ? (
           <p className="p-5 text-sm text-[var(--muted)]">No employees are assigned to this department yet.</p>

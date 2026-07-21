@@ -88,14 +88,5 @@ export function departmentNav(departmentId: string): NavSection[] {
         { label: "Skill Gaps", href: `${base}/gaps`, icon: BarChart3 },
       ],
     },
-    {
-      title: "Personal",
-      items: [
-        { label: "My Learning", href: "/me/learning", icon: BookOpen },
-        { label: "My Skills", href: "/me/skills", icon: Target },
-        { label: "My CPD", href: "/me/cpd", icon: Award },
-        { label: "Settings", href: "/me/settings", icon: Settings },
-      ],
-    },
   ];
 }

@@ -111,15 +111,15 @@ export default function DepartmentDetailPage() {
       <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="rounded-xl border border-[var(--border)] bg-white p-5 lg:col-span-2">
           <h3 className="mb-4 font-semibold text-[var(--ink)]">Course Progress</h3>
-          <div className="flex gap-6 text-center">
+          <div className="grid grid-cols-3 gap-4 text-center">
             {[
               { label: "Completed", value: summary.coursesCompleted, color: "text-[var(--brand)]" },
               { label: "In Progress", value: summary.coursesInProgress, color: "text-blue-600" },
-              { label: "Not Started Anything", value: summary.notStarted, color: "text-[var(--muted)]" },
+              { label: "Not Started", value: summary.notStarted, color: "text-[var(--muted)]" },
             ].map((s) => (
               <div key={s.label}>
-                <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-                <p className="text-xs text-[var(--muted)]">{s.label}</p>
+                <p className={`text-2xl font-bold leading-none ${s.color}`}>{s.value}</p>
+                <p className="mt-1.5 text-xs text-[var(--muted)]">{s.label}</p>
               </div>
             ))}
           </div>

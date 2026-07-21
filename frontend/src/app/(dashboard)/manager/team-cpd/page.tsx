@@ -16,6 +16,8 @@ export default function TeamCpdPage() {
   const [depts, setDepts] = useState<Dept[]>([]);
   const [deptId, setDeptId] = useState("");
   const [loading, setLoading] = useState(true);
+  const [notifying, setNotifying] = useState(false);
+  const [notifyMsg, setNotifyMsg] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`${API}/api/departments`).then(r => r.ok ? r.json() : []).then(setDepts).catch(() => {});
@@ -32,15 +34,35 @@ export default function TeamCpdPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  async function sendAlerts() {
+    setNotifying(true); setNotifyMsg(null);
+    try {
+      const q = deptId ? `?departmentId=${deptId}` : "";
+      const r = await fetch(`${API}/api/cpd/notify${q}`, { method: "POST", headers: { Authorization: `Bearer ${getToken()}` } });
+      const d = await r.json();
+      if (!r.ok) throw new Error();
+      let msg = `Scanned ${d.scanned} · ${d.atRisk} at risk · notified ${d.employeesNotified} employee(s), ${d.managersNotified} manager(s).`;
+      if (d.atRiskWithoutManager > 0) msg += ` ${d.atRiskWithoutManager} at-risk employee(s) had no manager linked.`;
+      setNotifyMsg(msg);
+    } catch { setNotifyMsg("Could not send CPD alerts."); }
+    finally { setNotifying(false); }
+  }
+
   return (
     <div>
       <div className="mb-6 flex items-start justify-between gap-4">
         <div><h1 className="text-2xl font-bold text-[var(--ink)]">Team CPD</h1><p className="mt-1 text-sm text-[var(--muted)]">Monitor CPD progress across your team.</p></div>
-        <select value={deptId} onChange={e => setDeptId(e.target.value)} className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm outline-none focus:border-[var(--brand)]">
-          <option value="">All Departments</option>
-          {depts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-        </select>
+        <div className="flex items-center gap-2">
+          <select value={deptId} onChange={e => setDeptId(e.target.value)} className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm outline-none focus:border-[var(--brand)]">
+            <option value="">All Departments</option>
+            {depts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
+          <button onClick={sendAlerts} disabled={notifying} className="shrink-0 rounded-lg bg-[var(--brand)] px-3 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60">
+            {notifying ? "Sending…" : "Send CPD alerts"}
+          </button>
+        </div>
       </div>
+      {notifyMsg && <div className="mb-4 rounded-lg border border-[var(--border)] bg-[var(--brand-tint)] px-4 py-2.5 text-sm text-[var(--brand-dark)]">{notifyMsg}</div>}
       {loading ? (
         <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>
       ) : !data ? (

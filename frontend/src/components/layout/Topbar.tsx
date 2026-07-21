@@ -1,6 +1,7 @@
 "use client";
-import { Search, Bell, Settings } from "lucide-react";
+import { Search, Settings } from "lucide-react";
 import Avatar from "@/components/ui/Avatar";
+import NotificationBell from "@/components/layout/NotificationBell";
 import type { SessionUser } from "@/types";
 
 export default function Topbar({ user }: { user: SessionUser }) {
@@ -14,9 +15,7 @@ export default function Topbar({ user }: { user: SessionUser }) {
         />
       </div>
       <div className="flex items-center gap-3">
-        <button className="grid h-9 w-9 place-items-center rounded-lg border border-[var(--border)] text-[var(--muted)] hover:bg-slate-50">
-          <Bell className="h-4 w-4" />
-        </button>
+        <NotificationBell />
         <button className="grid h-9 w-9 place-items-center rounded-lg border border-[var(--border)] text-[var(--muted)] hover:bg-slate-50">
           <Settings className="h-4 w-4" />
         </button>

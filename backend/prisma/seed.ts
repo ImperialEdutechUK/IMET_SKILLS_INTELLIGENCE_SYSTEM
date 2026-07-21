@@ -67,6 +67,8 @@ async function main() {
   const managerDemoPw = await hash("ImM4vN38tYs", 12);
   const authorDemoPw = await hash("ImT6bL74qXe", 12);
   const employeeDemoPw = await hash("ImE9cR51wZu", 12);
+  const hrDemoPw = await hash("ImH5rT82nBq", 12);
+  const directorDemoPw = await hash("ImD9wQ47lXm", 12);
 
   await prisma.user.upsert({
     where: { email: "admin@imperiallearning.co.uk" },
@@ -104,6 +106,33 @@ async function main() {
       status: "active",
       passwordHash: authorDemoPw,
       departmentId: deptMap["CDD"].id,
+    },
+  });
+
+  // HR + Director: full org-wide visibility via the existing admin role (no schema change).
+  // departmentId left null (nullable) — they are not scoped to one department.
+  await prisma.user.upsert({
+    where: { email: "HR@imet.lk" },
+    update: {},
+    create: {
+      email: "HR@imet.lk",
+      fullName: "HR Team",
+      role: "admin",
+      status: "active",
+      passwordHash: hrDemoPw,
+    },
+  });
+
+  // One shared Director account (not per-person).
+  await prisma.user.upsert({
+    where: { email: "Director@imet.lk" },
+    update: {},
+    create: {
+      email: "Director@imet.lk",
+      fullName: "Director",
+      role: "admin",
+      status: "active",
+      passwordHash: directorDemoPw,
     },
   });
 
@@ -193,6 +222,8 @@ async function main() {
   console.log("  admin@imperiallearning.co.uk    → ImA7xK92pQr");
   console.log("  manager@imperiallearning.co.uk (manager) → ImM4vN38tYs");
   console.log("  author@imperiallearning.co.uk  → ImT6bL74qXe");
+  console.log("  HR@imet.lk (admin · HR)        → ImH5rT82nBq");
+  console.log("  Director@imet.lk (admin · shared) → ImD9wQ47lXm");
   console.log("  nandika@imperiallearning.co.uk (employee · AI Agent Developer) → ImWelcome2026! (fresh DB only; live account preserved)");
 }
 

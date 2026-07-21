@@ -15,6 +15,9 @@ const missingConfig: Record<string, { label: string; bg: string }> = {
   category: { label: "Uncategorized", bg: "bg-red-50 text-red-700 border-red-200" },
   skill_tags: { label: "No Skill Tags", bg: "bg-orange-50 text-orange-700 border-orange-200" },
 };
+// Same categorical palette used by the manager department donut.
+const CATEGORY_COLORS = ["#2e7d5b", "#378add", "#7f77dd", "#f59e0b", "#ef4444", "#9ca3af"];
+
 const quickActions = [
   { icon: Plus, label: "Add Course", href: "/author/courses/new" },
   { icon: Upload, label: "Import", href: "/author/library" },
@@ -100,7 +103,7 @@ export default function AuthorDashboardPage() {
       <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="rounded-xl border border-[var(--border)] bg-white p-5">
           <h3 className="mb-4 font-semibold text-[var(--ink)]">Courses by Source</h3>
-          <LearnDonutChart data={data.coursesBySource} height={140} />
+          <LearnDonutChart data={data.coursesBySource.map((s, i) => ({ ...s, color: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }))} height={140} />
         </div>
         <div className="rounded-xl border border-[var(--border)] bg-white p-5">
           <h3 className="mb-4 font-semibold text-[var(--ink)]">Skill Coverage</h3>

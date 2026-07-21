@@ -9,6 +9,13 @@ import ActivityFeed from "@/components/dashboard/ActivityFeed";
 import BarList from "@/components/charts/BarList";
 import { getToken } from "@/lib/authClient";
 
+// CPD compliance donut colours — matches the app's status palette
+// (green = on track, amber = at risk), consistent with the manager views.
+const COMPLIANCE_COLORS: Record<string, string> = {
+  "On Track": "#2e7d5b",
+  "At Risk": "#f59e0b",
+};
+
 const quickActions = [
   { icon: UserPlus, label: "Create User", href: "/admin/users" },
   { icon: BookOpen, label: "Add Course", href: "/admin/learning" },
@@ -92,7 +99,7 @@ export default function AdminDashboardPage() {
         </div>
         <div className="rounded-xl border border-[var(--border)] bg-white p-5">
           <h3 className="mb-4 font-semibold text-[var(--ink)]">CPD Compliance Overview</h3>
-          <LearnDonutChart data={data.cpdCompliance} label={`${data.compliancePct}%`} sublabel="Overall" height={140} />
+          <LearnDonutChart data={data.cpdCompliance.map((s) => ({ ...s, color: COMPLIANCE_COLORS[s.name] ?? "#9ca3af" }))} label={`${data.compliancePct}%`} sublabel="Overall" height={140} />
         </div>
       </div>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

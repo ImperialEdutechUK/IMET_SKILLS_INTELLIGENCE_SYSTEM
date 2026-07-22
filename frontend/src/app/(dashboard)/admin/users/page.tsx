@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Users, UserPlus, Search } from "lucide-react";
+import { Users, Search } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import { getToken } from "@/lib/authClient";
 
@@ -53,9 +53,9 @@ export default function UserManagementPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <div><h1 className="text-2xl font-bold text-[var(--ink)]">User Management</h1><p className="mt-1 text-sm text-[var(--muted)]">Create, manage, and monitor all platform users.</p></div>
-        <button className="flex items-center gap-2 rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-dark)]"><UserPlus className="h-4 w-4" /> Create User</button>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-[var(--ink)]">User Management</h1>
+        <p className="mt-1 text-sm text-[var(--muted)]">View and monitor all platform users, grouped by department. New users self-register and appear under Pending Approvals.</p>
       </div>
       <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatCard icon={Users} label="Total Users" value={data.total} />
@@ -99,7 +99,6 @@ export default function UserManagementPage() {
                       )}
                       <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${roleConfig[user.role] ?? "bg-slate-100 text-slate-600"}`}>{user.role}</span>
                       <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${statusConfig[user.status] ?? "bg-slate-100 text-slate-600"}`}>{user.status.replace("_", " ")}</span>
-                      <button className="shrink-0 text-xs text-[var(--brand)] hover:text-[var(--brand-dark)]">Edit</button>
                     </li>
                   ))}
                 </ul>

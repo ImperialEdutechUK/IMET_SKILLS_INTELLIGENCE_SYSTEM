@@ -18,8 +18,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid credentials." }, { status: 401 });
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email },
+  // Case-insensitive email lookup so login is forgiving of casing
+  // (some accounts were created with mixed-case emails, e.g. HR@imet.lk).
+  const user = await prisma.user.findFirst({
+    where: { email: { equals: email.trim(), mode: "insensitive" } },
     include: { department: true },
   });
   if (!user || !user.passwordHash) {

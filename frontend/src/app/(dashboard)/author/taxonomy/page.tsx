@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Tags, Plus } from "lucide-react";
+import { Tags } from "lucide-react";
 import { getToken } from "@/lib/authClient";
 
 interface Category { id: string; name: string; }
@@ -30,23 +30,22 @@ export default function TaxonomyPage() {
 
   return (
     <div>
-      <div className="mb-6"><div className="flex items-center gap-2"><Tags className="h-5 w-5 text-[var(--brand)]" /><h1 className="text-2xl font-bold text-[var(--ink)]">Categories & Skills</h1></div><p className="mt-1 text-sm text-[var(--muted)]">Manage the taxonomy that drives course matching.</p></div>
+      <div className="mb-6"><div className="flex items-center gap-2"><Tags className="h-5 w-5 text-[var(--brand)]" /><h1 className="text-2xl font-bold text-[var(--ink)]">Categories & Skills</h1></div><p className="mt-1 text-sm text-[var(--muted)]">The taxonomy that drives course matching.</p></div>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="rounded-xl border border-[var(--border)] bg-white p-5">
-          <div className="mb-4 flex items-center justify-between"><h3 className="font-semibold text-[var(--ink)]">Categories <span className="text-xs font-normal text-[var(--muted)]">({data.categories.length})</span></h3><button className="flex items-center gap-1 text-sm font-medium text-[var(--brand)]"><Plus className="h-3.5 w-3.5" /> Add</button></div>
+          <div className="mb-4 flex items-center justify-between"><h3 className="font-semibold text-[var(--ink)]">Categories <span className="text-xs font-normal text-[var(--muted)]">({data.categories.length})</span></h3></div>
           {data.categories.length === 0 ? <p className="text-sm text-[var(--muted)]">No categories yet.</p> : (
             <ul className="divide-y divide-[var(--border)]">
               {data.categories.map((cat) => (
                 <li key={cat.id} className="flex items-center justify-between py-3">
                   <span className="text-sm text-[var(--ink)]">{cat.name}</span>
-                  <button className="text-xs text-[var(--brand)]">Edit</button>
                 </li>
               ))}
             </ul>
           )}
         </div>
         <div className="rounded-xl border border-[var(--border)] bg-white p-5">
-          <div className="mb-4 flex items-center justify-between"><h3 className="font-semibold text-[var(--ink)]">Skills <span className="text-xs font-normal text-[var(--muted)]">({data.skills.length.toLocaleString()})</span></h3><button className="flex items-center gap-1 text-sm font-medium text-[var(--brand)]"><Plus className="h-3.5 w-3.5" /> Add</button></div>
+          <div className="mb-4 flex items-center justify-between"><h3 className="font-semibold text-[var(--ink)]">Skills <span className="text-xs font-normal text-[var(--muted)]">({data.skills.length.toLocaleString()})</span></h3></div>
           {data.skills.length === 0 ? <p className="text-sm text-[var(--muted)]">No skills yet.</p> : (
             <>
               <ul className="divide-y divide-[var(--border)]">

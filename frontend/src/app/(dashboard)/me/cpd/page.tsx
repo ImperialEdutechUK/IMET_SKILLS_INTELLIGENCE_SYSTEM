@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Award, Clock, Upload } from "lucide-react";
+import { Award, Clock } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import ProgressRing from "@/components/cpd/ProgressRing";
 import { getToken } from "@/lib/authClient";
@@ -38,13 +38,6 @@ export default function MyCpdPage() {
           <div className="grid grid-cols-2 gap-4">
             <StatCard icon={Award} label="Hours Completed" value={data.completed} delta={`${data.pct}% of target`} deltaPositive />
             <StatCard icon={Clock} label="Hours Remaining" value={data.remaining} sub="to reach target" />
-          </div>
-          <div className="rounded-xl border border-[var(--border)] bg-white p-5">
-            <h3 className="mb-2 font-semibold text-[var(--ink)]">Upload Certificate</h3>
-            <p className="mb-3 text-sm text-[var(--muted)]">Upload an external certificate to log CPD hours.</p>
-            <button className="flex items-center gap-2 rounded-lg border-2 border-dashed border-[var(--border)] px-4 py-3 text-sm text-[var(--muted)] hover:border-[var(--brand)] hover:text-[var(--brand)]">
-              <Upload className="h-4 w-4" /> Click to upload PDF or image
-            </button>
           </div>
         </div>
       </div>

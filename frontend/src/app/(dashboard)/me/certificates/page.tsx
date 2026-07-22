@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Award, Upload } from "lucide-react";
+import { Award } from "lucide-react";
 import { getToken } from "@/lib/authClient";
 
 interface Certificate {
@@ -28,12 +28,14 @@ export default function MyCertificatesPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <div><h1 className="text-2xl font-bold text-[var(--ink)]">My Certificates</h1><p className="mt-1 text-sm text-[var(--muted)]">View and upload your earned certificates.</p></div>
-        <button className="flex items-center gap-2 rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-dark)]"><Upload className="h-4 w-4" /> Upload</button>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-[var(--ink)]">My Certificates</h1>
+        <p className="mt-1 text-sm text-[var(--muted)]">Your earned certificates.</p>
       </div>
       {loading ? (
         <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>
+      ) : certificates.length === 0 ? (
+        <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">No certificates yet.</p></div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {certificates.map((cert) => (
@@ -47,9 +49,6 @@ export default function MyCertificatesPage() {
               </div>
             </div>
           ))}
-          <button className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-[var(--border)] p-8 text-[var(--muted)] hover:border-[var(--brand)] hover:text-[var(--brand)]">
-            <Upload className="h-8 w-8" /><span className="text-sm font-medium">Upload New</span>
-          </button>
         </div>
       )}
     </div>

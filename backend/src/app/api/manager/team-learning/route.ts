@@ -27,10 +27,12 @@ export async function GET(req: Request) {
       return {
         id: u.id,
         fullName: u.fullName,
+        position: u.position ?? "—",
         department: u.department?.name ?? "—",
         coursesCompleted: u.enrollments.filter((e) => e.status === "completed").length,
         coursesInProgress: u.enrollments.filter((e) => e.status === "in_progress").length,
         cpdProgress: Math.min(100, Math.round((cpdHours / target) * 100)),
+        lastActive: u.updatedAt.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
       };
     })
   );

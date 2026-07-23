@@ -14,6 +14,7 @@ export const navConfig: Record<Role, NavSection[]> = {
         { label: "My CPD", href: "/me/cpd", icon: Award },
         { label: "Certificates", href: "/me/certificates", icon: ScrollText },
         { label: "AI Recommendations", href: "/me/recommendations", icon: Sparkles },
+        { label: "Reports", href: "/me/reports", icon: BarChart3 },
         { label: "Settings", href: "/me/settings", icon: Settings },
       ],
     },

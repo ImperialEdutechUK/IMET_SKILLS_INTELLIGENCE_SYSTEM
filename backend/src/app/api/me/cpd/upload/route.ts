@@ -9,6 +9,20 @@ import { packCpd, CPD_TYPES, CPD_CATEGORIES, type CpdType, type CpdCategory } fr
 // Expected columns (any casing): Title/Activity, Type, Provider, Date, Category, Hours, Description.
 export const runtime = "nodejs";
 
+// Locate the table header row (0-indexed) by scanning the first ~15 rows for a
+// row that carries recognisable CPD column names. Falls back to row 0 so plain
+// single-table sheets keep working unchanged.
+function findHeaderRow(sheet: XLSX.WorkSheet): number {
+  const aoa = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: "" });
+  for (let i = 0; i < Math.min(aoa.length, 15); i++) {
+    const cells = (aoa[i] ?? []).map((c) => String(c).trim().toLowerCase());
+    const hasTitle = cells.some((c) => ["title", "course title", "activity", "activity title", "course", "name"].includes(c));
+    const hasHours = cells.some((c) => c.includes("hour") || c.includes("duration"));
+    if (hasTitle && hasHours) return i;
+  }
+  return 0;
+}
+
 function pick(row: Record<string, unknown>, keys: string[]): string {
   const lower: Record<string, unknown> = {};
   for (const k of Object.keys(row)) lower[k.trim().toLowerCase()] = row[k];
@@ -52,7 +66,11 @@ export async function POST(req: Request) {
     const buf = Buffer.from(await file.arrayBuffer());
     const wb = XLSX.read(buf, { type: "buffer" });
     const sheet = wb.Sheets[wb.SheetNames[0]];
-    rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+    // The official CPD Log template carries a title bar + a name/manager block
+    // above the table, so the header row isn't always row 1. Find the row that
+    // looks like column headers and start parsing there.
+    const headerRow = findHeaderRow(sheet);
+    rows = XLSX.utils.sheet_to_json(sheet, { defval: "", range: headerRow });
   } catch {
     return NextResponse.json({ error: "Could not read the spreadsheet." }, { status: 400 });
   }
@@ -66,8 +84,8 @@ export async function POST(req: Request) {
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
-    const title = pick(row, ["title", "activity", "activity title", "name", "course"]);
-    const hours = parseHours(pick(row, ["hours", "cpd hours", "duration", "duration (hours)", "time"]));
+    const title = pick(row, ["title", "activity", "activity title", "name", "course", "course title"]);
+    const hours = parseHours(pick(row, ["hours", "cpd hours", "duration", "duration (hours)", "duration (hrs)", "time"]));
     if (!title || hours <= 0) {
       skipped.push(`Row ${i + 2}: missing title or hours`);
       continue;
@@ -85,10 +103,10 @@ export async function POST(req: Request) {
       description: packCpd({
         title,
         type,
-        provider: pick(row, ["provider", "organization", "organisation", "source"]) || null,
+        provider: pick(row, ["provider", "provider / platform", "platform", "organization", "organisation", "source"]) || null,
         category: cat,
         dateCompleted: dateStr || null,
-        note: pick(row, ["description", "notes", "details", "reflection"]) || null,
+        note: pick(row, ["description", "notes", "details", "reflection", "key learnings / notes", "key learnings"]) || null,
       }),
     });
   }

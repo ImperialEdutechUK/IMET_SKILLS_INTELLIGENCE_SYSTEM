@@ -1,113 +1,103 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import {
-  ArrowRight, BookOpen, TrendingUp, Megaphone, Headphones,
-  Cpu, Wallet, Settings, GraduationCap, Users, AlertTriangle,
-} from "lucide-react";
+import { Users, BookOpen, Award, TrendingUp } from "lucide-react";
+import StatCard from "@/components/dashboard/StatCard";
+import LearnAreaChart from "@/components/charts/LearnAreaChart";
+import LearnDonutChart from "@/components/charts/LearnDonutChart";
+import AttentionList from "@/components/dashboard/AttentionList";
+import ActivityFeed from "@/components/dashboard/ActivityFeed";
+import DepartmentFilter from "@/components/manager/DepartmentFilter";
 import { getToken } from "@/lib/authClient";
 
-const DEPARTMENT_STYLES: Record<string, { icon: typeof Users; bg: string; fg: string }> = {
-  "CDD": { icon: BookOpen, bg: "#eef4fc", fg: "#3b6ea5" },
-  "Sales": { icon: TrendingUp, bg: "#fdf3e7", fg: "#b8792f" },
-  "Marketing": { icon: Megaphone, bg: "#fdeef0", fg: "#c2536b" },
-  "Customer Service": { icon: Headphones, bg: "#f2eefc", fg: "#7654b0" },
-  "IT": { icon: Cpu, bg: "#e9f7f6", fg: "#2f8f86" },
-  "Finance": { icon: Wallet, bg: "#eef9ef", fg: "#3f8a52" },
-  "Operations": { icon: Settings, bg: "#f5f1ea", fg: "#8a6d3f" },
-  "Academic": { icon: GraduationCap, bg: "#eef0fb", fg: "#4a5fc1" },
-};
-const DEFAULT_STYLE = { icon: Users, bg: "#f4f8f6", fg: "var(--brand-dark)" };
+const API = process.env.NEXT_PUBLIC_API_URL;
 
-interface DeptSummary {
-  id: string;
-  name: string;
-  teamMembers: number;
-  avgCpd: number;
-  avgSkillLevel: number;
-  atRisk: number;
+interface DashData {
+  fullName: string;
+  stats: { teamMembers: number; coursesInProgress: number; coursesCompleted: number; notStarted: number; cpdCompletion: number; avgSkillLevel: number; atRisk: number; attention: number };
+  progressOverTime: { label: string; hours: number }[];
+  attention: { id: string; fullName: string; reason: string; status: "at_risk" | "attention" | "inactive" }[];
+  recentActivity: { id: string; user: string; action: string; type: string; time: string }[];
+  categoryBreakdown: { name: string; value: number; color: string }[];
 }
 
 export default function ManagerDashboardPage() {
-  const [fullName, setFullName] = useState("");
-  const [departments, setDepartments] = useState<DeptSummary[]>([]);
+  const [data, setData] = useState<DashData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [dept, setDept] = useState("");
 
-  useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/manager/dashboard`, {
-      headers: { Authorization: `Bearer ${getToken()}` },
-    })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (d) {
-          setFullName(d.fullName);
-          setDepartments(d.departments);
-        }
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="rounded-xl border border-[var(--border)] bg-white p-6">
-        <p className="text-sm text-[var(--muted)]">Loading…</p>
-      </div>
-    );
-  }
+  const load = useCallback(async () => {
+    setLoading(true);
+    const q = dept ? `?departmentId=${dept}` : "";
+    const r = await fetch(`${API}/api/manager/dashboard${q}`, { headers: { Authorization: `Bearer ${getToken()}` } });
+    setData(r.ok ? await r.json() : null);
+    setLoading(false);
+  }, [dept]);
+  useEffect(() => { load(); }, [load]);
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[var(--ink)]">Welcome back, {fullName.split(" ")[0]}!</h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">Select a department to see its team, learning progress, and CPD status.</p>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[var(--ink)]">Welcome back{data ? `, ${data.fullName.split(" ")[0]}` : ""}! 👋</h1>
+          <p className="mt-1 text-sm text-[var(--muted)]">Here&apos;s what&apos;s happening with your team.</p>
+        </div>
+        <DepartmentFilter value={dept} onChange={setDept} />
       </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {departments.map((dept) => {
-          const style = DEPARTMENT_STYLES[dept.name] ?? DEFAULT_STYLE;
-          const Icon = style.icon;
-          return (
-            <Link
-              key={dept.id}
-              href={`/manager/departments/${dept.id}`}
-              className="group relative overflow-hidden rounded-xl border border-[var(--border)] bg-white p-5 transition-all hover:-translate-y-0.5 hover:border-[var(--muted)]/40 hover:shadow-sm"
-            >
-              <span className="absolute inset-x-0 top-0 h-0.5" style={{ backgroundColor: style.fg }} />
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg" style={{ color: style.fg, backgroundColor: style.bg }}>
-                    <Icon className="h-5 w-5" />
-                  </span>
-                  <h3 className="font-semibold text-[var(--ink)]">{dept.name}</h3>
-                </div>
-                <div className="flex items-center gap-2">
-                  {dept.atRisk > 0 && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
-                      <AlertTriangle className="h-3 w-3" /> {dept.atRisk} at risk
-                    </span>
-                  )}
-                  <ArrowRight className="h-4 w-4 text-[var(--muted)] transition-transform group-hover:translate-x-0.5" />
-                </div>
+
+      {loading || !data ? (
+        <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">{loading ? "Loading…" : "Could not load dashboard."}</p></div>
+      ) : (
+        <>
+          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard icon={Users} label="Team Members" value={data.stats.teamMembers} sub="Active learners" />
+            <StatCard icon={BookOpen} label="Courses in Progress" value={data.stats.coursesInProgress} sub={`${data.stats.coursesCompleted} completed`} />
+            <StatCard icon={Award} label="CPD Completion" value={`${data.stats.cpdCompletion}%`} sub="Team average" />
+            <StatCard icon={TrendingUp} label="Average Skill Level" value={`${data.stats.avgSkillLevel}%`} sub="Across the team" />
+          </div>
+
+          <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+              <div className="mb-1 flex items-center justify-between">
+                <h3 className="font-semibold text-[var(--ink)]">Team Learning Progress</h3>
+                <span className="text-xs text-[var(--muted)]">CPD hours · last 8 weeks</span>
               </div>
-              <div className="mt-5 grid grid-cols-3 gap-3">
-                <div>
-                  <p className="text-2xl font-bold leading-none text-[var(--ink)]">{dept.teamMembers}</p>
-                  <p className="mt-1.5 text-[11px] font-medium uppercase tracking-wide text-[var(--muted)]">Employees</p>
-                </div>
-                <div>
-                  <p className="text-2xl font-bold leading-none text-[var(--ink)]">{dept.avgCpd}<span className="text-base font-semibold text-[var(--muted)]">%</span></p>
-                  <p className="mt-1.5 text-[11px] font-medium uppercase tracking-wide text-[var(--muted)]">Avg CPD</p>
-                </div>
-                <div>
-                  <p className="text-2xl font-bold leading-none text-[var(--ink)]">{dept.avgSkillLevel}<span className="text-base font-semibold text-[var(--muted)]">/5</span></p>
-                  <p className="mt-1.5 text-[11px] font-medium uppercase tracking-wide text-[var(--muted)]">Avg Skill</p>
-                </div>
+              <LearnAreaChart data={data.progressOverTime} xKey="label" dataKeys={[{ key: "hours", label: "hours", color: "#2e7d5b" }]} unit="h" height={220} />
+            </div>
+            <div className="rounded-xl border border-[var(--border)] bg-white">
+              <div className="flex items-center justify-between border-b border-[var(--border)] p-5">
+                <h3 className="font-semibold text-[var(--ink)]">Employees Needing Attention</h3>
+                <Link href="/manager/team-cpd" className="text-xs font-medium text-[var(--brand)]">View All</Link>
               </div>
-            </Link>
-          );
-        })}
-      </div>
+              {data.attention.length === 0 ? (
+                <p className="p-5 text-sm text-[var(--muted)]">Everyone is on track. 🎉</p>
+              ) : (
+                <div className="p-3"><AttentionList items={data.attention} title="" /></div>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {data.recentActivity.length === 0 ? (
+              <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+                <h3 className="mb-4 font-semibold text-[var(--ink)]">Recent Team Activity</h3>
+                <p className="text-sm text-[var(--muted)]">No team activity yet. It appears here as employees enrol, complete courses and log CPD.</p>
+              </div>
+            ) : (
+              <ActivityFeed items={data.recentActivity} title="Recent Team Activity" />
+            )}
+            <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+              <h3 className="mb-4 font-semibold text-[var(--ink)]">Learning by Category</h3>
+              {data.categoryBreakdown.length === 0 ? (
+                <p className="text-sm text-[var(--muted)]">No enrolments yet.</p>
+              ) : (
+                <LearnDonutChart data={data.categoryBreakdown} label={`${data.stats.coursesInProgress + data.stats.coursesCompleted}`} sublabel="Courses" height={200} />
+              )}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

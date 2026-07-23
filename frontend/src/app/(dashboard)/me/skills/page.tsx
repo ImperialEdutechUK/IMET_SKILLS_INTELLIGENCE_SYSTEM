@@ -41,6 +41,7 @@ export default function MySkillsPage() {
   const [name, setName] = useState("");
   const [current, setCurrent] = useState(1);
   const [target, setTarget] = useState(3);
+  const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [addErr, setAddErr] = useState("");
 
@@ -58,10 +59,10 @@ export default function MySkillsPage() {
       const r = await fetch(`${API}/api/me/skills`, {
         method: "POST",
         headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), currentLevel: current, targetLevel: target }),
+        body: JSON.stringify({ name: name.trim(), currentLevel: current, targetLevel: target, gapAnalysis: notes.trim() }),
       });
       const d = await r.json();
-      if (r.ok) { setShowAdd(false); setName(""); setCurrent(1); setTarget(3); await load(); }
+      if (r.ok) { setShowAdd(false); setName(""); setCurrent(1); setTarget(3); setNotes(""); await load(); }
       else setAddErr(d.error ?? "Could not add skill.");
     } catch { setAddErr("Could not add skill."); }
     setSaving(false);
@@ -108,6 +109,11 @@ export default function MySkillsPage() {
                     {LEVELS.map((l, i) => <option key={l} value={i}>{l}</option>)}
                   </select>
                 </div>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-[var(--ink)]">Gap Analysis <span className="font-normal text-[var(--muted)]">(optional)</span></label>
+                <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="e.g. Need hands-on fine-tuning project."
+                  className="w-full rounded-lg border border-[var(--border)] px-3 py-2.5 text-sm outline-none focus:border-[var(--brand)]" />
               </div>
               {addErr && <p className="text-sm text-red-600">{addErr}</p>}
               <div className="flex justify-end gap-2 pt-2">

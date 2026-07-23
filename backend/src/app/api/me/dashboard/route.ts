@@ -41,6 +41,18 @@ export async function GET(req: Request) {
   }
 
   const inProgress = user.enrollments.filter((e) => e.status === "in_progress");
+  const completedCourseIds = new Set(
+    user.enrollments.filter((e) => e.status === "completed").map((e) => e.courseId)
+  );
+
+  // Learning paths in progress (started but not fully complete for this user).
+  const paths = await prisma.learningPath.findMany({ include: { items: true } });
+  const learningPathsInProgress = paths.filter((p) => {
+    if (p.items.length === 0) return false;
+    const done = p.items.filter((it) => completedCourseIds.has(it.courseId)).length;
+    return done > 0 && done < p.items.length;
+  }).length;
+
   const cpdHours = user.cpdRecords.reduce((sum, r) => sum + r.hours, 0);
   const cpdTargetHours = await getCpdTargetHours(user.departmentId);
   const cpdPercent = Math.min(100, Math.round((cpdHours / cpdTargetHours) * 100));
@@ -67,6 +79,7 @@ export async function GET(req: Request) {
     cpdPercent,
     cpdTarget: cpdTargetHours,
     enrolledCount: user.enrollments.length,
+    learningPathsInProgress,
     skillsImproving,
     notifications: unreadNotifications.map((n) => ({ id: n.id, title: n.title, body: n.body })),
     inProgress: inProgress.map((enr) => ({
@@ -77,6 +90,7 @@ export async function GET(req: Request) {
     })),
     topRecs: topRecs.map((rec) => ({
       id: rec.id,
+      courseId: rec.courseId,
       title: rec.course.title,
       source: rec.course.source,
       category: rec.course.category?.name ?? "General",

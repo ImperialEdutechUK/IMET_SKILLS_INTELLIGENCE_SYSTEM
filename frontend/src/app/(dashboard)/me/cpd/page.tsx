@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Award, Clock, CheckCircle2, Flame, Plus, Upload, BookOpen } from "lucide-react";
+import { Award, Clock, CheckCircle2, Flame, Plus, Upload, BookOpen, Download } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import ProgressRing from "@/components/cpd/ProgressRing";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
@@ -71,6 +71,10 @@ export default function MyCpdPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" onChange={onFile} className="hidden" />
+          <a href="/templates/cpd-log-template.xlsx" download title="Download the CPD Log Excel template"
+            className="inline-flex items-center gap-2 rounded-lg bg-[var(--brand-tint)] px-4 py-2 text-sm font-semibold text-[var(--brand-dark)] transition hover:bg-[var(--brand)] hover:text-white">
+            <Download className="h-4 w-4" /> Download Template
+          </a>
           <button onClick={() => fileRef.current?.click()} disabled={uploading}
             className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--ink)] hover:bg-slate-50 disabled:opacity-60">
             <Upload className="h-4 w-4" /> {uploading ? "Importing…" : "Import Excel"}

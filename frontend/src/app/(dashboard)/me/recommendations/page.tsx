@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   Sparkles, Upload, CheckCircle2, AlertCircle, Loader2, Star,
-  ArrowRight, RotateCcw, BookOpen, Lock,
+  ArrowRight, RotateCcw, BookOpen, Lock, Download,
 } from "lucide-react";
 import { getToken } from "@/lib/authClient";
 
@@ -38,10 +38,10 @@ type Bubble =
   | { id: number; role: "bot"; text: string }
   | { id: number; role: "user"; text: string };
 
-const DOC_META: Record<string, { label: string; blurb: string }> = {
-  SKILL_MATRIX: { label: "Skills Matrix", blurb: "Your current skill levels" },
-  CPD_RECORD: { label: "CPD Log", blurb: "Courses & CPD hours" },
-  DAILY_REPORT: { label: "Daily Report", blurb: "What you work on day to day" },
+const DOC_META: Record<string, { label: string; blurb: string; template: string }> = {
+  SKILL_MATRIX: { label: "Skills Matrix", blurb: "Your current skill levels", template: "/templates/skills-matrix-template.xlsx" },
+  CPD_RECORD: { label: "CPD Log", blurb: "Courses & CPD hours", template: "/templates/cpd-log-template.xlsx" },
+  DAILY_REPORT: { label: "Daily Report", blurb: "What you work on day to day", template: "/templates/daily-report-template.xlsx" },
 };
 
 const PROVIDER_LABEL: Record<string, string> = {
@@ -376,6 +376,15 @@ function UploadPanel({
                 {meta.label}
               </div>
               <span className="text-xs text-[var(--muted)]">{done ? "Uploaded" : meta.blurb}</span>
+              <a
+                href={meta.template}
+                download
+                onClick={(e) => e.stopPropagation()}
+                title={`Download the ${meta.label} template`}
+                className="mt-1.5 inline-flex w-fit items-center gap-1.5 rounded-md bg-[var(--brand-tint)] px-2.5 py-1 text-xs font-semibold text-[var(--brand-dark)] transition hover:bg-[var(--brand)] hover:text-white"
+              >
+                <Download className="h-3.5 w-3.5" /> Download template
+              </a>
             </label>
           );
         })}

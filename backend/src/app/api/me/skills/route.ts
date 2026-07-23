@@ -1,9 +1,47 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { verifyToken } from "@/lib/verifyToken";
+import { resolveSkill } from "@/server/skills/normalize";
 
 const LEVEL_LABEL = ["Not Started", "Beginner", "Intermediate", "Advanced", "Expert"];
 const label = (n: number) => LEVEL_LABEL[Math.max(0, Math.min(4, n))];
+const clampLevel = (n: unknown, fallback: number) => {
+  const v = Math.round(Number(n));
+  return Number.isFinite(v) ? Math.max(0, Math.min(4, v)) : fallback;
+};
+
+// Add (or update) a self-assessed skill for the signed-in employee.
+// Reuses resolveSkill so the skill name is normalised against the existing
+// taxonomy (dedupes via aliases; creates a Skill only if genuinely new).
+export async function POST(req: Request) {
+  const authUser = verifyToken(req);
+  if (!authUser) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+
+  let body;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+  }
+  const { name, currentLevel, targetLevel } = body ?? {};
+  if (typeof name !== "string" || !name.trim()) {
+    return NextResponse.json({ error: "Skill name is required." }, { status: 400 });
+  }
+
+  const resolved = await resolveSkill(name, { createIfMissing: true, useAI: false });
+  if (!resolved) return NextResponse.json({ error: "Could not add that skill." }, { status: 400 });
+
+  const cur = clampLevel(currentLevel, 1);
+  const tgt = clampLevel(targetLevel, 3);
+
+  const saved = await prisma.userSkill.upsert({
+    where: { userId_skillId: { userId: authUser.id, skillId: resolved.skill.id } },
+    update: { currentLevel: cur, targetLevel: tgt },
+    create: { userId: authUser.id, skillId: resolved.skill.id, currentLevel: cur, targetLevel: tgt },
+  });
+
+  return NextResponse.json({ ok: true, id: saved.id, skill: resolved.skill.name });
+}
 
 const IMPACT: Record<string, string> = { CRITICAL: "High Impact", HIGH: "High Impact", MEDIUM: "Medium Impact", LOW: "Low Impact" };
 const PRIORITY: Record<string, string> = { CRITICAL: "High", HIGH: "High", MEDIUM: "Medium", LOW: "Low" };

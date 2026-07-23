@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { TrendingUp, Star, Target, PlusCircle, Sparkles, CheckCircle2, ArrowUpRight } from "lucide-react";
+import { TrendingUp, Star, Target, PlusCircle, Sparkles, CheckCircle2, ArrowUpRight, Plus, X } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
 import { getToken } from "@/lib/authClient";
@@ -29,27 +29,95 @@ const levelBadge: Record<string, string> = {
 };
 const prioBadge: Record<string, string> = { High: "bg-red-50 text-red-700", Medium: "bg-amber-50 text-amber-700", Low: "bg-[var(--brand-tint)] text-[var(--brand-dark)]" };
 
+const LEVELS = ["Not Started", "Beginner", "Intermediate", "Advanced", "Expert"];
+
 export default function MySkillsPage() {
   const [data, setData] = useState<SkillsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("overview");
 
-  useEffect(() => {
-    fetch(`${API}/api/me/skills`, { headers: { Authorization: `Bearer ${getToken()}` } })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
+  // Add-skill form state
+  const [showAdd, setShowAdd] = useState(false);
+  const [name, setName] = useState("");
+  const [current, setCurrent] = useState(1);
+  const [target, setTarget] = useState(3);
+  const [saving, setSaving] = useState(false);
+  const [addErr, setAddErr] = useState("");
+
+  const load = useCallback(async () => {
+    const r = await fetch(`${API}/api/me/skills`, { headers: { Authorization: `Bearer ${getToken()}` } });
+    setData(r.ok ? await r.json() : null);
+    setLoading(false);
   }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const addSkill = async () => {
+    if (!name.trim()) { setAddErr("Enter a skill name."); return; }
+    setSaving(true); setAddErr("");
+    try {
+      const r = await fetch(`${API}/api/me/skills`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name.trim(), currentLevel: current, targetLevel: target }),
+      });
+      const d = await r.json();
+      if (r.ok) { setShowAdd(false); setName(""); setCurrent(1); setTarget(3); await load(); }
+      else setAddErr(d.error ?? "Could not add skill.");
+    } catch { setAddErr("Could not add skill."); }
+    setSaving(false);
+  };
 
   if (loading) return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
   if (!data) return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load your skills.</p></div>;
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[var(--ink)]">My Skills</h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">Track your skills, see your progress and plan what to improve next.</p>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[var(--ink)]">My Skills</h1>
+          <p className="mt-1 text-sm text-[var(--muted)]">Track your skills, see your progress and plan what to improve next.</p>
+        </div>
+        <button onClick={() => setShowAdd(true)} className="inline-flex items-center gap-2 rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-dark)]">
+          <Plus className="h-4 w-4" /> Add Skill
+        </button>
       </div>
+
+      {showAdd && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={() => setShowAdd(false)}>
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-[var(--ink)]">Add a Skill</h3>
+              <button onClick={() => setShowAdd(false)} className="text-[var(--muted)] hover:text-[var(--ink)]"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-[var(--ink)]">Skill name</label>
+                <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Prompt Engineering"
+                  className="w-full rounded-lg border border-[var(--border)] px-3 py-2.5 text-sm outline-none focus:border-[var(--brand)]" autoFocus />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-[var(--ink)]">Current level</label>
+                  <select value={current} onChange={(e) => setCurrent(Number(e.target.value))} className="w-full rounded-lg border border-[var(--border)] px-3 py-2.5 text-sm outline-none focus:border-[var(--brand)]">
+                    {LEVELS.map((l, i) => <option key={l} value={i}>{l}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-[var(--ink)]">Target level</label>
+                  <select value={target} onChange={(e) => setTarget(Number(e.target.value))} className="w-full rounded-lg border border-[var(--border)] px-3 py-2.5 text-sm outline-none focus:border-[var(--brand)]">
+                    {LEVELS.map((l, i) => <option key={l} value={i}>{l}</option>)}
+                  </select>
+                </div>
+              </div>
+              {addErr && <p className="text-sm text-red-600">{addErr}</p>}
+              <div className="flex justify-end gap-2 pt-2">
+                <button onClick={() => setShowAdd(false)} className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--ink)] hover:bg-slate-50">Cancel</button>
+                <button onClick={addSkill} disabled={saving} className="rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-dark)] disabled:opacity-60">{saving ? "Adding…" : "Add Skill"}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="mb-6 flex flex-wrap gap-6 border-b border-[var(--border)]">
         {([["overview", "Overview"], ["improve", "Skills to Improve"], ["ai", "AI Suggested Skills"]] as [Tab, string][]).map(([k, l]) => (

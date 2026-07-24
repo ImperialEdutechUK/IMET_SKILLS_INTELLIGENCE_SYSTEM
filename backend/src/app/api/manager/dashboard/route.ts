@@ -38,7 +38,7 @@ export async function GET(req: Request) {
     return targetCache.get(deptId)!;
   };
 
-  let inProgress = 0, completed = 0, cpdSum = 0, skillSum = 0, skillCount = 0, atRisk = 0, attention = 0;
+  let inProgress = 0, completed = 0, cpdSum = 0, skillSum = 0, skillCount = 0, atRisk = 0, attention = 0, cpdHoursTotal = 0;
   const attentionList: { id: string; fullName: string; reason: string; status: string }[] = [];
   const catTally = new Map<string, number>();
   const activityEvents: { time: number; user: string; action: string; type: string }[] = [];
@@ -50,6 +50,7 @@ export async function GET(req: Request) {
     inProgress += ip.length;
     completed += done.length;
     const cpdHours = m.cpdRecords.reduce((s, r) => s + r.hours, 0);
+    cpdHoursTotal += cpdHours;
     const target = await targetFor(m.departmentId);
     const { cpdProgress, status } = cpdRiskStatus(cpdHours, target);
     cpdSum += cpdProgress;
@@ -84,6 +85,9 @@ export async function GET(req: Request) {
   }
 
   const teamMembers = members.length;
+  const deptTarget = await targetFor(departmentId);
+  const teamTarget = Math.round(teamMembers * deptTarget * 10) / 10;
+  const activeLearners = members.filter((m) => m.enrollments.length > 0).length;
   const now = Date.now();
 
   const progressOverTime: { label: string; hours: number }[] = [];
@@ -113,10 +117,13 @@ export async function GET(req: Request) {
     departmentName: dept?.name ?? "Your Team",
     stats: {
       teamMembers,
+      activeLearners,
       coursesInProgress: inProgress,
       coursesCompleted: completed,
       notStarted: members.filter((m) => m.enrollments.length === 0).length,
       cpdCompletion: teamMembers ? Math.round(cpdSum / teamMembers) : 0,
+      cpdHoursTotal: Math.round(cpdHoursTotal * 10) / 10,
+      teamTarget,
       avgSkillLevel: skillCount ? Math.round((skillSum / skillCount / 4) * 100) : 0,
       atRisk,
       attention,

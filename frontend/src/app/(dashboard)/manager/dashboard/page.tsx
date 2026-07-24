@@ -40,7 +40,7 @@ export default function ManagerDashboardPage() {
     <div>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--ink)]">Welcome back{data ? `, ${data.fullName.split(" ")[0]}` : ""}! 👋</h1>
+          <h1 className="text-2xl font-bold text-[var(--ink)]">Welcome back{data ? `, ${data.fullName.split(" ")[0]}` : ""}! <span aria-hidden="true">👋</span></h1>
           <p className="mt-1 text-sm text-[var(--muted)]">Here&apos;s what&apos;s happening with your team.</p>
         </div>
         <DepartmentFilter value={dept} onChange={setDept} />

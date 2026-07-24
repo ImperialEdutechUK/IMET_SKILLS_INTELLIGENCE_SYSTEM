@@ -120,7 +120,7 @@ export default function MyCpdPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Recent activities */}
         <div className="lg:col-span-2 rounded-xl border border-[var(--border)] bg-white">
-          <div className="border-b border-[var(--border)] p-5"><h3 className="font-semibold text-[var(--ink)]">Recent CPD Activities</h3></div>
+          <div className="border-b border-[var(--border)] p-5"><h3 className="font-semibold text-[var(--ink)]">Recent Activity</h3></div>
           {data.activities.length === 0 ? (
             <p className="p-5 text-sm text-[var(--muted)]">No CPD activities yet. Record one or import your CPD log.</p>
           ) : (

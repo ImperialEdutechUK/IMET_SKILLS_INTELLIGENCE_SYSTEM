@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { BookOpen, Clock, Search, Map, CheckCircle2, PlayCircle, Plus, ExternalLink, X } from "lucide-react";
+import { BookOpen, Clock, Map, CheckCircle2, PlayCircle, Plus, ExternalLink, X } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import { getToken } from "@/lib/authClient";
 
@@ -44,7 +44,6 @@ function MyLearningInner() {
   const [data, setData] = useState<LearningData | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("not_started");
-  const [search, setSearch] = useState("");
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [showAdd, setShowAdd] = useState(false);
   const [logOpen, setLogOpen] = useState<Record<string, boolean>>({});
@@ -101,8 +100,6 @@ function MyLearningInner() {
   if (loading) return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
   if (!data) return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load your courses.</p></div>;
 
-  const filter = (list: Course[]) => list.filter((c) => c.title.toLowerCase().includes(search.toLowerCase()));
-
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
@@ -110,16 +107,9 @@ function MyLearningInner() {
           <h1 className="text-2xl font-bold text-[var(--ink)]">My Learning</h1>
           <p className="mt-1 text-sm text-[var(--muted)]">Track your courses, learning paths and progress.</p>
         </div>
-        <div className="flex w-full max-w-xl items-center gap-3">
-          <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Filter your courses…"
-              className="w-full rounded-lg border border-[var(--border)] py-2 pl-9 pr-3 text-sm outline-none focus:border-[var(--brand)]" />
-          </div>
-          <button onClick={() => setShowAdd(true)} className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-dark)]">
-            <Plus className="h-4 w-4" /> Add Course
-          </button>
-        </div>
+        <button onClick={() => setShowAdd(true)} className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-dark)]">
+          <Plus className="h-4 w-4" /> Add Course
+        </button>
       </div>
 
       {/* Tabs — counts live in the labels, so no separate stat card row is needed */}
@@ -148,8 +138,8 @@ function MyLearningInner() {
 
       {/* Tab content */}
       {tab === "in_progress" && (
-        <Section title="In Progress Courses" empty={filter(data.inProgress).length === 0} emptyText="No courses in progress. Start one from the Not Started tab or enrol from your dashboard.">
-          {filter(data.inProgress).map((c) => (
+        <Section title="In Progress Courses" empty={data.inProgress.length === 0} emptyText="No courses in progress. Start one from the Not Started tab or enrol from your dashboard.">
+          {data.inProgress.map((c) => (
             <div key={c.id} className="flex flex-col gap-4 border-b border-[var(--border)] p-5 last:border-0 md:flex-row md:items-center">
               <CourseIcon />
               <div className="min-w-0 flex-1">
@@ -187,8 +177,8 @@ function MyLearningInner() {
       )}
 
       {tab === "not_started" && (
-        <Section title="Courses you haven't started yet" empty={filter(data.notStarted).length === 0} emptyText="Nothing waiting. Enrol in a recommended course from your dashboard.">
-          {filter(data.notStarted).map((c) => (
+        <Section title="Courses you haven't started yet" empty={data.notStarted.length === 0} emptyText="Nothing waiting. Enrol in a recommended course from your dashboard.">
+          {data.notStarted.map((c) => (
             <div key={c.id} className="flex flex-col gap-3 border-b border-[var(--border)] p-5 last:border-0 md:flex-row md:items-center">
               <CourseIcon />
               <div className="min-w-0 flex-1">
@@ -205,8 +195,8 @@ function MyLearningInner() {
       )}
 
       {tab === "completed" && (
-        <Section title="Completed Courses" empty={filter(data.completed).length === 0} emptyText="No completed courses yet. Finish an in-progress course to earn a certificate.">
-          {filter(data.completed).map((c) => (
+        <Section title="Completed Courses" empty={data.completed.length === 0} emptyText="No completed courses yet. Finish an in-progress course to earn a certificate.">
+          {data.completed.map((c) => (
             <div key={c.id} className="flex items-center gap-4 border-b border-[var(--border)] p-5 last:border-0">
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-[var(--brand-tint)] text-[var(--brand-dark)]"><CheckCircle2 className="h-5 w-5" /></span>
               <div className="min-w-0 flex-1">

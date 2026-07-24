@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from "react";
 import { Clock, TrendingUp, CheckCircle2, AlertTriangle, BookOpen } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
-import DepartmentFilter from "@/components/manager/DepartmentFilter";
 import { getToken } from "@/lib/authClient";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -34,30 +33,27 @@ interface TeamCpdData {
 
 export default function TeamCpdPage() {
   const [data, setData] = useState<TeamCpdData | null>(null);
-  const [dept, setDept] = useState("");
   const [loading, setLoading] = useState(true);
   const [notifying, setNotifying] = useState(false);
   const [notifyMsg, setNotifyMsg] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
-    const q = dept ? `?departmentId=${dept}` : "";
-    fetch(`${API}/api/manager/team-cpd${q}`, { headers: { Authorization: `Bearer ${getToken()}` } })
+    fetch(`${API}/api/manager/team-cpd`, { headers: { Authorization: `Bearer ${getToken()}` } })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));
-  }, [dept]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 
   async function sendAlerts() {
     setNotifying(true); setNotifyMsg(null);
     try {
-      const q = dept ? `?departmentId=${dept}` : "";
-      const r = await fetch(`${API}/api/cpd/notify${q}`, {
+      const r = await fetch(`${API}/api/cpd/notify`, {
         method: "POST",
         headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ departmentId: dept || undefined }),
+        body: JSON.stringify({}),
       });
       const d = await r.json();
       if (!r.ok) throw new Error();
@@ -76,7 +72,6 @@ export default function TeamCpdPage() {
           <p className="mt-1 text-sm text-[var(--muted)]">Track and manage your team&apos;s CPD progress.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <DepartmentFilter value={dept} onChange={setDept} />
           <button onClick={sendAlerts} disabled={notifying}
             className="shrink-0 rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-dark)] disabled:opacity-60">
             {notifying ? "Sending…" : "Send CPD alerts"}

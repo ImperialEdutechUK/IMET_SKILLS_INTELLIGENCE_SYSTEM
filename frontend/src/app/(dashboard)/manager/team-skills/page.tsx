@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Gauge, Star, AlertTriangle, Users, ArrowUpRight } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import BarList from "@/components/charts/BarList";
-import DepartmentFilter from "@/components/manager/DepartmentFilter";
 import { getToken } from "@/lib/authClient";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -31,17 +30,15 @@ const prioBadge: Record<string, string> = {
 
 export default function TeamSkillsPage() {
   const [data, setData] = useState<Data | null>(null);
-  const [deptId, setDeptId] = useState("");
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(() => {
     setLoading(true);
-    const q = deptId ? `?departmentId=${deptId}` : "";
-    fetch(`${API}/api/manager/team-skills${q}`, { headers: { Authorization: `Bearer ${getToken()}` } })
+    fetch(`${API}/api/manager/team-skills`, { headers: { Authorization: `Bearer ${getToken()}` } })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));
-  }, [deptId]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 
@@ -52,7 +49,6 @@ export default function TeamSkillsPage() {
           <h1 className="text-2xl font-bold text-[var(--ink)]">Team Skills</h1>
           <p className="mt-1 text-sm text-[var(--muted)]">Overview of your team&apos;s skills and areas for improvement.</p>
         </div>
-        <DepartmentFilter value={deptId} onChange={setDeptId} />
       </div>
 
       {loading ? (
@@ -120,9 +116,9 @@ export default function TeamSkillsPage() {
                   </thead>
                   <tbody className="divide-y divide-[var(--border)]">
                     {data.memberNeeds.map((m) => (
-                      <tr key={m.id}>
+                      <tr key={m.id} className="transition-colors hover:bg-slate-50">
                         <td className="px-5 py-4">
-                          <p className="font-medium text-[var(--ink)]">{m.fullName}</p>
+                          <Link href={`/manager/employees/${m.id}`} className="font-medium text-[var(--ink)] hover:text-[var(--brand)]">{m.fullName}</Link>
                           {m.position && <p className="text-xs text-[var(--muted)]">{m.position}</p>}
                         </td>
                         <td className="px-5 py-4">

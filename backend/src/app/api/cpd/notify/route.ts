@@ -14,7 +14,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
-  const departmentId = new URL(req.url).searchParams.get("departmentId");
+  // Managers are locked to their own department; admins may target one via ?departmentId.
+  const departmentId =
+    authUser.role === "manager"
+      ? authUser.departmentId
+      : new URL(req.url).searchParams.get("departmentId");
   const employees = await prisma.user.findMany({
     where: { role: "employee", ...(departmentId ? { departmentId } : {}) },
     include: { cpdRecords: true, department: true },

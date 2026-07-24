@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState, useCallback } from "react";
+import Link from "next/link";
 import { BookOpen, CheckCircle, BarChart3, Users, Search, Download } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
-import DepartmentFilter from "@/components/manager/DepartmentFilter";
 import { getToken } from "@/lib/authClient";
 
 interface Member {
@@ -28,18 +28,16 @@ const API = process.env.NEXT_PUBLIC_API_URL;
 
 export default function TeamLearningPage() {
   const [data, setData] = useState<Data | null>(null);
-  const [deptId, setDeptId] = useState("");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(() => {
     setLoading(true);
-    const q = deptId ? `?departmentId=${deptId}` : "";
-    fetch(`${API}/api/manager/team-learning${q}`, { headers: { Authorization: `Bearer ${getToken()}` } })
+    fetch(`${API}/api/manager/team-learning`, { headers: { Authorization: `Bearer ${getToken()}` } })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));
-  }, [deptId]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 
@@ -73,7 +71,6 @@ export default function TeamLearningPage() {
           <h1 className="text-2xl font-bold text-[var(--ink)]">Team Learning</h1>
           <p className="mt-1 text-sm text-[var(--muted)]">Track your team&apos;s learning progress and course activity.</p>
         </div>
-        <DepartmentFilter value={deptId} onChange={setDeptId} />
       </div>
 
       {loading ? (
@@ -119,15 +116,15 @@ export default function TeamLearningPage() {
                   </thead>
                   <tbody className="divide-y divide-[var(--border)]">
                     {members.map((m) => (
-                      <tr key={m.id}>
+                      <tr key={m.id} className="transition-colors hover:bg-slate-50">
                         <td className="px-5 py-3.5">
-                          <div className="flex items-center gap-3">
+                          <Link href={`/manager/employees/${m.id}`} className="flex items-center gap-3">
                             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--brand-tint)] text-xs font-semibold text-[var(--brand-dark)]">{m.fullName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase()}</span>
                             <div className="min-w-0">
-                              <p className="font-medium text-[var(--ink)]">{m.fullName}</p>
+                              <p className="font-medium text-[var(--ink)] hover:text-[var(--brand)]">{m.fullName}</p>
                               <p className="text-xs text-[var(--muted)]">{m.position}</p>
                             </div>
-                          </div>
+                          </Link>
                         </td>
                         <td className="px-5 py-3.5 text-[var(--muted)]">{m.department}</td>
                         <td className="px-5 py-3.5">

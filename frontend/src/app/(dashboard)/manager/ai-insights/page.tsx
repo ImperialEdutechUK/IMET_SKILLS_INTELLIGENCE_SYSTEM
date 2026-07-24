@@ -5,7 +5,6 @@ import { Sparkles, AlertTriangle, TrendingUp, Target, GraduationCap, CheckCircle
 import StatCard from "@/components/dashboard/StatCard";
 import ProgressRing from "@/components/cpd/ProgressRing";
 import AttentionList from "@/components/dashboard/AttentionList";
-import DepartmentFilter from "@/components/manager/DepartmentFilter";
 import { getToken } from "@/lib/authClient";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -40,18 +39,16 @@ const gapBar: Record<string, { color: string; width: string }> = {
 };
 
 export default function AiInsightsPage() {
-  const [deptId, setDeptId] = useState("");
   const [data, setData] = useState<Data | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(() => {
     setLoading(true);
-    const qs = deptId ? `?departmentId=${deptId}` : "";
-    fetch(`${API}/api/manager/ai-insights${qs}`, { headers: { Authorization: `Bearer ${getToken()}` } })
+    fetch(`${API}/api/manager/ai-insights`, { headers: { Authorization: `Bearer ${getToken()}` } })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => { setData(d); setLoading(false); })
       .catch(() => { setData(null); setLoading(false); });
-  }, [deptId]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 
@@ -67,7 +64,6 @@ export default function AiInsightsPage() {
             <p className="mt-1 text-sm text-[var(--muted)]">AI-powered insights and recommendations to help your team learn and grow.</p>
           </div>
         </div>
-        <DepartmentFilter value={deptId} onChange={setDeptId} />
       </div>
 
       {loading ? (

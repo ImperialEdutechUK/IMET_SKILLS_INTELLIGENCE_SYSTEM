@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Users, BookOpen, Award, Clock, TrendingUp, Download, ArrowRight, GraduationCap, Target, CheckCircle2 } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import LearnAreaChart from "@/components/charts/LearnAreaChart";
-import DepartmentFilter from "@/components/manager/DepartmentFilter";
 import { getToken } from "@/lib/authClient";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -25,18 +24,16 @@ const REPORT_CARDS = [
 ];
 
 export default function ManagerReportsPage() {
-  const [departmentId, setDepartmentId] = useState("");
   const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(() => {
     setLoading(true);
-    const qs = departmentId ? `?departmentId=${departmentId}` : "";
-    fetch(`${API}/api/manager/reports${qs}`, { headers: { Authorization: `Bearer ${getToken()}` } })
+    fetch(`${API}/api/manager/reports`, { headers: { Authorization: `Bearer ${getToken()}` } })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));
-  }, [departmentId]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 
@@ -70,7 +67,6 @@ export default function ManagerReportsPage() {
           <p className="mt-1 text-sm text-[var(--muted)]">View and export key reports to track your team&apos;s learning performance.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <DepartmentFilter value={departmentId} onChange={setDepartmentId} />
           <button onClick={exportCsv} disabled={!data} className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--ink)] hover:bg-slate-50 disabled:opacity-50">
             <Download className="h-4 w-4" /> Export All Reports
           </button>

@@ -457,6 +457,23 @@ function QuestionPanel({
 
 function CourseCard({ rec }: { rec: Recommendation }) {
   const high = rec.matchLabel === "high";
+  // Additive only: enrol this recommended course so it appears in My Learning and
+  // its progress can be tracked. Uses the existing enrollments endpoint (which only
+  // reads the course + creates an enrollment) — the recommendation engine is untouched.
+  const [enrolling, setEnrolling] = useState(false);
+  const [enrolled, setEnrolled] = useState(false);
+  const enrol = async () => {
+    setEnrolling(true);
+    try {
+      const r = await fetch(`${API}/api/me/enrollments`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ courseId: rec.courseId }),
+      });
+      if (r.ok) setEnrolled(true);
+    } catch { /* ignore */ }
+    setEnrolling(false);
+  };
   return (
     <div className="rounded-2xl border border-[var(--border)] bg-white p-4">
       <div className="flex items-start gap-3">
@@ -517,6 +534,13 @@ function CourseCard({ rec }: { rec: Recommendation }) {
             <AlertCircle className="h-3.5 w-3.5" /> Internal course — ask your L&D team
           </div>
         )}
+        <button
+          onClick={enrol}
+          disabled={enrolled || enrolling}
+          className={`mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium ${enrolled ? "bg-[var(--brand-tint)] text-[var(--brand-dark)]" : "border border-[var(--border)] text-[var(--ink)] hover:bg-slate-50"} disabled:opacity-70`}
+        >
+          {enrolled ? <><CheckCircle2 className="h-3.5 w-3.5" /> Added to My Learning</> : enrolling ? "Adding…" : <><BookOpen className="h-3.5 w-3.5" /> Add to My Learning</>}
+        </button>
       </div>
     </div>
   );

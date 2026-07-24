@@ -91,7 +91,19 @@ export async function GET(req: Request) {
   });
 
   const completedCount = enrollments.filter((e) => e.status === "completed").length;
-  const onTargetSkills = userSkills.filter((s) => s.currentLevel >= s.targetLevel).length;
+
+  // Skill-improvement progress = average attainment toward target across skills that
+  // have a target (min(current/target, 1)). This stays meaningful while skills are
+  // still below target — unlike "% already at target", which reads 0% and contradicts
+  // the "N skills improving" count.
+  const skillsWithTarget = userSkills.filter((s) => s.targetLevel > 0);
+  const skillImprovement = skillsWithTarget.length
+    ? Math.round(
+        (skillsWithTarget.reduce((sum, s) => sum + Math.min(s.currentLevel / s.targetLevel, 1), 0) /
+          skillsWithTarget.length) *
+          100
+      )
+    : 0;
 
   return NextResponse.json({
     stats: {
@@ -109,8 +121,10 @@ export async function GET(req: Request) {
     recent,
     progress: {
       cpdGoal: Math.min(100, Math.round((records.reduce((s, r) => s + r.hours, 0) / target) * 100)),
-      learningGoal: enrollments.length ? Math.round((completedCount / enrollments.length) * 100) : 0,
-      skillImprovement: userSkills.length ? Math.round((onTargetSkills / userSkills.length) * 100) : 0,
+      // Course-completion rate (completed / enrolled) — labelled "Course Completion"
+      // in the UI so it is not confused with My CPD's "Learning Activities" goal.
+      courseCompletion: enrollments.length ? Math.round((completedCount / enrollments.length) * 100) : 0,
+      skillImprovement,
     },
   });
 }

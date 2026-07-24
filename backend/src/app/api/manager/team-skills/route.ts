@@ -8,8 +8,8 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
-  const url = new URL(req.url);
-  const departmentId = url.searchParams.get("departmentId");
+  // Managers are locked to their own department, server-side (ignores any client param).
+  const departmentId = authUser.departmentId;
 
   const userSkills = await prisma.userSkill.findMany({
     where: { user: { role: "employee", ...(departmentId ? { departmentId } : {}) } },

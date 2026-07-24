@@ -9,8 +9,8 @@ export async function GET(req: Request) {
   }
 
   try {
-    const url = new URL(req.url);
-    const departmentId = url.searchParams.get("departmentId");
+    // Managers are locked to their own department, server-side (ignores any client param).
+    const departmentId = authUser.departmentId;
 
     // Roles with their required skills
     const roles = await prisma.roleProfile.findMany({

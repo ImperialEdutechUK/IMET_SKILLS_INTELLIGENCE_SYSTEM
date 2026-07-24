@@ -14,8 +14,8 @@ export async function GET(req: Request) {
   if (!authUser) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
   if (authUser.role !== "manager") return NextResponse.json({ error: "Forbidden." }, { status: 403 });
 
-  const url = new URL(req.url);
-  const departmentId = url.searchParams.get("departmentId") || null;
+  // Managers are locked to their own department, server-side (ignores any client param).
+  const departmentId = authUser.departmentId;
 
   const members = await prisma.user.findMany({
     where: { role: "employee", ...(departmentId ? { departmentId } : {}) },
@@ -28,6 +28,10 @@ export async function GET(req: Request) {
     orderBy: { fullName: "asc" },
   });
 
+  const dept = departmentId
+    ? await prisma.department.findUnique({ where: { id: departmentId }, select: { name: true } })
+    : null;
+
   const targetCache = new Map<string | null, number>();
   const targetFor = async (deptId: string | null) => {
     if (!targetCache.has(deptId)) targetCache.set(deptId, await getCpdTargetHours(deptId));
@@ -38,6 +42,7 @@ export async function GET(req: Request) {
   const attentionList: { id: string; fullName: string; reason: string; status: string }[] = [];
   const catTally = new Map<string, number>();
   const activityEvents: { time: number; user: string; action: string; type: string }[] = [];
+  const memberRows: { id: string; fullName: string; position: string; avgSkillPercent: number; cpdProgress: number; coursesInProgress: number; coursesCompleted: number; status: string }[] = [];
 
   for (const m of members) {
     const ip = m.enrollments.filter((e) => e.status === "in_progress");
@@ -55,6 +60,19 @@ export async function GET(req: Request) {
     if (status === "at_risk") { atRisk++; attentionList.push({ id: m.id, fullName: m.fullName, reason: `CPD behind target (${cpdProgress}%)`, status: "at_risk" }); }
     else if (status === "attention") { attention++; attentionList.push({ id: m.id, fullName: m.fullName, reason: `CPD needs attention (${cpdProgress}%)`, status: "attention" }); }
     else if (m.enrollments.length === 0) { attentionList.push({ id: m.id, fullName: m.fullName, reason: "No courses started", status: "inactive" }); }
+
+    memberRows.push({
+      id: m.id,
+      fullName: m.fullName,
+      position: m.position ?? "—",
+      avgSkillPercent: m.userSkills.length
+        ? Math.round((m.userSkills.reduce((s, us) => s + us.currentLevel, 0) / m.userSkills.length / 4) * 100)
+        : 0,
+      cpdProgress,
+      coursesInProgress: ip.length,
+      coursesCompleted: done.length,
+      status: status ?? "on_track",
+    });
 
     for (const e of m.enrollments) {
       const cat = e.course.category?.name ?? "Uncategorized";
@@ -92,6 +110,7 @@ export async function GET(req: Request) {
 
   return NextResponse.json({
     fullName: authUser.name ?? "Manager",
+    departmentName: dept?.name ?? "Your Team",
     stats: {
       teamMembers,
       coursesInProgress: inProgress,
@@ -102,10 +121,17 @@ export async function GET(req: Request) {
       atRisk,
       attention,
     },
+    // On-track / attention / at-risk split for the CPD-status donut.
+    cpdStatusBreakdown: [
+      { name: "On track", value: Math.max(0, teamMembers - atRisk - attention), color: "#2e7d5b" },
+      { name: "Needs attention", value: attention, color: "#f59e0b" },
+      { name: "At risk", value: atRisk, color: "#f43f5e" },
+    ],
     progressOverTime,
     attention: attentionList.slice(0, 6),
     recentActivity,
     categoryBreakdown,
+    members: memberRows,
   });
 }
 

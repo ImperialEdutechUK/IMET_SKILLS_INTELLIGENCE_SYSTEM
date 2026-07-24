@@ -183,6 +183,10 @@ export default function RecommendationChatPage() {
         addBot("I hit a snag generating recommendations. Please try again.");
       } else if (data.recommendations.length === 0) {
         addBot(data.note ?? "I couldn't find suitable courses right now.");
+        // No picks (e.g. no skills on record yet) — still flip to the result state
+        // so "Start over" appears, letting the employee head back to the upload
+        // step to add skills or documents. The empty list renders nothing.
+        setResult(data);
       } else {
         // A note alongside results means these are general/fallback picks — show
         // the caveat first so the employee knows how to get sharper ones.

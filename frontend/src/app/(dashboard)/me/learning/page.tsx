@@ -1,9 +1,9 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { BookOpen, Clock, Trophy, Search, Map, Award, CheckCircle2, PlayCircle, Plus, ExternalLink, X } from "lucide-react";
+import { BookOpen, Clock, Search, Map, CheckCircle2, PlayCircle, Plus, ExternalLink, X } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import { getToken } from "@/lib/authClient";
 
@@ -57,7 +57,25 @@ function MyLearningInner() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
-  useEffect(() => { if (params.get("tab") === "paths") setTab("paths"); }, [params]);
+
+  // Land the user on content, not an empty state: once data arrives, select the first
+  // non-empty tab (respecting tab order). A ?tab= deep-link or a manual click wins.
+  const didInit = useRef(false);
+  useEffect(() => {
+    if (!data || didInit.current) return;
+    didInit.current = true;
+    const deep = params.get("tab");
+    if (deep === "paths") { setTab("paths"); return; }
+    const counts: Record<Tab, number> = {
+      not_started: data.stats.notStarted,
+      in_progress: data.stats.inProgress,
+      completed: data.stats.completed,
+      paths: data.learningPaths.length,
+    };
+    const order: Tab[] = ["not_started", "in_progress", "completed", "paths"];
+    const firstNonEmpty = order.find((k) => counts[k] > 0);
+    if (firstNonEmpty) setTab(firstNonEmpty);
+  }, [data, params]);
 
   const patch = async (id: string, body: Record<string, unknown>) => {
     setBusy((s) => ({ ...s, [id]: true }));
@@ -95,7 +113,7 @@ function MyLearningInner() {
         <div className="flex w-full max-w-xl items-center gap-3">
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search courses..."
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Filter your courses…"
               className="w-full rounded-lg border border-[var(--border)] py-2 pl-9 pr-3 text-sm outline-none focus:border-[var(--brand)]" />
           </div>
           <button onClick={() => setShowAdd(true)} className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-dark)]">
@@ -104,22 +122,28 @@ function MyLearningInner() {
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs — counts live in the labels, so no separate stat card row is needed */}
       <div className="mb-6 flex flex-wrap gap-6 border-b border-[var(--border)]">
-        {TABS.map((t) => (
-          <button key={t.key} onClick={() => setTab(t.key)}
-            className={`-mb-px border-b-2 pb-2.5 text-sm font-medium transition-colors ${tab === t.key ? "border-[var(--brand)] text-[var(--brand)]" : "border-transparent text-[var(--muted)] hover:text-[var(--ink)]"}`}>
-            {t.label}
-          </button>
-        ))}
+        {TABS.map((t) => {
+          const counts: Record<Tab, number> = {
+            not_started: data.stats.notStarted,
+            in_progress: data.stats.inProgress,
+            completed: data.stats.completed,
+            paths: data.learningPaths.length,
+          };
+          return (
+            <button key={t.key} onClick={() => setTab(t.key)}
+              className={`-mb-px border-b-2 pb-2.5 text-sm font-medium transition-colors ${tab === t.key ? "border-[var(--brand)] text-[var(--brand)]" : "border-transparent text-[var(--muted)] hover:text-[var(--ink)]"}`}>
+              {t.label}{counts[t.key] > 0 ? ` (${counts[t.key]})` : ""}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Summary cards */}
-      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard icon={BookOpen} label="Courses in Progress" value={data.stats.inProgress} sub="Keep going!" />
+      {/* One stat only — hours spent. Course counts are in the tab labels above;
+          certificates are homed on the Certificates page. */}
+      <div className="mb-6 max-w-xs">
         <StatCard icon={Clock} label="Hours Spent" value={`${data.stats.hoursThisMonth}h`} sub="This month" />
-        <StatCard icon={Trophy} label="Courses Completed" value={data.stats.completed} sub="Great job!" />
-        <StatCard icon={Award} label="Certificates" value={data.stats.certificatesEarned} sub="Earned" />
       </div>
 
       {/* Tab content */}

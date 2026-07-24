@@ -106,26 +106,17 @@ async function loadGaps(userId: string): Promise<{ gaps: ScoringGap[] } | { note
   return { gaps };
 }
 
-// ── Fallback when there's no role profile ─────────────────────────────────────
+// ── Gaps come from the employee's own skills ──────────────────────────────────
 //
-// Gap analysis needs the role's *required* skill levels (a RoleProfile, set up
-// by a manager/admin) to compare against. When that doesn't exist yet we can't
-// compute true gaps — but we can still help via `loadSelfAssessedGaps`
-// (gapAnalysis.ts), which treats the employee's own recorded skills as things
-// to deepen, and, failing even that, by surfacing solid catalogue picks. These
-// paths always carry a note nudging the employee (or their manager) toward the
-// inputs that sharpen the results.
+// Recommendations run off the employee's recorded skills — those added in the My
+// Skills tab or extracted from an uploaded Skills Matrix / CPD Log / Daily Report
+// (via `loadSelfAssessedGaps`), each skill below its target becoming a gap to
+// deepen. When there are no recorded skills at all there's nothing to target.
 
-const FALLBACK_SKILLS_NOTE =
-  "Heads up: I don't have a full role profile for your position yet, so these picks " +
-  "are based on the skills already on your record rather than your role's specific " +
-  "requirements. For sharper, gap-targeted recommendations, upload your Skills Matrix, " +
-  "CPD Log or Daily Report — or ask your manager to set up your role profile.";
-
-// Shown when we have nothing to identify a skill gap from — no role profile and
-// no recorded skills. We deliberately do NOT fall back to generic catalogue picks:
-// a recommendation is only meaningful if it closes a real gap, so we ask the
-// employee for the inputs that make that possible instead of guessing.
+// Shown when we have nothing to identify a skill gap from — no recorded skills.
+// We deliberately do NOT fall back to generic catalogue picks: a recommendation
+// is only meaningful if it closes a real gap, so we ask the employee for the
+// inputs that make that possible instead of guessing.
 const NO_SKILLS_NOTE =
   "No skills on record yet — I need at least 3 to find a gap. Add them in the My Skills tab, " +
   "or hit Start over to upload your Skills Matrix or CPD Log.";
@@ -229,7 +220,7 @@ export async function generateChatRecommendations(
       await prisma.recommendation.deleteMany({ where: { userId, source: "ai" } });
       return { ...base, note: NO_SKILLS_NOTE };
     }
-    generalNote = FALLBACK_SKILLS_NOTE;
+    // Recommend off the self-assessed gaps — no caveat, this is now the normal path.
   } else {
     gaps = gapResult.gaps;
     if (gaps.length === 0) {

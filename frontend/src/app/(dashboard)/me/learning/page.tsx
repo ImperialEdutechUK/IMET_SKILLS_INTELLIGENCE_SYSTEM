@@ -25,8 +25,8 @@ interface LearningData {
 
 type Tab = "in_progress" | "not_started" | "completed" | "paths";
 const TABS: { key: Tab; label: string }[] = [
-  { key: "in_progress", label: "In Progress" },
   { key: "not_started", label: "Not Started" },
+  { key: "in_progress", label: "In Progress" },
   { key: "completed", label: "Completed" },
   { key: "paths", label: "Learning Paths" },
 ];
@@ -43,10 +43,12 @@ function MyLearningInner() {
   const params = useSearchParams();
   const [data, setData] = useState<LearningData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<Tab>("in_progress");
+  const [tab, setTab] = useState<Tab>("not_started");
   const [search, setSearch] = useState("");
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [showAdd, setShowAdd] = useState(false);
+  const [logOpen, setLogOpen] = useState<Record<string, boolean>>({});
+  const [logVal, setLogVal] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     const r = await fetch(`${API}/api/me/learning`, { headers: { Authorization: `Bearer ${getToken()}` } });
@@ -68,6 +70,14 @@ function MyLearningInner() {
       if (r.ok) await load();
     } catch { /* ignore */ }
     setBusy((s) => ({ ...s, [id]: false }));
+  };
+
+  const logHours = async (id: string) => {
+    const n = Number(logVal[id]);
+    if (!n || n <= 0) return;
+    await patch(id, { addHours: n });
+    setLogVal((s) => ({ ...s, [id]: "" }));
+    setLogOpen((s) => ({ ...s, [id]: false }));
   };
 
   if (loading) return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
@@ -130,7 +140,20 @@ function MyLearningInner() {
                   onTouchEnd={(e) => patch(c.id, { progress: Number((e.target as HTMLInputElement).value) })}
                   className="w-full accent-[var(--brand)]" />
               </div>
-              <div className="flex shrink-0 gap-2">
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
+                {logOpen[c.id] ? (
+                  <>
+                    <input type="number" min={0} step={0.5} value={logVal[c.id] ?? ""} autoFocus
+                      onChange={(e) => setLogVal((s) => ({ ...s, [c.id]: e.target.value }))}
+                      onKeyDown={(e) => { if (e.key === "Enter") logHours(c.id); }}
+                      placeholder="hrs"
+                      className="w-16 rounded-lg border border-[var(--border)] px-2 py-1.5 text-xs outline-none focus:border-[var(--brand)]" />
+                    <button onClick={() => logHours(c.id)} disabled={busy[c.id]} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-xs font-medium text-white hover:bg-[var(--brand-dark)] disabled:opacity-60">Add</button>
+                    <button onClick={() => setLogOpen((s) => ({ ...s, [c.id]: false }))} className="rounded-lg border border-[var(--border)] px-2 py-1.5 text-xs font-medium text-[var(--muted)] hover:bg-slate-50">✕</button>
+                  </>
+                ) : (
+                  <button onClick={() => setLogOpen((s) => ({ ...s, [c.id]: true }))} className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--ink)] hover:bg-slate-50"><Clock className="h-3.5 w-3.5" /> Log Hours</button>
+                )}
                 {c.externalUrl && <a href={c.externalUrl} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--ink)] hover:bg-slate-50">Continue</a>}
                 <button onClick={() => patch(c.id, { progress: 100 })} disabled={busy[c.id]} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-xs font-medium text-white hover:bg-[var(--brand-dark)] disabled:opacity-60">Mark Complete</button>
               </div>

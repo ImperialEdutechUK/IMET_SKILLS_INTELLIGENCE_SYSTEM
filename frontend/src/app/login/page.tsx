@@ -11,6 +11,7 @@ import {
   Eye,
   EyeOff,
   ArrowRight,
+  ArrowLeft,
   BookOpen,
   BarChart3,
   Sparkles,
@@ -94,6 +95,12 @@ export default function LoginPage() {
       {/* Right: sign-in card */}
       <div className="flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-white p-8 shadow-sm">
+          <Link
+            href="/"
+            className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--muted)] hover:text-[var(--ink)]"
+          >
+            <ArrowLeft className="h-4 w-4" /> Back to Home
+          </Link>
           <div className="text-center">
             <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[var(--brand-tint)] text-[var(--brand-dark)]">
               <GraduationCap className="h-6 w-6" />

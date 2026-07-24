@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { BookOpen, Clock, Trophy, Search, Map, Award, CheckCircle2, PlayCircle } from "lucide-react";
+import { BookOpen, Clock, Trophy, Search, Map, Award, CheckCircle2, PlayCircle, Plus, ExternalLink, X } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import { getToken } from "@/lib/authClient";
 
@@ -46,6 +46,7 @@ function MyLearningInner() {
   const [tab, setTab] = useState<Tab>("in_progress");
   const [search, setSearch] = useState("");
   const [busy, setBusy] = useState<Record<string, boolean>>({});
+  const [showAdd, setShowAdd] = useState(false);
 
   const load = useCallback(async () => {
     const r = await fetch(`${API}/api/me/learning`, { headers: { Authorization: `Bearer ${getToken()}` } });
@@ -81,10 +82,15 @@ function MyLearningInner() {
           <h1 className="text-2xl font-bold text-[var(--ink)]">My Learning</h1>
           <p className="mt-1 text-sm text-[var(--muted)]">Track your courses, learning paths and progress.</p>
         </div>
-        <div className="relative w-full max-w-xs">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search courses..."
-            className="w-full rounded-lg border border-[var(--border)] py-2 pl-9 pr-3 text-sm outline-none focus:border-[var(--brand)]" />
+        <div className="flex w-full max-w-xl items-center gap-3">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search courses..."
+              className="w-full rounded-lg border border-[var(--border)] py-2 pl-9 pr-3 text-sm outline-none focus:border-[var(--brand)]" />
+          </div>
+          <button onClick={() => setShowAdd(true)} className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-dark)]">
+            <Plus className="h-4 w-4" /> Add Course
+          </button>
         </div>
       </div>
 
@@ -185,6 +191,103 @@ function MyLearningInner() {
           ))}
         </Section>
       )}
+
+      {showAdd && <AddCourseModal onClose={() => setShowAdd(false)} onSaved={() => { setShowAdd(false); setLoading(true); load(); }} />}
+    </div>
+  );
+}
+
+function AddCourseModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const [title, setTitle] = useState("");
+  const [externalUrl, setExternalUrl] = useState("");
+  const [provider, setProvider] = useState("");
+  const [cpdHours, setCpdHours] = useState("");
+  const [status, setStatus] = useState<"in_progress" | "completed">("in_progress");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const submit = async () => {
+    if (!title.trim()) { setError("Course name is required."); return; }
+    setSaving(true); setError("");
+    try {
+      const r = await fetch(`${API}/api/me/enrollments`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          manual: true,
+          title: title.trim(),
+          externalUrl: externalUrl.trim() || undefined,
+          provider: provider.trim() || undefined,
+          cpdHours: cpdHours ? Number(cpdHours) : undefined,
+          status,
+        }),
+      });
+      if (r.ok) { onSaved(); return; }
+      const d = await r.json().catch(() => ({}));
+      setError(d.error || "Could not add the course.");
+    } catch {
+      setError("Could not add the course.");
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onClose}>
+      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-1 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-[var(--ink)]">Add a Course</h2>
+          <button onClick={onClose} className="text-[var(--muted)] hover:text-[var(--ink)]"><X className="h-5 w-5" /></button>
+        </div>
+        <p className="mb-4 text-xs text-[var(--muted)]">For a course you&apos;re doing (or did) outside the recommended list. It&apos;s tracked here and counts towards your CPD.</p>
+        <div className="space-y-4">
+          <ModalField label="Course name" required>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Advanced React Patterns"
+              className="w-full rounded-lg border border-[var(--border)] px-3 py-2 text-sm outline-none focus:border-[var(--brand)]" />
+          </ModalField>
+          <ModalField label="Course link (URL)">
+            <div className="relative">
+              <ExternalLink className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input value={externalUrl} onChange={(e) => setExternalUrl(e.target.value)} placeholder="https://…"
+                className="w-full rounded-lg border border-[var(--border)] py-2 pl-9 pr-3 text-sm outline-none focus:border-[var(--brand)]" />
+            </div>
+          </ModalField>
+          <div className="grid grid-cols-2 gap-3">
+            <ModalField label="Provider">
+              <input value={provider} onChange={(e) => setProvider(e.target.value)} placeholder="e.g. Udemy"
+                className="w-full rounded-lg border border-[var(--border)] px-3 py-2 text-sm outline-none focus:border-[var(--brand)]" />
+            </ModalField>
+            <ModalField label="CPD hours">
+              <input value={cpdHours} onChange={(e) => setCpdHours(e.target.value)} type="number" min={0} step={0.5} placeholder="e.g. 5"
+                className="w-full rounded-lg border border-[var(--border)] px-3 py-2 text-sm outline-none focus:border-[var(--brand)]" />
+            </ModalField>
+          </div>
+          <ModalField label="Status">
+            <div className="flex gap-2">
+              {(["in_progress", "completed"] as const).map((s) => (
+                <button key={s} type="button" onClick={() => setStatus(s)}
+                  className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium ${status === s ? "border-[var(--brand)] bg-[var(--brand-tint)] text-[var(--brand-dark)]" : "border-[var(--border)] text-[var(--ink)] hover:bg-slate-50"}`}>
+                  {s === "in_progress" ? "In Progress" : "Completed"}
+                </button>
+              ))}
+            </div>
+          </ModalField>
+          {status === "completed" && <p className="text-xs text-[var(--muted)]">Marking it completed logs your CPD hours and issues a certificate automatically.</p>}
+          {error && <p className="text-sm text-red-600">{error}</p>}
+        </div>
+        <div className="mt-6 flex justify-end gap-2">
+          <button onClick={onClose} className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--ink)] hover:bg-slate-50">Cancel</button>
+          <button onClick={submit} disabled={saving} className="rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-dark)] disabled:opacity-60">{saving ? "Saving…" : "Add Course"}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ModalField({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="mb-1 block text-xs font-medium text-[var(--muted)]">{label}{required && <span className="text-red-500"> *</span>}</label>
+      {children}
     </div>
   );
 }

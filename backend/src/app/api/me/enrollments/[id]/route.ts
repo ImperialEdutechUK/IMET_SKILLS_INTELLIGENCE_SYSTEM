@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { verifyToken } from "@/lib/verifyToken";
-import { packCpd } from "@/lib/cpd-activity";
+import { applyEnrollmentCompletion } from "@/lib/enrollment-complete";
 
 // Update the signed-in employee's own enrollment: start it, set progress, or complete it.
 // Completing a course auto-creates a CPD record (from the course's CPD hours) and an
@@ -57,47 +57,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   // Completion side-effects (idempotent) — course completion earns CPD + a certificate.
   if (justCompleted) {
-    const course = enrollment.course;
-    const hours = course.cpdHours && course.cpdHours > 0 ? course.cpdHours : 1;
-    const today = new Date().toISOString().slice(0, 10);
-
-    // CPD record (enrollmentId is unique -> at most one per enrollment)
-    const existingCpd = await prisma.cpdRecord.findUnique({ where: { enrollmentId: id } });
-    if (!existingCpd) {
-      await prisma.cpdRecord.create({
-        data: {
-          userId: authUser.id,
-          enrollmentId: id,
-          hours,
-          source: "course",
-          description: packCpd({
-            title: course.title,
-            type: "Learning",
-            provider: course.provider ?? null,
-            category: "Technical Skills",
-            dateCompleted: today,
-            note: "Completed course",
-          }),
-        },
-      });
-    }
-
-    // Certificate (userId + title is unique)
-    const existingCert = await prisma.certificate.findUnique({
-      where: { userId_title: { userId: authUser.id, title: course.title } },
+    await applyEnrollmentCompletion({
+      userId: authUser.id,
+      enrollmentId: id,
+      courseTitle: enrollment.course.title,
+      provider: enrollment.course.provider ?? null,
+      cpdHours: enrollment.course.cpdHours,
     });
-    if (!existingCert) {
-      await prisma.certificate.create({
-        data: {
-          userId: authUser.id,
-          title: course.title,
-          issuer: course.provider ?? "LearnSmart AI",
-          cpdHours: hours,
-          issuedDate: today,
-          status: "approved",
-        },
-      });
-    }
   }
 
   return NextResponse.json({

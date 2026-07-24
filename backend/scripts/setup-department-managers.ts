@@ -8,15 +8,17 @@
 import { prisma } from "../src/lib/db";
 import { hash } from "bcryptjs";
 
+// Standardised strong demo passwords: pattern <Dept>@Imet#2026<2-char code>,
+// each with upper + lower letters, digits and special characters (@ #).
 const MANAGERS: { dept: string; email: string; password: string }[] = [
-  { dept: "CDD", email: "cdd.manager@imperiallearning.co.uk", password: "ImetCDD26!" },
-  { dept: "Sales", email: "sales.manager@imperiallearning.co.uk", password: "ImetSales26!" },
-  { dept: "Marketing", email: "marketing.manager@imperiallearning.co.uk", password: "ImetMktg26!" },
-  { dept: "Customer Service", email: "customerservice.manager@imperiallearning.co.uk", password: "ImetCS26!" },
-  { dept: "IT", email: "it.manager@imperiallearning.co.uk", password: "ImetIT26!" },
-  { dept: "Finance", email: "finance.manager@imperiallearning.co.uk", password: "ImetFin26!" },
-  { dept: "Operations", email: "operations.manager@imperiallearning.co.uk", password: "ImetOps26!" },
-  { dept: "Academic", email: "academic.manager@imperiallearning.co.uk", password: "ImetAcad26!" },
+  { dept: "CDD", email: "cdd.manager@imperiallearning.co.uk", password: "Cdd@Imet#2026Kx" },
+  { dept: "Sales", email: "sales.manager@imperiallearning.co.uk", password: "Sales@Imet#2026Qr" },
+  { dept: "Marketing", email: "marketing.manager@imperiallearning.co.uk", password: "Mktg@Imet#2026Lz" },
+  { dept: "Customer Service", email: "customerservice.manager@imperiallearning.co.uk", password: "Cs@Imet#2026Nv" },
+  { dept: "IT", email: "it.manager@imperiallearning.co.uk", password: "It@Imet#2026Bw" },
+  { dept: "Finance", email: "finance.manager@imperiallearning.co.uk", password: "Fin@Imet#2026Ty" },
+  { dept: "Operations", email: "operations.manager@imperiallearning.co.uk", password: "Ops@Imet#2026Hs" },
+  { dept: "Academic", email: "academic.manager@imperiallearning.co.uk", password: "Acad@Imet#2026Pm" },
 ];
 
 async function main() {
@@ -29,7 +31,8 @@ async function main() {
     const passwordHash = await hash(m.password, 12);
     const user = await prisma.user.upsert({
       where: { email: m.email },
-      update: { role: "manager", status: "active", departmentId: deptId, fullName: `${m.dept} Manager` },
+      // passwordHash set on update too, so re-running resets the password.
+      update: { role: "manager", status: "active", departmentId: deptId, fullName: `${m.dept} Manager`, passwordHash },
       create: { email: m.email, fullName: `${m.dept} Manager`, role: "manager", status: "active", passwordHash, departmentId: deptId },
     });
     // Point every employee in this department at their department manager.

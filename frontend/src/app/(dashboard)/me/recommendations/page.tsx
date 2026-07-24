@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   Sparkles, Upload, CheckCircle2, AlertCircle, Loader2, Star,
-  ArrowRight, RotateCcw, BookOpen, Download, ChevronDown,
+  ArrowRight, RotateCcw, Download, ChevronDown, Flag, MessagesSquare,
 } from "lucide-react";
 import { getToken } from "@/lib/authClient";
 
@@ -57,6 +57,9 @@ export default function RecommendationChatPage() {
   const [uploading, setUploading] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [result, setResult] = useState<ChatResult | null>(null);
+  // Results board only: docks the conversation into a side panel that can be
+  // collapsed to give the recommendations the full width.
+  const [convoCollapsed, setConvoCollapsed] = useState(false);
 
   const bubbleId = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -188,9 +191,8 @@ export default function RecommendationChatPage() {
         // step to add skills or documents. The empty list renders nothing.
         setResult(data);
       } else {
-        // A note alongside results means these are general/fallback picks — show
-        // the caveat first so the employee knows how to get sharper ones.
-        if (data.note) addBot(data.note);
+        // A note alongside results renders as a banner on the results board, so
+        // it isn't duplicated into the transcript here.
         addBot(
           `Here ${data.recommendations.length === 1 ? "is the course" : `are the ${data.recommendations.length} courses`} I'd recommend:`
         );
@@ -207,6 +209,7 @@ export default function RecommendationChatPage() {
     setAnswers({});
     setMultiSel([]);
     setResult(null);
+    setConvoCollapsed(false);
     addUser("Start over");
     // Return to the upload step (flowIndex 0), not straight to the questions —
     // documents change over time (new CPD entries, updated skills), so let the
@@ -225,8 +228,14 @@ export default function RecommendationChatPage() {
     );
   }
 
+  // Board mode: once picks exist the conversation docks into a collapsible side
+  // panel and the recommendations take the stage as a ranked list. An empty
+  // result (e.g. no skills on record) stays in chat mode so the advisor's
+  // message + Start over are front and centre.
+  const showBoard = !!result && result.recommendations.length > 0;
+
   return (
-    <div className="mx-auto flex h-[calc(100vh-8rem)] max-w-3xl flex-col">
+    <div className={`mx-auto flex flex-col ${showBoard ? "max-w-6xl" : "h-[calc(100vh-8rem)] max-w-3xl"}`}>
       {/* Header — Start over lives here (the intro copy points users to it) */}
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
@@ -245,49 +254,101 @@ export default function RecommendationChatPage() {
         )}
       </div>
 
-      {/* Transcript */}
-      <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto rounded-2xl border border-[var(--border)] bg-slate-50/60 p-4">
-        {!config && <Typing />}
-        {bubbles.map((b) =>
-          b.role === "bot" ? (
-            <BotBubble key={b.id} text={b.text} />
+      {showBoard ? (
+        <div className={convoCollapsed ? "" : "grid items-start gap-4 lg:grid-cols-[300px_minmax(0,1fr)]"}>
+          {/* Conversation — docked side panel, collapsible */}
+          {convoCollapsed ? (
+            <div className="mb-3">
+              <button
+                onClick={() => setConvoCollapsed(false)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-white px-3 py-1.5 text-xs font-medium text-[var(--ink)] hover:bg-slate-50"
+              >
+                <MessagesSquare className="h-3.5 w-3.5 text-[var(--brand)]" /> Show conversation
+              </button>
+            </div>
           ) : (
-            <UserBubble key={b.id} text={b.text} />
-          )
-        )}
+            <aside className="overflow-hidden rounded-2xl border border-[var(--border)] bg-white lg:sticky lg:top-4">
+              <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-2.5">
+                <span className="text-[11px] font-bold uppercase tracking-widest text-[var(--muted)]">Conversation</span>
+                <button onClick={() => setConvoCollapsed(true)} className="text-xs font-medium text-[var(--brand)] hover:underline">
+                  Collapse
+                </button>
+              </div>
+              <div ref={scrollRef} className="max-h-[60vh] space-y-2.5 overflow-y-auto bg-slate-50/60 p-3">
+                {bubbles.map((b) =>
+                  b.role === "bot" ? (
+                    <div key={b.id} className="max-w-[92%] whitespace-pre-line rounded-xl rounded-tl-sm border border-[var(--border)] bg-white px-3 py-2 text-xs leading-relaxed text-[var(--ink)]">
+                      {b.text}
+                    </div>
+                  ) : (
+                    <div key={b.id} className="flex justify-end">
+                      <div className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-xs font-medium text-white">{b.text}</div>
+                    </div>
+                  )
+                )}
+              </div>
+            </aside>
+          )}
 
-        {result && (
-          <div className="space-y-3 pt-1">
-            {result.recommendations.map((rec) => (
-              <CourseCard key={rec.courseId} rec={rec} />
-            ))}
+          {/* Results */}
+          <section className="min-w-0">
+            {result.note && (
+              <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs leading-relaxed text-amber-800">
+                <Flag className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>{result.note}</span>
+              </div>
+            )}
+            <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-white">
+              <div className="flex flex-wrap items-baseline gap-x-2 border-b border-[var(--border)] px-4 py-3">
+                <h2 className="text-sm font-bold text-[var(--ink)]">Recommended for you</h2>
+                <span className="text-xs text-[var(--muted)]">
+                  {result.recommendations.length} course{result.recommendations.length === 1 ? "" : "s"}, ranked by fit
+                </span>
+              </div>
+              {result.recommendations.map((rec) => (
+                <CourseRow key={rec.courseId} rec={rec} defaultOpen={rec.rank === 1} />
+              ))}
+            </div>
+          </section>
+        </div>
+      ) : (
+        <>
+          {/* Transcript */}
+          <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto rounded-2xl border border-[var(--border)] bg-slate-50/60 p-4">
+            {!config && <Typing />}
+            {bubbles.map((b) =>
+              b.role === "bot" ? (
+                <BotBubble key={b.id} text={b.text} />
+              ) : (
+                <UserBubble key={b.id} text={b.text} />
+              )
+            )}
+
+            {generating && <Typing />}
           </div>
-        )}
 
-        {generating && <Typing />}
-      </div>
+          {/* Composer — always a fixed set of choices, never free text */}
+          <div className="mt-3">
+            {config && !generating && !result && flowIndex === 0 && (
+              <UploadPanel
+                docs={docs}
+                uploading={uploading}
+                onUpload={uploadDoc}
+                onContinue={() => { addUser("Continue"); advance(0, answers); }}
+              />
+            )}
 
-      {/* Composer — always a fixed set of choices, never free text */}
-      <div className="mt-3">
-        {config && !generating && !result && flowIndex === 0 && (
-          <UploadPanel
-            docs={docs}
-            uploading={uploading}
-            onUpload={uploadDoc}
-            onContinue={() => { addUser("Continue"); advance(0, answers); }}
-          />
-        )}
-
-        {config && !generating && !result && currentQuestion && (
-          <QuestionPanel
-            question={currentQuestion}
-            multiSel={multiSel}
-            setMultiSel={setMultiSel}
-            onAnswer={answerQuestion}
-          />
-        )}
-
-      </div>
+            {config && !generating && !result && currentQuestion && (
+              <QuestionPanel
+                question={currentQuestion}
+                multiSel={multiSel}
+                setMultiSel={setMultiSel}
+                onAnswer={answerQuestion}
+              />
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -443,10 +504,11 @@ function QuestionPanel({
   );
 }
 
-// ── Result card ───────────────────────────────────────────────────────────────
+// ── Result row (ranked list on the results board) ─────────────────────────────
 
-function CourseCard({ rec }: { rec: Recommendation }) {
+function CourseRow({ rec, defaultOpen = false }: { rec: Recommendation; defaultOpen?: boolean }) {
   const high = rec.matchLabel === "high";
+  const top = rec.rank === 1;
   // Additive only: enrol this recommended course so it appears in My Learning and
   // its progress can be tracked. Uses the existing enrollments endpoint (which only
   // reads the course + creates an enrollment) — the recommendation engine is untouched.
@@ -464,33 +526,60 @@ function CourseCard({ rec }: { rec: Recommendation }) {
     } catch { /* ignore */ }
     setEnrolling(false);
   };
-  // Progressive disclosure: metadata on one line, the "why" collapsed to a line,
-  // and only the top skill shown until expanded — so 5 cards fit in ~1.5 screens.
-  const [showWhy, setShowWhy] = useState(false);
+  // The top pick opens its "why" by default; the rest reveal on demand so the
+  // list stays scannable. Skills beyond the first expand inline via "+N more".
+  const [showWhy, setShowWhy] = useState(defaultOpen);
   const [showAllSkills, setShowAllSkills] = useState(false);
   const topGap = rec.gapsCovered[0];
   const extraGaps = rec.gapsCovered.length - 1;
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-[var(--border)] bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--brand)]/40 hover:shadow-md">
-      {/* Quality accent — a hairline down the left edge, colour-matched to the score */}
-      <span className={`absolute inset-y-0 left-0 w-1 ${high ? "bg-[var(--brand)]" : "bg-blue-500"}`} aria-hidden />
+    <div className="relative border-b border-[var(--border)] last:border-b-0">
+      {/* The top pick gets a brand accent down its left edge */}
+      {top && <span className="absolute inset-y-0 left-0 w-1 bg-[var(--brand)]" aria-hidden />}
 
-      <div className="p-4 pl-5">
-        {/* Header: course icon + rank/title, with match + rating on the right */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 items-start gap-2.5">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--brand-tint)] text-[var(--brand-dark)]">
-              <BookOpen className="h-4 w-4" />
-            </span>
-            <div className="min-w-0">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">
-                {rec.rank === 1 ? "Top pick" : `Pick #${rec.rank}`}
-              </span>
-              <h4 className="line-clamp-2 text-sm font-semibold leading-snug text-[var(--ink)]" title={rec.title}>{rec.title}</h4>
-            </div>
+      <div className="flex flex-col gap-3 p-4 pl-5 sm:flex-row sm:items-start sm:gap-4">
+        {/* Rank */}
+        <div className="flex shrink-0 items-center gap-1.5 sm:flex-col sm:gap-0.5 sm:pt-0.5">
+          <span className={`grid h-8 w-8 place-items-center rounded-lg text-sm font-bold ${top ? "bg-[var(--brand)] text-white" : "border border-[var(--border)] bg-slate-50 text-[var(--ink)]"}`}>
+            {rec.rank}
+          </span>
+          {top && <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--brand-dark)]">Top</span>}
+        </div>
+
+        {/* Course */}
+        <div className="min-w-0 flex-1">
+          <h4 className="text-[15px] font-semibold leading-snug text-[var(--ink)]" title={rec.title}>{rec.title}</h4>
+
+          {/* Metadata + skill pills on one wrapping line */}
+          <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-[var(--muted)]">
+            <span className="font-medium text-[var(--ink)]/70">{rec.provider ?? rec.source}</span>
+            <span>· {rec.category}</span>
+            {rec.level && <span>· {rec.level}</span>}
+            {rec.durationHours != null && <span>· {rec.durationHours}h</span>}
+            {rec.cpdHours > 0 && <span>· {rec.cpdHours} CPD</span>}
+            {topGap && (
+              <span className="rounded-md border border-[var(--brand)]/20 bg-[var(--brand-tint)] px-2 py-0.5 font-medium text-[var(--brand-dark)]">{topGap.skill}: {topGap.from} → {topGap.to}</span>
+            )}
+            {showAllSkills && rec.gapsCovered.slice(1).map((g) => (
+              <span key={g.skill} className="rounded-md border border-[var(--brand)]/20 bg-[var(--brand-tint)] px-2 py-0.5 font-medium text-[var(--brand-dark)]">{g.skill}: {g.from} → {g.to}</span>
+            ))}
+            {extraGaps > 0 && !showAllSkills && (
+              <button onClick={() => setShowAllSkills(true)} className="font-medium text-[var(--brand)] hover:underline">+{extraGaps} more</button>
+            )}
           </div>
-          <div className="flex shrink-0 flex-col items-end gap-1">
+
+          {/* Why — hidden until expanded (top pick starts open) */}
+          <button onClick={() => setShowWhy((v) => !v)} className="mt-2 flex items-center gap-1">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--brand-dark)]">Why this fits</span>
+            <ChevronDown className={`h-3 w-3 text-[var(--brand-dark)] transition-transform ${showWhy ? "rotate-180" : ""}`} />
+          </button>
+          {showWhy && <p className="mt-1 max-w-prose text-xs leading-relaxed text-[var(--muted)]">{rec.reason}</p>}
+        </div>
+
+        {/* Match + actions */}
+        <div className="flex shrink-0 flex-row flex-wrap items-center gap-2 sm:w-48 sm:flex-col sm:items-end">
+          <div className="flex items-center gap-2">
             <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${high ? "bg-[var(--brand-tint)] text-[var(--brand-dark)]" : "bg-blue-50 text-blue-700"}`}>
               {high ? "High" : "Good"} match
             </span>
@@ -499,62 +588,27 @@ function CourseCard({ rec }: { rec: Recommendation }) {
                 <Star className="h-3 w-3 fill-amber-400 text-amber-400" />{rec.rating}
               </span>
             ) : (
-              <span className="flex items-center gap-0.5 text-[11px] font-medium text-[var(--muted)]" title="No ratings yet">
-                <Star className="h-3 w-3 text-slate-300" />—
-              </span>
+              <span className="text-[11px] text-[var(--muted)]">No ratings yet</span>
             )}
           </div>
-        </div>
-
-        {/* Single-line metadata */}
-        <p className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-[var(--muted)]">
-          <span className="font-medium text-[var(--ink)]/70">{rec.provider ?? rec.source}</span>
-          <span>· {rec.category}</span>
-          {rec.level && <span>· {rec.level}</span>}
-          {rec.durationHours != null && <span>· {rec.durationHours}h</span>}
-          {rec.cpdHours > 0 && <span>· {rec.cpdHours} CPD</span>}
-        </p>
-
-        {/* Top skill only, with an expander for the rest */}
-          {topGap && (
-            <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-              <span className="rounded-md border border-[var(--brand)]/20 bg-[var(--brand-tint)] px-2 py-0.5 text-[11px] font-medium text-[var(--brand-dark)]">{topGap.skill}: {topGap.from} → {topGap.to}</span>
-              {showAllSkills && rec.gapsCovered.slice(1).map((g) => (
-                <span key={g.skill} className="rounded-md border border-[var(--brand)]/20 bg-[var(--brand-tint)] px-2 py-0.5 text-[11px] font-medium text-[var(--brand-dark)]">{g.skill}: {g.from} → {g.to}</span>
-              ))}
-              {extraGaps > 0 && !showAllSkills && (
-                <button onClick={() => setShowAllSkills(true)} className="text-[11px] font-medium text-[var(--brand)] hover:underline">+{extraGaps} more</button>
-              )}
-            </div>
-          )}
-
-          {/* Why — one line, expandable */}
-          <button onClick={() => setShowWhy((v) => !v)} className="mt-2.5 flex w-full items-center gap-1 text-left">
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--brand-dark)]">Why this fits</span>
-            <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-[var(--brand-dark)] transition-transform ${showWhy ? "rotate-180" : ""}`} />
+          <button
+            onClick={enrol}
+            disabled={enrolled || enrolling}
+            className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition sm:w-full ${enrolled ? "bg-[var(--brand-tint)] text-[var(--brand-dark)]" : "bg-[var(--brand)] text-white hover:bg-[var(--brand-dark)]"} disabled:opacity-70`}
+          >
+            {enrolled ? <><CheckCircle2 className="h-3.5 w-3.5" /> Added</> : enrolling ? "Adding…" : "+ Add to My Learning"}
           </button>
-          <p className={`mt-0.5 text-xs leading-relaxed text-[var(--muted)] ${showWhy ? "" : "line-clamp-1"}`}>{rec.reason}</p>
-
-          {/* One primary action + a quiet secondary link */}
-          <div className="mt-3 flex items-center gap-2">
-            <button
-              onClick={enrol}
-              disabled={enrolled || enrolling}
-              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition ${enrolled ? "bg-[var(--brand-tint)] text-[var(--brand-dark)]" : "bg-[var(--brand)] text-white hover:bg-[var(--brand-dark)]"} disabled:opacity-70`}
-            >
-              {enrolled ? <><CheckCircle2 className="h-3.5 w-3.5" /> Added</> : enrolling ? "Adding…" : <><BookOpen className="h-3.5 w-3.5" /> Add to My Learning</>}
-            </button>
-            {rec.externalUrl ? (
-              <a href={rec.externalUrl} target="_blank" rel="noopener noreferrer"
-                className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-medium text-[var(--ink)] transition hover:border-[var(--brand)]/40 hover:bg-slate-50">
-                View <ArrowRight className="h-3.5 w-3.5" />
-              </a>
-            ) : (
-              <span className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[var(--border)] px-3 py-2 text-xs text-[var(--muted)]" title="Internal course — ask your L&D team">
-                <AlertCircle className="h-3.5 w-3.5" /> Internal
-              </span>
-            )}
-          </div>
+          {rec.externalUrl ? (
+            <a href={rec.externalUrl} target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs font-medium text-[var(--muted)] transition hover:text-[var(--brand)]">
+              View course <ArrowRight className="h-3 w-3" />
+            </a>
+          ) : (
+            <span className="inline-flex items-center gap-1 text-xs text-[var(--muted)]" title="Internal course — ask your L&D team">
+              <AlertCircle className="h-3 w-3" /> Internal
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

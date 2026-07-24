@@ -183,6 +183,10 @@ export default function RecommendationChatPage() {
         addBot("I hit a snag generating recommendations. Please try again.");
       } else if (data.recommendations.length === 0) {
         addBot(data.note ?? "I couldn't find suitable courses right now.");
+        // No picks (e.g. no skills on record yet) — still flip to the result state
+        // so "Start over" appears, letting the employee head back to the upload
+        // step to add skills or documents. The empty list renders nothing.
+        setResult(data);
       } else {
         // A note alongside results means these are general/fallback picks — show
         // the caveat first so the employee knows how to get sharper ones.
@@ -468,65 +472,89 @@ function CourseCard({ rec }: { rec: Recommendation }) {
   const extraGaps = rec.gapsCovered.length - 1;
 
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-white p-3.5">
-      {/* Title + single-line metadata + match badge */}
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex min-w-0 items-start gap-2.5">
-          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[var(--brand-tint)] text-[var(--brand-dark)]"><BookOpen className="h-4 w-4" /></span>
-          <div className="min-w-0">
-            <h4 className="truncate text-sm font-semibold text-[var(--ink)]" title={rec.title}>{rec.title}</h4>
-            <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[11px] text-[var(--muted)]">
-              <span>{rec.provider ?? rec.source}</span>
-              <span>· {rec.category}</span>
-              {rec.level && <span>· {rec.level}</span>}
-              {rec.durationHours != null && <span>· {rec.durationHours}h</span>}
-              {rec.cpdHours > 0 && <span>· {rec.cpdHours} CPD</span>}
-              <span className="flex items-center gap-0.5">· {rec.rating != null ? <><Star className="h-3 w-3 fill-amber-400 text-amber-400" />{rec.rating}</> : "No ratings yet"}</span>
-            </p>
+    <div className="group relative overflow-hidden rounded-2xl border border-[var(--border)] bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--brand)]/40 hover:shadow-md">
+      {/* Quality accent — a hairline down the left edge, colour-matched to the score */}
+      <span className={`absolute inset-y-0 left-0 w-1 ${high ? "bg-[var(--brand)]" : "bg-blue-500"}`} aria-hidden />
+
+      <div className="p-4 pl-5">
+        {/* Header: course icon + rank/title, with match + rating on the right */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-start gap-2.5">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--brand-tint)] text-[var(--brand-dark)]">
+              <BookOpen className="h-4 w-4" />
+            </span>
+            <div className="min-w-0">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--muted)]">
+                {rec.rank === 1 ? "Top pick" : `Pick #${rec.rank}`}
+              </span>
+              <h4 className="line-clamp-2 text-sm font-semibold leading-snug text-[var(--ink)]" title={rec.title}>{rec.title}</h4>
+            </div>
+          </div>
+          <div className="flex shrink-0 flex-col items-end gap-1">
+            <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${high ? "bg-[var(--brand-tint)] text-[var(--brand-dark)]" : "bg-blue-50 text-blue-700"}`}>
+              {high ? "High" : "Good"} match
+            </span>
+            {rec.rating != null ? (
+              <span className="flex items-center gap-0.5 text-[11px] font-medium text-amber-600">
+                <Star className="h-3 w-3 fill-amber-400 text-amber-400" />{rec.rating}
+              </span>
+            ) : (
+              <span className="flex items-center gap-0.5 text-[11px] font-medium text-[var(--muted)]" title="No ratings yet">
+                <Star className="h-3 w-3 text-slate-300" />—
+              </span>
+            )}
           </div>
         </div>
-        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${high ? "bg-[var(--brand-tint)] text-[var(--brand-dark)]" : "bg-blue-50 text-blue-700"}`}>{high ? "High" : "Good"} match</span>
-      </div>
 
-      {/* Top skill only, with an expander for the rest */}
-      {topGap && (
-        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          <span className="rounded-md border border-[var(--border)] bg-slate-50 px-2 py-0.5 text-[11px] text-[var(--muted)]">{topGap.skill}: {topGap.from} → {topGap.to}</span>
-          {showAllSkills && rec.gapsCovered.slice(1).map((g) => (
-            <span key={g.skill} className="rounded-md border border-[var(--border)] bg-slate-50 px-2 py-0.5 text-[11px] text-[var(--muted)]">{g.skill}: {g.from} → {g.to}</span>
-          ))}
-          {extraGaps > 0 && !showAllSkills && (
-            <button onClick={() => setShowAllSkills(true)} className="text-[11px] font-medium text-[var(--brand)] hover:underline">+{extraGaps} more</button>
+        {/* Single-line metadata */}
+        <p className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-[var(--muted)]">
+          <span className="font-medium text-[var(--ink)]/70">{rec.provider ?? rec.source}</span>
+          <span>· {rec.category}</span>
+          {rec.level && <span>· {rec.level}</span>}
+          {rec.durationHours != null && <span>· {rec.durationHours}h</span>}
+          {rec.cpdHours > 0 && <span>· {rec.cpdHours} CPD</span>}
+        </p>
+
+        {/* Top skill only, with an expander for the rest */}
+          {topGap && (
+            <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+              <span className="rounded-md border border-[var(--brand)]/20 bg-[var(--brand-tint)] px-2 py-0.5 text-[11px] font-medium text-[var(--brand-dark)]">{topGap.skill}: {topGap.from} → {topGap.to}</span>
+              {showAllSkills && rec.gapsCovered.slice(1).map((g) => (
+                <span key={g.skill} className="rounded-md border border-[var(--brand)]/20 bg-[var(--brand-tint)] px-2 py-0.5 text-[11px] font-medium text-[var(--brand-dark)]">{g.skill}: {g.from} → {g.to}</span>
+              ))}
+              {extraGaps > 0 && !showAllSkills && (
+                <button onClick={() => setShowAllSkills(true)} className="text-[11px] font-medium text-[var(--brand)] hover:underline">+{extraGaps} more</button>
+              )}
+            </div>
           )}
-        </div>
-      )}
 
-      {/* Why — one line, expandable */}
-      <button onClick={() => setShowWhy((v) => !v)} className="mt-2 flex w-full items-center gap-1 text-left">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--brand-dark)]">Why this fits</span>
-        <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-[var(--brand-dark)] transition-transform ${showWhy ? "rotate-180" : ""}`} />
-      </button>
-      <p className={`mt-0.5 text-xs text-[var(--ink)] ${showWhy ? "" : "line-clamp-1"}`}>{rec.reason}</p>
+          {/* Why — one line, expandable */}
+          <button onClick={() => setShowWhy((v) => !v)} className="mt-2.5 flex w-full items-center gap-1 text-left">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--brand-dark)]">Why this fits</span>
+            <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-[var(--brand-dark)] transition-transform ${showWhy ? "rotate-180" : ""}`} />
+          </button>
+          <p className={`mt-0.5 text-xs leading-relaxed text-[var(--muted)] ${showWhy ? "" : "line-clamp-1"}`}>{rec.reason}</p>
 
-      {/* One primary action + a quiet secondary link */}
-      <div className="mt-3 flex items-center gap-2">
-        <button
-          onClick={enrol}
-          disabled={enrolled || enrolling}
-          className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium ${enrolled ? "bg-[var(--brand-tint)] text-[var(--brand-dark)]" : "bg-[var(--brand)] text-white hover:bg-[var(--brand-dark)]"} disabled:opacity-70`}
-        >
-          {enrolled ? <><CheckCircle2 className="h-3.5 w-3.5" /> Added</> : enrolling ? "Adding…" : <><BookOpen className="h-3.5 w-3.5" /> Add to My Learning</>}
-        </button>
-        {rec.externalUrl ? (
-          <a href={rec.externalUrl} target="_blank" rel="noopener noreferrer"
-            className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-medium text-[var(--ink)] hover:bg-slate-50">
-            View <ArrowRight className="h-3.5 w-3.5" />
-          </a>
-        ) : (
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[var(--border)] px-3 py-2 text-xs text-[var(--muted)]" title="Internal course — ask your L&D team">
-            <AlertCircle className="h-3.5 w-3.5" /> Internal
-          </span>
-        )}
+          {/* One primary action + a quiet secondary link */}
+          <div className="mt-3 flex items-center gap-2">
+            <button
+              onClick={enrol}
+              disabled={enrolled || enrolling}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium transition ${enrolled ? "bg-[var(--brand-tint)] text-[var(--brand-dark)]" : "bg-[var(--brand)] text-white hover:bg-[var(--brand-dark)]"} disabled:opacity-70`}
+            >
+              {enrolled ? <><CheckCircle2 className="h-3.5 w-3.5" /> Added</> : enrolling ? "Adding…" : <><BookOpen className="h-3.5 w-3.5" /> Add to My Learning</>}
+            </button>
+            {rec.externalUrl ? (
+              <a href={rec.externalUrl} target="_blank" rel="noopener noreferrer"
+                className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-medium text-[var(--ink)] transition hover:border-[var(--brand)]/40 hover:bg-slate-50">
+                View <ArrowRight className="h-3.5 w-3.5" />
+              </a>
+            ) : (
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[var(--border)] px-3 py-2 text-xs text-[var(--muted)]" title="Internal course — ask your L&D team">
+                <AlertCircle className="h-3.5 w-3.5" /> Internal
+              </span>
+            )}
+          </div>
       </div>
     </div>
   );

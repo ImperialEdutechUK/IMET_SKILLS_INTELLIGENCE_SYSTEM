@@ -106,27 +106,20 @@ async function loadGaps(userId: string): Promise<{ gaps: ScoringGap[] } | { note
   return { gaps };
 }
 
-// ── Fallback when there's no role profile ─────────────────────────────────────
+// ── Gaps come from the employee's own skills ──────────────────────────────────
 //
-// Gap analysis needs the role's *required* skill levels (a RoleProfile, set up
-// by a manager/admin) to compare against. When that doesn't exist yet we can't
-// compute true gaps — but we can still help via `loadSelfAssessedGaps`
-// (gapAnalysis.ts), which treats the employee's own recorded skills as things
-// to deepen, and, failing even that, by surfacing solid catalogue picks. These
-// paths always carry a note nudging the employee (or their manager) toward the
-// inputs that sharpen the results.
+// Recommendations run off the employee's recorded skills — those added in the My
+// Skills tab or extracted from an uploaded Skills Matrix / CPD Log / Daily Report
+// (via `loadSelfAssessedGaps`), each skill below its target becoming a gap to
+// deepen. When there are no recorded skills at all there's nothing to target.
 
-const FALLBACK_SKILLS_NOTE =
-  "Heads up: I don't have a full role profile for your position yet, so these picks " +
-  "are based on the skills already on your record rather than your role's specific " +
-  "requirements. For sharper, gap-targeted recommendations, upload your Skills Matrix, " +
-  "CPD Log or Daily Report — or ask your manager to set up your role profile.";
-
-const FALLBACK_BROAD_NOTE =
-  "Heads up: I don't have a role profile or any recorded skills for you yet, so these " +
-  "are solid, well-rated starting points rather than tailored picks. Upload your Skills " +
-  "Matrix, CPD Log or Daily Report — or ask your manager to set up your role profile — " +
-  "and I'll tailor these to close your specific gaps.";
+// Shown when we have nothing to identify a skill gap from — no recorded skills.
+// We deliberately do NOT fall back to generic catalogue picks: a recommendation
+// is only meaningful if it closes a real gap, so we ask the employee for the
+// inputs that make that possible instead of guessing.
+const NO_SKILLS_NOTE =
+  "No skills on record yet — I need at least 3 to find a gap. Add them in the My Skills tab, " +
+  "or hit Start over to upload your Skills Matrix or CPD Log.";
 
 // ── AI selection + explanation ────────────────────────────────────────────────
 
@@ -221,10 +214,13 @@ export async function generateChatRecommendations(
   if ("note" in gapResult) {
     gaps = await loadSelfAssessedGaps(userId);
     if (gaps.length === 0) {
-      // Nothing personal to go on — surface solid catalogue picks instead.
-      return broadRecommendations(userId, base, limit);
+      // No role profile AND no recorded skills — there's no gap to target, so we
+      // don't guess with generic picks. Clear any stale stored picks and ask the
+      // employee for the inputs that make real recommendations possible.
+      await prisma.recommendation.deleteMany({ where: { userId, source: "ai" } });
+      return { ...base, note: NO_SKILLS_NOTE };
     }
-    generalNote = FALLBACK_SKILLS_NOTE;
+    // Recommend off the self-assessed gaps — no caveat, this is now the normal path.
   } else {
     gaps = gapResult.gaps;
     if (gaps.length === 0) {
@@ -242,6 +238,10 @@ export async function generateChatRecommendations(
       approved: true,
       status: "published",
       courseSkills: { some: { skillId: { in: gapSkillIds } } },
+      // Skip courses this employee has already completed — a finished course
+      // shouldn't be scored, take a candidate slot, or be recommended again. The
+      // course stays in the catalogue; it's just not a candidate for THIS user.
+      enrollments: { none: { userId, status: "completed" } },
     },
     include: { courseSkills: true, category: true, _count: { select: { enrollments: true } } },
   });
@@ -441,67 +441,6 @@ export async function generateChatRecommendations(
   };
 }
 
-// ── Broad picks (no role profile AND no recorded skills) ──────────────────────
-
-/**
- * Last-resort recommendations: the employee has neither a role profile nor any
- * recorded skills, so there are no gaps at all. Surface solid, well-rated
- * approved courses so the advisor is never a dead end, with a note explaining
- * how to get tailored picks.
- */
-async function broadRecommendations(
-  userId: string,
-  base: Omit<ChatResult, "note">,
-  limit: number
-): Promise<ChatResult> {
-  const rows = await prisma.course.findMany({
-    where: { approved: true, status: "published" },
-    include: { category: true },
-    orderBy: [
-      { rating: { sort: "desc", nulls: "last" } },
-      { availableToOrg: "desc" },
-      { createdAt: "desc" },
-    ],
-    take: limit,
-  });
-
-  if (rows.length === 0) {
-    return {
-      ...base,
-      note: "There aren't any approved courses in the catalogue yet. Ask your L&D team to add some.",
-    };
-  }
-
-  const recommendations: ChatRecommendation[] = rows.map((c, i) => ({
-    rank: i + 1,
-    courseId: c.id,
-    title: c.title,
-    provider: c.provider,
-    source: c.source,
-    category: c.category?.name ?? "General",
-    level: c.level,
-    durationHours: c.durationHours,
-    cpdHours: c.cpdHours,
-    rating: c.rating,
-    externalUrl: c.externalUrl,
-    matchScore: 50,
-    matchLabel: "good",
-    reason: `A well-rated ${c.category?.name ?? "professional"} course to get you started while I learn more about your role and skills.`,
-    reasonSource: "engine",
-    gapsCovered: [],
-    preferenceMatches: [],
-  }));
-
-  await persistChatRecommendations(userId, recommendations);
-
-  return {
-    ...base,
-    generated: recommendations.length,
-    recommendations,
-    note: FALLBACK_BROAD_NOTE,
-  };
-}
-
 // ── Persistence (shared by every path) ────────────────────────────────────────
 
 /**
@@ -554,7 +493,13 @@ async function persistChatRecommendations(userId: string, recommendations: ChatR
 /** Read this employee's stored chat recommendations in display order. */
 async function loadStoredRecommendations(userId: string): Promise<ChatRecommendation[]> {
   const recs = await prisma.recommendation.findMany({
-    where: { userId, source: "ai", dismissed: false },
+    where: {
+      userId,
+      source: "ai",
+      dismissed: false,
+      // Drop any earlier pick the employee has since completed.
+      course: { enrollments: { none: { userId, status: "completed" } } },
+    },
     orderBy: [{ rank: "asc" }, { matchScore: "desc" }],
     include: { course: { include: { category: true } } },
   });

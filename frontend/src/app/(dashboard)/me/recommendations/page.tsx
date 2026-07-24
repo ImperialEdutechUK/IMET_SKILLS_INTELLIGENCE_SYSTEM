@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   Sparkles, Upload, CheckCircle2, AlertCircle, Loader2, Star,
-  ArrowRight, RotateCcw, BookOpen, Lock, Download,
+  ArrowRight, RotateCcw, BookOpen, Download, ChevronDown,
 } from "lucide-react";
 import { getToken } from "@/lib/authClient";
 
@@ -42,10 +42,6 @@ const DOC_META: Record<string, { label: string; blurb: string; template: string 
   SKILL_MATRIX: { label: "Skills Matrix", blurb: "Your current skill levels", template: "/templates/skills-matrix-template.xlsx" },
   CPD_RECORD: { label: "CPD Log", blurb: "Courses & CPD hours", template: "/templates/cpd-log-template.xlsx" },
   DAILY_REPORT: { label: "Daily Report", blurb: "What you work on day to day", template: "/templates/daily-report-template.xlsx" },
-};
-
-const PROVIDER_LABEL: Record<string, string> = {
-  openrouter: "OpenRouter", deepseek: "DeepSeek", anthropic: "Anthropic Sonnet", gemini: "Gemini",
 };
 
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -227,23 +223,21 @@ export default function RecommendationChatPage() {
 
   return (
     <div className="mx-auto flex h-[calc(100vh-8rem)] max-w-3xl flex-col">
-      {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
+      {/* Header — Start over lives here (the intro copy points users to it) */}
+      <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--brand-tint)] text-[var(--brand-dark)]">
             <Sparkles className="h-5 w-5" />
           </span>
           <div>
-            <h1 className="text-xl font-bold text-[var(--ink)]">Course Recommendation</h1>
-            <p className="flex items-center gap-1 text-xs text-[var(--muted)]">
-              <Lock className="h-3 w-3" /> Course recommendations only
-            </p>
+            <h1 className="text-xl font-bold text-[var(--ink)]">AI Recommendations</h1>
+            <p className="text-xs text-[var(--muted)]">Grounded in your skills, gaps and CPD.</p>
           </div>
         </div>
-        {config?.ai.provider && (
-          <span className="rounded-full border border-[var(--border)] px-3 py-1 text-xs font-medium text-[var(--muted)]">
-            Powered by {PROVIDER_LABEL[config.ai.provider] ?? config.ai.provider}
-          </span>
+        {result && (
+          <button onClick={startOver} className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm font-medium text-[var(--ink)] hover:bg-slate-50">
+            <RotateCcw className="h-4 w-4" /> Start over
+          </button>
         )}
       </div>
 
@@ -289,14 +283,6 @@ export default function RecommendationChatPage() {
           />
         )}
 
-        {result && (
-          <button
-            onClick={startOver}
-            className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-white px-4 py-2.5 text-sm font-medium text-[var(--ink)] hover:bg-slate-50"
-          >
-            <RotateCcw className="h-4 w-4" /> Start over
-          </button>
-        )}
       </div>
     </div>
   );
@@ -474,73 +460,73 @@ function CourseCard({ rec }: { rec: Recommendation }) {
     } catch { /* ignore */ }
     setEnrolling(false);
   };
+  // Progressive disclosure: metadata on one line, the "why" collapsed to a line,
+  // and only the top skill shown until expanded — so 5 cards fit in ~1.5 screens.
+  const [showWhy, setShowWhy] = useState(false);
+  const [showAllSkills, setShowAllSkills] = useState(false);
+  const topGap = rec.gapsCovered[0];
+  const extraGaps = rec.gapsCovered.length - 1;
+
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-white p-4">
-      <div className="flex items-start gap-3">
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[var(--brand-tint)] text-[var(--brand-dark)]">
-          <BookOpen className="h-5 w-5" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <h4 className="text-sm font-semibold text-[var(--ink)]">{rec.title}</h4>
-            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${high ? "bg-[var(--brand-tint)] text-[var(--brand-dark)]" : "bg-blue-50 text-blue-700"}`}>
-              {high ? "High Match" : "Good Match"}
-            </span>
-          </div>
-          <p className="mt-0.5 text-xs text-[var(--muted)]">
-            {(rec.provider ?? rec.source)} · {rec.category}
-            {rec.level ? ` · ${rec.level}` : ""}
-          </p>
-
-          {/* The reason — the most important part */}
-          <div className="mt-2 rounded-lg bg-[var(--brand-tint)]/50 p-2.5">
-            <p className="text-xs font-semibold text-[var(--brand-dark)]">Why this fits you</p>
-            <p className="mt-0.5 text-xs text-[var(--ink)]">{rec.reason}</p>
-          </div>
-
-          {/* Gaps it closes */}
-          {rec.gapsCovered.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {rec.gapsCovered.map((g) => (
-                <span key={g.skill} className="rounded-md border border-[var(--border)] bg-slate-50 px-2 py-0.5 text-xs text-[var(--muted)]">
-                  {g.skill}: {g.from} → {g.to}
-                </span>
-              ))}
-            </div>
-          )}
-
-          <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-[var(--muted)]">
-            {rec.rating != null && (
-              <span className="flex items-center gap-1"><Star className="h-3 w-3 fill-amber-400 text-amber-400" />{rec.rating}</span>
-            )}
-            {rec.durationHours != null && <span>{rec.durationHours}h</span>}
-            {rec.cpdHours > 0 && <span>{rec.cpdHours} CPD hours</span>}
+    <div className="rounded-2xl border border-[var(--border)] bg-white p-3.5">
+      {/* Title + single-line metadata + match badge */}
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex min-w-0 items-start gap-2.5">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-[var(--brand-tint)] text-[var(--brand-dark)]"><BookOpen className="h-4 w-4" /></span>
+          <div className="min-w-0">
+            <h4 className="truncate text-sm font-semibold text-[var(--ink)]" title={rec.title}>{rec.title}</h4>
+            <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[11px] text-[var(--muted)]">
+              <span>{rec.provider ?? rec.source}</span>
+              <span>· {rec.category}</span>
+              {rec.level && <span>· {rec.level}</span>}
+              {rec.durationHours != null && <span>· {rec.durationHours}h</span>}
+              {rec.cpdHours > 0 && <span>· {rec.cpdHours} CPD</span>}
+              <span className="flex items-center gap-0.5">· {rec.rating != null ? <><Star className="h-3 w-3 fill-amber-400 text-amber-400" />{rec.rating}</> : "No ratings yet"}</span>
+            </p>
           </div>
         </div>
+        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${high ? "bg-[var(--brand-tint)] text-[var(--brand-dark)]" : "bg-blue-50 text-blue-700"}`}>{high ? "High" : "Good"} match</span>
       </div>
 
-      <div className="mt-3">
-        {rec.externalUrl ? (
-          <a
-            href={rec.externalUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-[var(--brand)] py-2 text-sm font-medium text-white hover:bg-[var(--brand-dark)]"
-          >
-            View course <ArrowRight className="h-3.5 w-3.5" />
-          </a>
-        ) : (
-          <div className="flex items-center justify-center gap-1.5 rounded-lg border border-[var(--border)] py-2 text-sm text-[var(--muted)]">
-            <AlertCircle className="h-3.5 w-3.5" /> Internal course — ask your L&D team
-          </div>
-        )}
+      {/* Top skill only, with an expander for the rest */}
+      {topGap && (
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          <span className="rounded-md border border-[var(--border)] bg-slate-50 px-2 py-0.5 text-[11px] text-[var(--muted)]">{topGap.skill}: {topGap.from} → {topGap.to}</span>
+          {showAllSkills && rec.gapsCovered.slice(1).map((g) => (
+            <span key={g.skill} className="rounded-md border border-[var(--border)] bg-slate-50 px-2 py-0.5 text-[11px] text-[var(--muted)]">{g.skill}: {g.from} → {g.to}</span>
+          ))}
+          {extraGaps > 0 && !showAllSkills && (
+            <button onClick={() => setShowAllSkills(true)} className="text-[11px] font-medium text-[var(--brand)] hover:underline">+{extraGaps} more</button>
+          )}
+        </div>
+      )}
+
+      {/* Why — one line, expandable */}
+      <button onClick={() => setShowWhy((v) => !v)} className="mt-2 flex w-full items-center gap-1 text-left">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--brand-dark)]">Why this fits</span>
+        <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-[var(--brand-dark)] transition-transform ${showWhy ? "rotate-180" : ""}`} />
+      </button>
+      <p className={`mt-0.5 text-xs text-[var(--ink)] ${showWhy ? "" : "line-clamp-1"}`}>{rec.reason}</p>
+
+      {/* One primary action + a quiet secondary link */}
+      <div className="mt-3 flex items-center gap-2">
         <button
           onClick={enrol}
           disabled={enrolled || enrolling}
-          className={`mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium ${enrolled ? "bg-[var(--brand-tint)] text-[var(--brand-dark)]" : "border border-[var(--border)] text-[var(--ink)] hover:bg-slate-50"} disabled:opacity-70`}
+          className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium ${enrolled ? "bg-[var(--brand-tint)] text-[var(--brand-dark)]" : "bg-[var(--brand)] text-white hover:bg-[var(--brand-dark)]"} disabled:opacity-70`}
         >
-          {enrolled ? <><CheckCircle2 className="h-3.5 w-3.5" /> Added to My Learning</> : enrolling ? "Adding…" : <><BookOpen className="h-3.5 w-3.5" /> Add to My Learning</>}
+          {enrolled ? <><CheckCircle2 className="h-3.5 w-3.5" /> Added</> : enrolling ? "Adding…" : <><BookOpen className="h-3.5 w-3.5" /> Add to My Learning</>}
         </button>
+        {rec.externalUrl ? (
+          <a href={rec.externalUrl} target="_blank" rel="noopener noreferrer"
+            className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-medium text-[var(--ink)] hover:bg-slate-50">
+            View <ArrowRight className="h-3.5 w-3.5" />
+          </a>
+        ) : (
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[var(--border)] px-3 py-2 text-xs text-[var(--muted)]" title="Internal course — ask your L&D team">
+            <AlertCircle className="h-3.5 w-3.5" /> Internal
+          </span>
+        )}
       </div>
     </div>
   );

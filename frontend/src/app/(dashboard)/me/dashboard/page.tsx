@@ -73,7 +73,7 @@ export default function EmployeeDashboardPage() {
       )}
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[var(--ink)]">Welcome back, {data.fullName.split(" ")[0]}! 👋</h1>
+        <h1 className="text-2xl font-bold text-[var(--ink)]">Welcome back, {data.fullName.split(" ")[0]}! <span aria-hidden="true">👋</span></h1>
         <p className="mt-1 text-sm text-[var(--muted)]">Let&apos;s continue your learning journey today.</p>
       </div>
 
@@ -148,7 +148,7 @@ export default function EmployeeDashboardPage() {
       {/* AI Recommended */}
       <div className="rounded-xl border border-[var(--border)] bg-white p-5">
         <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-[var(--brand)]" /><h3 className="font-semibold text-[var(--ink)]">AI Recommended for You</h3></div>
+          <div className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-[var(--brand)]" /><h3 className="font-semibold text-[var(--ink)]">AI Recommendations</h3></div>
           <Link href="/me/recommendations" className="text-sm font-medium text-[var(--brand)] hover:text-[var(--brand-dark)]">View all</Link>
         </div>
         {data.topRecs.length === 0 ? (

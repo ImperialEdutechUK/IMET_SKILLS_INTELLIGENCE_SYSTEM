@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Users, BookOpen, Award, Clock, TrendingUp, Download, ArrowRight, GraduationCap, Target, CheckCircle2 } from "lucide-react";
+import { Users, BookOpen, Award, Clock, TrendingUp, Download, ArrowRight, ArrowLeft, GraduationCap, Target, CheckCircle2 } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import LearnAreaChart from "@/components/charts/LearnAreaChart";
 import { getToken } from "@/lib/authClient";
@@ -61,6 +61,9 @@ export default function ManagerReportsPage() {
 
   return (
     <div>
+      <Link href="/manager/dashboard" className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--muted)] hover:text-[var(--ink)]">
+        <ArrowLeft className="h-4 w-4" /> Back to dashboard
+      </Link>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[var(--ink)]">Reports</h1>

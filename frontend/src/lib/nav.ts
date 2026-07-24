@@ -32,6 +32,17 @@ export const navConfig: Record<Role, NavSection[]> = {
         { label: "AI Insights", href: "/manager/ai-insights", icon: Sparkles },
         { label: "Reports", href: "/manager/reports", icon: ScrollText },
         { label: "Notifications", href: "/manager/notifications", icon: Bell },
+      ],
+    },
+    {
+      // Managers learn too: the same personal pages employees get.
+      title: "My Learning",
+      items: [
+        { label: "My Learning", href: "/me/learning", icon: BookOpen },
+        { label: "My Skills", href: "/me/skills", icon: Target },
+        { label: "My CPD", href: "/me/cpd", icon: Award },
+        { label: "My Certificates", href: "/me/certificates", icon: ScrollText },
+        { label: "AI Recommendations", href: "/me/recommendations", icon: Sparkles },
         { label: "Settings", href: "/me/settings", icon: Settings },
       ],
     },

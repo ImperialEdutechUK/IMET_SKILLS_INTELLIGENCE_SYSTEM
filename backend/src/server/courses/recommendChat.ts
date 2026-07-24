@@ -238,6 +238,10 @@ export async function generateChatRecommendations(
       approved: true,
       status: "published",
       courseSkills: { some: { skillId: { in: gapSkillIds } } },
+      // Skip courses this employee has already completed — a finished course
+      // shouldn't be scored, take a candidate slot, or be recommended again. The
+      // course stays in the catalogue; it's just not a candidate for THIS user.
+      enrollments: { none: { userId, status: "completed" } },
     },
     include: { courseSkills: true, category: true, _count: { select: { enrollments: true } } },
   });
@@ -489,7 +493,13 @@ async function persistChatRecommendations(userId: string, recommendations: ChatR
 /** Read this employee's stored chat recommendations in display order. */
 async function loadStoredRecommendations(userId: string): Promise<ChatRecommendation[]> {
   const recs = await prisma.recommendation.findMany({
-    where: { userId, source: "ai", dismissed: false },
+    where: {
+      userId,
+      source: "ai",
+      dismissed: false,
+      // Drop any earlier pick the employee has since completed.
+      course: { enrollments: { none: { userId, status: "completed" } } },
+    },
     orderBy: [{ rank: "asc" }, { matchScore: "desc" }],
     include: { course: { include: { category: true } } },
   });

@@ -238,10 +238,12 @@ export async function generateChatRecommendations(
       approved: true,
       status: "published",
       courseSkills: { some: { skillId: { in: gapSkillIds } } },
-      // Skip courses this employee has already completed — a finished course
-      // shouldn't be scored, take a candidate slot, or be recommended again. The
+      // Skip courses this employee has completed or is currently taking — neither
+      // should be scored, take a candidate slot, or be recommended again. The
       // course stays in the catalogue; it's just not a candidate for THIS user.
-      enrollments: { none: { userId, status: "completed" } },
+      // (not_started enrollments stay eligible: merely adding a course to My
+      // Learning shouldn't hide it from future recommendations.)
+      enrollments: { none: { userId, status: { in: ["completed", "in_progress"] } } },
     },
     include: { courseSkills: true, category: true, _count: { select: { enrollments: true } } },
   });
@@ -490,21 +492,38 @@ async function persistChatRecommendations(userId: string, recommendations: ChatR
   );
 }
 
-/** Read this employee's stored chat recommendations in display order. */
-async function loadStoredRecommendations(userId: string): Promise<ChatRecommendation[]> {
+/**
+ * Read this employee's stored chat recommendations in display order.
+ *
+ * Picks whose course the employee has since completed or started are dropped,
+ * and `droppedCount` reports how many — the caller uses it to trigger a
+ * regeneration that backfills the list from the scoring order, so the employee
+ * always sees a full set. Survivors are renumbered 1..N so the visible ranks
+ * never show gaps (1, 3, 4 …).
+ */
+async function loadStoredRecommendations(
+  userId: string
+): Promise<{ recommendations: ChatRecommendation[]; droppedCount: number }> {
   const recs = await prisma.recommendation.findMany({
-    where: {
-      userId,
-      source: "ai",
-      dismissed: false,
-      // Drop any earlier pick the employee has since completed.
-      course: { enrollments: { none: { userId, status: "completed" } } },
-    },
+    where: { userId, source: "ai", dismissed: false },
     orderBy: [{ rank: "asc" }, { matchScore: "desc" }],
-    include: { course: { include: { category: true } } },
+    include: {
+      course: {
+        include: {
+          category: true,
+          // This user's blocking enrollments only — non-empty means the pick was
+          // completed/started and should no longer be shown.
+          enrollments: {
+            where: { userId, status: { in: ["completed", "in_progress"] } },
+            select: { id: true },
+          },
+        },
+      },
+    },
   });
-  return recs.map((r) => ({
-    rank: r.rank ?? 0,
+  const kept = recs.filter((r) => r.course.enrollments.length === 0);
+  const recommendations: ChatRecommendation[] = kept.map((r, i) => ({
+    rank: i + 1,
     courseId: r.courseId,
     title: r.course.title,
     provider: r.course.provider,
@@ -522,6 +541,7 @@ async function loadStoredRecommendations(userId: string): Promise<ChatRecommenda
     gapsCovered: (r.gapsCovered as { skill: string; from: string; to: string }[] | null) ?? [],
     preferenceMatches: [],
   }));
+  return { recommendations, droppedCount: recs.length - kept.length };
 }
 
 // ── Context for the chat's opening screen ─────────────────────────────────────
@@ -536,7 +556,7 @@ export async function getChatContext(userId: string) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw new RecommendationChatError("Employee not found.");
 
-  const [role, gapCount, docs, recommendations] = await Promise.all([
+  const [role, gapCount, docs, stored] = await Promise.all([
     user.position
       ? prisma.roleProfile.findUnique({
           where: { title: user.position },
@@ -557,6 +577,20 @@ export async function getChatContext(userId: string) {
   // Latest document per type.
   const latestByType = new Map<string, (typeof docs)[number]>();
   for (const d of docs) if (!latestByType.has(d.type)) latestByType.set(d.type, d);
+
+  // If any stored pick was dropped (its course completed/started since last
+  // generation), the list has a hole — regenerate so the next-best courses from
+  // the scoring order backfill it and the employee always sees a full set.
+  // Falls back to the (renumbered) survivors if regeneration fails. Once the
+  // regenerated set is stored, later loads see no drops and skip this entirely.
+  let recommendations = stored.recommendations;
+  if (stored.droppedCount > 0) {
+    try {
+      recommendations = (await generateChatRecommendations(userId, {})).recommendations;
+    } catch {
+      // Keep the surviving picks rather than failing the whole context load.
+    }
+  }
 
   return {
     employeeName: user.fullName,

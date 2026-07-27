@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Clock, TrendingUp, CheckCircle2, AlertTriangle, BookOpen, Award } from "lucide-react";
 import Stat3D from "@/components/dashboard/Stat3D";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
+import BackToReports from "@/components/dashboard/BackToReports";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
 import { getToken } from "@/lib/authClient";
 
@@ -67,6 +68,7 @@ export default function TeamCpdPage() {
 
   return (
     <div>
+      <BackToReports />
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-center gap-3">
           <Icon3D icon={Award} tone={TONES.amber} />

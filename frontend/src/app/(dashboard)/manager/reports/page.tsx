@@ -18,9 +18,9 @@ interface ReportData {
 }
 
 const REPORT_CARDS: { title: string; desc: string; href: string; icon: typeof GraduationCap; tone: Icon3DTone }[] = [
-  { title: "Team Learning Report", desc: "Course enrolments, completions and progress across your team.", href: "/manager/team-learning", icon: GraduationCap, tone: TONES.blue },
-  { title: "Team Skills Report", desc: "Skill levels and gaps measured against role requirements.", href: "/manager/team-skills", icon: Target, tone: TONES.emerald },
-  { title: "Team CPD Report", desc: "CPD hours logged versus annual targets, with at-risk flags.", href: "/manager/team-cpd", icon: Clock, tone: TONES.amber },
+  { title: "Team Learning Report", desc: "Course enrolments, completions and progress across your team.", href: "/manager/team-learning?from=reports", icon: GraduationCap, tone: TONES.blue },
+  { title: "Team Skills Report", desc: "Skill levels and gaps measured against role requirements.", href: "/manager/team-skills?from=reports", icon: Target, tone: TONES.emerald },
+  { title: "Team CPD Report", desc: "CPD hours logged versus annual targets, with at-risk flags.", href: "/manager/team-cpd?from=reports", icon: Clock, tone: TONES.amber },
   { title: "Completion Rate Report", desc: "How much of your team's learning is finished versus in progress.", href: "/manager/reports", icon: CheckCircle2, tone: TONES.violet },
 ];
 

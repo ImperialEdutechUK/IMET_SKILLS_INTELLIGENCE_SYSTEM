@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Gauge, Star, AlertTriangle, Users, ArrowUpRight, BarChart3 } from "lucide-react";
 import Stat3D from "@/components/dashboard/Stat3D";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
+import BackToReports from "@/components/dashboard/BackToReports";
 import BarList from "@/components/charts/BarList";
 import { getToken } from "@/lib/authClient";
 
@@ -45,6 +46,7 @@ export default function TeamSkillsPage() {
 
   return (
     <div>
+      <BackToReports />
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-center gap-3">
           <Icon3D icon={Gauge} tone={TONES.emerald} />

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { BookOpen, CheckCircle, BarChart3, Users, Search, Download } from "lucide-react";
 import Stat3D from "@/components/dashboard/Stat3D";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
+import BackToReports from "@/components/dashboard/BackToReports";
 import { getToken } from "@/lib/authClient";
 
 interface Member {
@@ -67,6 +68,7 @@ export default function TeamLearningPage() {
 
   return (
     <div>
+      <BackToReports />
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-center gap-3">
           <Icon3D icon={BookOpen} tone={TONES.blue} />

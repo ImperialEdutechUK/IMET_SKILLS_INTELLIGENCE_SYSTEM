@@ -1,0 +1,116 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { Trophy, Zap, ChevronRight, GraduationCap, BookOpen, Clock } from "lucide-react";
+import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
+import { getToken } from "@/lib/authClient";
+
+const API = process.env.NEXT_PUBLIC_API_URL;
+
+interface Row {
+  id: string; fullName: string; position: string; rank: number;
+  xp: number; level: number; title: string;
+  certCount: number; coursesCompleted: number; cpdHours: number;
+}
+
+// Metal colours for the top three.
+const PODIUM = [
+  { from: "#ffdf6e", to: "#e0a005", ring: "#eab308", h: "h-28" }, // 1st gold
+  { from: "#dfe6ec", to: "#9aa7b4", ring: "#94a3b8", h: "h-20" }, // 2nd silver
+  { from: "#e8b06b", to: "#a9691f", ring: "#b7791f", h: "h-16" }, // 3rd bronze
+];
+
+export default function LeaderboardPage() {
+  const [rows, setRows] = useState<Row[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`${API}/api/manager/leaderboard`, { headers: { Authorization: `Bearer ${getToken()}` } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { setRows(d?.members ?? []); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const top3 = rows.slice(0, 3);
+  const rest = rows.slice(3);
+  // Podium display order: 2nd, 1st, 3rd.
+  const podiumOrder = [top3[1], top3[0], top3[2]].filter(Boolean) as Row[];
+
+  return (
+    <div>
+      <div className="mb-6 flex items-center gap-3">
+        <Icon3D icon={Trophy} tone={TONES.amber} />
+        <div>
+          <h1 className="text-2xl font-bold text-[var(--ink)]">Team Leaderboard</h1>
+          <p className="mt-1 text-sm text-[var(--muted)]">Who&apos;s earning the most XP — certificates, completed courses and CPD all count.</p>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>
+      ) : rows.length === 0 ? (
+        <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">No team members to rank yet.</p></div>
+      ) : (
+        <>
+          {/* Podium */}
+          <div className="mb-6 overflow-hidden rounded-2xl p-6" style={{ background: "linear-gradient(135deg, #2e7d5b 0%, #123f2b 100%)" }}>
+            <div className="flex items-end justify-center gap-4 sm:gap-8">
+              {podiumOrder.map((m) => {
+                const style = PODIUM[m.rank - 1];
+                return (
+                  <Link key={m.id} href={`/manager/employees/${m.id}`} className="group flex w-24 flex-col items-center sm:w-32">
+                    <div className="relative mb-2">
+                      <span className="grid h-16 w-16 place-items-center rounded-full text-2xl font-extrabold text-white shadow-lg ring-4 ring-white/20" style={{ background: `linear-gradient(145deg, ${style.from}, ${style.to})` }}>
+                        {m.fullName.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}
+                      </span>
+                      <span className="absolute -bottom-1 -right-1 grid h-6 w-6 place-items-center rounded-full bg-white text-xs font-extrabold shadow" style={{ color: style.to }}>{m.rank}</span>
+                    </div>
+                    <p className="w-full truncate text-center text-sm font-semibold text-white group-hover:underline">{m.fullName}</p>
+                    <p className="inline-flex items-center gap-1 text-xs font-bold text-lime-200"><Zap className="h-3 w-3 fill-current" />{m.xp} XP</p>
+                    <div className={`mt-2 w-full rounded-t-xl ${style.h}`} style={{ background: `linear-gradient(180deg, ${style.from}55, ${style.to}22)` }} />
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Ranked list */}
+          <div className="rounded-2xl border border-[var(--border)] bg-white">
+            <div className="hidden gap-3 border-b border-[var(--border)] bg-slate-50/60 px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-[var(--ink)] sm:grid sm:grid-cols-[auto_2fr_1fr_auto]">
+              <span className="w-8">#</span><span>Member</span><span>Breakdown</span><span className="text-right">XP</span>
+            </div>
+            <ul className="divide-y divide-[var(--border)]">
+              {(rest.length ? rest : []).length === 0 && rows.length <= 3 && (
+                <li className="px-5 py-4 text-sm text-[var(--muted)]">That&apos;s the whole team — top ranks shown above.</li>
+              )}
+              {rest.map((m) => (
+                <li key={m.id}>
+                  <Link href={`/manager/employees/${m.id}`} className="grid grid-cols-[auto_1fr_auto] items-center gap-3 px-5 py-3.5 transition-colors hover:bg-slate-50 sm:grid-cols-[auto_2fr_1fr_auto]">
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-100 text-sm font-bold text-[var(--muted)]">{m.rank}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--brand-tint)] text-xs font-semibold text-[var(--brand-dark)]">{m.fullName.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}</span>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-[var(--ink)]">{m.fullName}</p>
+                        <p className="truncate text-xs text-[var(--muted)]">Level {m.level} · {m.title}</p>
+                      </div>
+                    </div>
+                    <div className="hidden items-center gap-3 text-xs text-[var(--muted)] sm:flex">
+                      <span className="inline-flex items-center gap-1"><GraduationCap className="h-3.5 w-3.5" />{m.certCount}</span>
+                      <span className="inline-flex items-center gap-1"><BookOpen className="h-3.5 w-3.5" />{m.coursesCompleted}</span>
+                      <span className="inline-flex items-center gap-1"><Clock className="h-3.5 w-3.5" />{m.cpdHours}h</span>
+                    </div>
+                    <span className="flex items-center justify-end gap-2">
+                      <span className="inline-flex items-center gap-1 text-sm font-bold text-[var(--brand)]"><Zap className="h-3.5 w-3.5 fill-current" />{m.xp}</span>
+                      <ChevronRight className="h-4 w-4 text-slate-300" />
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}

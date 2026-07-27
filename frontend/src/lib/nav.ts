@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, BookOpen, Target, Award, ScrollText, Sparkles,
-  BarChart3, Users, UserCog, UserCheck, Library, ClipboardCheck, Tags, Settings,
+  BarChart3, Users, UserCog, UserCheck, Library, ClipboardCheck, Tags, Settings, Trophy,
 } from "lucide-react";
 import type { NavSection, Role } from "@/types";
 
@@ -29,6 +29,7 @@ export const navConfig: Record<Role, NavSection[]> = {
         { label: "Skills", href: "/manager/team-skills", icon: Target },
         { label: "CPD", href: "/manager/team-cpd", icon: Award },
         { label: "Skill Gaps", href: "/manager/gaps", icon: BarChart3 },
+        { label: "Leaderboard", href: "/manager/leaderboard", icon: Trophy },
         { label: "Reports", href: "/manager/reports", icon: ScrollText },
       ],
     },

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { BookOpen, Target, Award, Sparkles, Bell, ArrowRight, Check } from "lucide-react";
 import ProgressRing from "@/components/cpd/ProgressRing";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
+import AchievementsCard from "@/components/gamification/AchievementsCard";
 import { getToken } from "@/lib/authClient";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -39,6 +40,7 @@ const PACE: Record<CpdStatus, { text: (d: number) => string; ring: string; chip:
 export default function EmployeeDashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [certCount, setCertCount] = useState(0);
   const [enrolled, setEnrolled] = useState<Record<string, boolean>>({});
   const [enrolling, setEnrolling] = useState<Record<string, boolean>>({});
 
@@ -47,6 +49,12 @@ export default function EmployeeDashboardPage() {
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));
+    // Same certificate count that drives the Achievements widget elsewhere, so
+    // the badge/level shown here matches the Certificates page exactly.
+    fetch(`${API}/api/me/certificates`, { headers: { Authorization: `Bearer ${getToken()}` } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setCertCount(d?.certificates?.length ?? 0))
+      .catch(() => {});
   }, []);
 
   const enrol = async (courseId: string) => {
@@ -85,6 +93,10 @@ export default function EmployeeDashboardPage() {
         <h1 className="text-2xl font-bold text-[var(--ink)]">Welcome back, {data.fullName.split(" ")[0]}! <span aria-hidden="true">👋</span></h1>
         <p className="mt-1 text-sm text-[var(--muted)]">Let&apos;s continue your learning journey today.</p>
       </div>
+
+      {/* Gamification — dedicated widget, connected to the same badges/XP the
+          Certificates page shows (keeps it visible across the app). */}
+      <AchievementsCard certCount={certCount} />
 
       {/* WHERE AM I? — three stats, each stating one fact once:
           the annual CPD target (with pace), the biggest skill gap, and courses finished. */}

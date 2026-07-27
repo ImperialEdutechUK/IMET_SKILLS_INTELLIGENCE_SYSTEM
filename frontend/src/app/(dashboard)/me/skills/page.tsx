@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { TrendingUp, Star, Target, PlusCircle, Sparkles, CheckCircle2, ArrowUpRight, Plus, X } from "lucide-react";
-import StatCard from "@/components/dashboard/StatCard";
+import { TrendingUp, Star, Target, PlusCircle, Sparkles, CheckCircle2, ArrowUpRight, Plus, X, PieChart } from "lucide-react";
+import Stat3D from "@/components/dashboard/Stat3D";
+import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
 import { getToken } from "@/lib/authClient";
 
@@ -74,9 +75,12 @@ export default function MySkillsPage() {
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--ink)]">My Skills</h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">Track your skills, see your progress and plan what to improve next.</p>
+        <div className="flex items-center gap-3">
+          <Icon3D icon={Target} tone={TONES.emerald} />
+          <div>
+            <h1 className="text-2xl font-bold text-[var(--ink)]">My Skills</h1>
+            <p className="mt-1 text-sm text-[var(--muted)]">Track your skills, see your progress and plan what to improve next.</p>
+          </div>
         </div>
         <button onClick={() => setShowAdd(true)} className="inline-flex items-center gap-2 rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-dark)]">
           <Plus className="h-4 w-4" /> Add Skill
@@ -135,14 +139,14 @@ export default function MySkillsPage() {
       {tab === "overview" && (
         <>
           <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <StatCard icon={TrendingUp} label="Overall Skills" value={data.overview.total} sub="Skills added" />
-            <StatCard icon={Star} label="Strengths" value={data.overview.strengths} sub="Strong skills" />
-            <StatCard icon={Target} iconBg="bg-amber-50" label="Skills to Improve" value={data.overview.toImprove} sub="Needs attention" />
-            <StatCard icon={PlusCircle} label="New Skills" value={data.overview.newSkills} sub="Recently added" />
+            <Stat3D icon={TrendingUp} tone={TONES.blue} label="Overall Skills" value={data.overview.total} sub="Skills added" />
+            <Stat3D icon={Star} tone={TONES.emerald} label="Strengths" value={data.overview.strengths} sub="Strong skills" />
+            <Stat3D icon={Target} tone={TONES.amber} label="Skills to Improve" value={data.overview.toImprove} sub="Needs attention" />
+            <Stat3D icon={PlusCircle} tone={TONES.violet} label="New Skills" value={data.overview.newSkills} sub="Recently added" />
           </div>
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2 rounded-xl border border-[var(--border)] bg-white">
-              <div className="border-b border-[var(--border)] p-5"><h3 className="font-semibold text-[var(--ink)]">Your Skills</h3></div>
+              <div className="flex items-center gap-3 border-b border-[var(--border)] p-5"><Icon3D icon={TrendingUp} tone={TONES.emerald} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Your Skills</h3></div>
               {data.skills.length === 0 ? <p className="p-5 text-sm text-[var(--muted)]">No skills recorded yet.</p> : (
                 <ul className="divide-y divide-[var(--border)]">
                   {data.skills.map((s) => (
@@ -157,12 +161,12 @@ export default function MySkillsPage() {
             </div>
             <div className="space-y-6">
               <div className="rounded-xl border border-[var(--border)] bg-white p-5">
-                <h3 className="mb-4 font-semibold text-[var(--ink)]">Skill Distribution</h3>
+                <div className="mb-4 flex items-center gap-3"><Icon3D icon={PieChart} tone={TONES.violet} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Skill Distribution</h3></div>
                 {data.distribution.length === 0 ? <p className="text-sm text-[var(--muted)]">No data.</p> :
                   <LearnDonutChart data={data.distribution} label={`${data.overview.total}`} sublabel="Total" height={160} />}
               </div>
               <div className="rounded-xl border border-[var(--border)] bg-white p-5">
-                <h3 className="mb-3 font-semibold text-[var(--ink)]">Top Strengths</h3>
+                <div className="mb-3 flex items-center gap-3"><Icon3D icon={Star} tone={TONES.emerald} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Top Strengths</h3></div>
                 {data.topStrengths.length === 0 ? <p className="text-sm text-[var(--muted)]">Build a skill to Advanced to see it here.</p> : (
                   <ul className="space-y-2">{data.topStrengths.map((s) => <li key={s} className="flex items-center gap-2 text-sm text-[var(--ink)]"><CheckCircle2 className="h-4 w-4 text-[var(--brand)]" /> {s}</li>)}</ul>
                 )}
@@ -175,7 +179,7 @@ export default function MySkillsPage() {
       {tab === "improve" && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 rounded-xl border border-[var(--border)] bg-white">
-            <div className="border-b border-[var(--border)] p-5"><h3 className="font-semibold text-[var(--ink)]">Skills to Improve</h3></div>
+            <div className="flex items-center gap-3 border-b border-[var(--border)] p-5"><Icon3D icon={Target} tone={TONES.amber} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Skills to Improve</h3></div>
             {data.toImprove.length === 0 ? <p className="p-5 text-sm text-[var(--muted)]">You&apos;re on target across your skills. Nice work!</p> : (
               <ul className="divide-y divide-[var(--border)]">
                 {data.toImprove.map((s) => (
@@ -217,7 +221,7 @@ export default function MySkillsPage() {
       {tab === "ai" && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 rounded-xl border border-[var(--border)] bg-white">
-            <div className="flex items-center gap-2 border-b border-[var(--border)] p-5"><Sparkles className="h-4 w-4 text-[var(--brand)]" /><h3 className="font-semibold text-[var(--ink)]">AI Suggested Skills</h3></div>
+            <div className="flex items-center gap-3 border-b border-[var(--border)] p-5"><Icon3D icon={Sparkles} tone={TONES.violet} size="sm" /><h3 className="font-semibold text-[var(--ink)]">AI Suggested Skills</h3></div>
             {data.aiSuggested.length === 0 ? (
               <p className="p-5 text-sm text-[var(--muted)]">No AI suggestions yet — they appear once your role profile and skill gaps are analysed.</p>
             ) : (

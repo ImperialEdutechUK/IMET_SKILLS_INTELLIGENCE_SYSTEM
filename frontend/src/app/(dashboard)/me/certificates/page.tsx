@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Award, Plus, ExternalLink, X, Upload, FileText } from "lucide-react";
+import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
 import { getToken } from "@/lib/authClient";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -32,9 +33,12 @@ export default function MyCertificatesPage() {
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--ink)]">My Certificates</h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">Your earned certificates. Add certificates from courses you completed elsewhere and attach the link.</p>
+        <div className="flex items-center gap-3">
+          <Icon3D icon={Award} tone={TONES.violet} />
+          <div>
+            <h1 className="text-2xl font-bold text-[var(--ink)]">My Certificates</h1>
+            <p className="mt-1 text-sm text-[var(--muted)]">Your earned certificates. Add certificates from courses you completed elsewhere and attach the link.</p>
+          </div>
         </div>
         <button onClick={() => setShowAdd(true)} className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-dark)]">
           <Plus className="h-4 w-4" /> Add Certificate
@@ -45,7 +49,7 @@ export default function MyCertificatesPage() {
         <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>
       ) : certificates.length === 0 ? (
         <div className="rounded-xl border border-[var(--border)] bg-white p-8 text-center">
-          <span className="mx-auto grid h-12 w-12 place-items-center rounded-xl bg-[var(--brand-tint)] text-[var(--brand-dark)]"><Award className="h-6 w-6" /></span>
+          <div className="mx-auto w-fit"><Icon3D icon={Award} tone={TONES.violet} /></div>
           <p className="mt-3 text-sm font-medium text-[var(--ink)]">No certificates yet.</p>
           <p className="mt-1 text-sm text-[var(--muted)]">Completing a course earns one automatically, or add one manually with its link.</p>
           <button onClick={() => setShowAdd(true)} className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--ink)] hover:bg-slate-50">
@@ -57,7 +61,7 @@ export default function MyCertificatesPage() {
           {certificates.map((cert) => (
             <div key={cert.id} className="flex flex-col rounded-xl border border-[var(--border)] bg-white p-5">
               <div className="flex items-start justify-between">
-                <span className="grid h-12 w-12 place-items-center rounded-xl bg-[var(--brand-tint)] text-[var(--brand-dark)]"><Award className="h-6 w-6" /></span>
+                <Icon3D icon={Award} tone={TONES.violet} />
                 <StatusBadge status={cert.status} />
               </div>
               <h3 className="mt-4 font-semibold text-[var(--ink)]">{cert.title}</h3>

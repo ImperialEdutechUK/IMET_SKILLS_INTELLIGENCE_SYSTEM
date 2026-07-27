@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Plus, Upload, BookOpen, Download, ChevronDown } from "lucide-react";
+import { Plus, Upload, BookOpen, Download, ChevronDown, Award, Activity, PieChart } from "lucide-react";
 import ProgressRing from "@/components/cpd/ProgressRing";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
+import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
 import { getToken } from "@/lib/authClient";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -65,9 +66,12 @@ export default function MyCpdPage() {
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--ink)]">My CPD</h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">Track, record and manage your Continuing Professional Development.</p>
+        <div className="flex items-center gap-3">
+          <Icon3D icon={Award} tone={TONES.amber} />
+          <div>
+            <h1 className="text-2xl font-bold text-[var(--ink)]">My CPD</h1>
+            <p className="mt-1 text-sm text-[var(--muted)]">Track, record and manage your Continuing Professional Development.</p>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" onChange={onFile} className="hidden" />
@@ -120,14 +124,14 @@ export default function MyCpdPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Recent activities */}
         <div className="lg:col-span-2 rounded-xl border border-[var(--border)] bg-white">
-          <div className="border-b border-[var(--border)] p-5"><h3 className="font-semibold text-[var(--ink)]">Recent Activity</h3></div>
+          <div className="flex items-center gap-3 border-b border-[var(--border)] p-5"><Icon3D icon={Activity} tone={TONES.violet} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Recent Activity</h3></div>
           {data.activities.length === 0 ? (
             <p className="p-5 text-sm text-[var(--muted)]">No CPD activities yet. Record one or import your CPD log.</p>
           ) : (
             <ul className="divide-y divide-[var(--border)]">
               {data.activities.slice(0, 8).map((a) => (
                 <li key={a.id} className="flex items-center gap-3 px-5 py-3.5">
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--brand-tint)] text-[var(--brand-dark)]"><BookOpen className="h-4 w-4" /></span>
+                  <Icon3D icon={BookOpen} tone={TONES.blue} size="sm" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-[var(--ink)]">{a.title}</p>
                     <p className="text-xs text-[var(--muted)]">{a.provider ? `${a.provider} · ` : ""}{a.category}</p>
@@ -144,7 +148,7 @@ export default function MyCpdPage() {
         {/* Right column: categories only (hours + activities goals now live in the hero) */}
         <div className="space-y-6">
           <div className="rounded-xl border border-[var(--border)] bg-white p-5">
-            <h3 className="mb-4 font-semibold text-[var(--ink)]">CPD Categories</h3>
+            <div className="mb-4 flex items-center gap-3"><Icon3D icon={PieChart} tone={TONES.violet} size="sm" /><h3 className="font-semibold text-[var(--ink)]">CPD Categories</h3></div>
             {/* A donut only earns its place with 2+ categories; a lone 100% slice says nothing. */}
             {data.categories.length === 0 ? (
               <p className="text-sm text-[var(--muted)]">No categories yet.</p>

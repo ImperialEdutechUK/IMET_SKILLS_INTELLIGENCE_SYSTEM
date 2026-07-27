@@ -4,7 +4,8 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { BookOpen, Clock, Map, CheckCircle2, PlayCircle, Plus, ExternalLink, X } from "lucide-react";
-import StatCard from "@/components/dashboard/StatCard";
+import Stat3D from "@/components/dashboard/Stat3D";
+import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
 import { getToken } from "@/lib/authClient";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -103,9 +104,12 @@ function MyLearningInner() {
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--ink)]">My Learning</h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">Track your courses, learning paths and progress.</p>
+        <div className="flex items-center gap-3">
+          <Icon3D icon={BookOpen} tone={TONES.blue} />
+          <div>
+            <h1 className="text-2xl font-bold text-[var(--ink)]">My Learning</h1>
+            <p className="mt-1 text-sm text-[var(--muted)]">Track your courses, learning paths and progress.</p>
+          </div>
         </div>
         <button onClick={() => setShowAdd(true)} className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-dark)]">
           <Plus className="h-4 w-4" /> Add Course
@@ -133,7 +137,7 @@ function MyLearningInner() {
       {/* One stat only — hours spent. Course counts are in the tab labels above;
           certificates are homed on the Certificates page. */}
       <div className="mb-6 max-w-xs">
-        <StatCard icon={Clock} label="Hours Spent" value={`${data.stats.hoursThisMonth}h`} sub="This month" />
+        <Stat3D icon={Clock} tone={TONES.amber} label="Hours Spent" value={`${data.stats.hoursThisMonth}h`} sub="This month" />
       </div>
 
       {/* Tab content */}
@@ -198,7 +202,7 @@ function MyLearningInner() {
         <Section title="Completed Courses" empty={data.completed.length === 0} emptyText="No completed courses yet. Finish an in-progress course to earn a certificate.">
           {data.completed.map((c) => (
             <div key={c.id} className="flex items-center gap-4 border-b border-[var(--border)] p-5 last:border-0">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-[var(--brand-tint)] text-[var(--brand-dark)]"><CheckCircle2 className="h-5 w-5" /></span>
+              <Icon3D icon={CheckCircle2} tone={TONES.emerald} size="sm" />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-[var(--ink)]">{c.title}</p>
                 <p className="mt-0.5 text-[11px] text-[var(--muted)]">{c.level} · {c.category}{c.completedAt ? ` · completed ${c.completedAt}` : ""}</p>
@@ -214,7 +218,7 @@ function MyLearningInner() {
         <Section title="Learning Paths" empty={data.learningPaths.length === 0} emptyText="No learning paths available yet. Learning paths group courses into a step-by-step route and appear here once created.">
           {data.learningPaths.map((p) => (
             <div key={p.id} className="flex flex-col gap-4 border-b border-[var(--border)] p-5 last:border-0 md:flex-row md:items-center">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-purple-50 text-purple-600"><Map className="h-5 w-5" /></span>
+              <Icon3D icon={Map} tone={TONES.violet} size="sm" />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-[var(--ink)]">{p.name}</p>
                 {p.description && <p className="mt-0.5 line-clamp-1 text-xs text-[var(--muted)]">{p.description}</p>}
@@ -339,5 +343,5 @@ function Section({ title, children, empty, emptyText }: { title: string; childre
 }
 
 function CourseIcon() {
-  return <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-[var(--brand-tint)] text-[var(--brand-dark)]"><BookOpen className="h-5 w-5" /></span>;
+  return <Icon3D icon={BookOpen} tone={TONES.blue} size="sm" />;
 }

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import LearnAreaChart from "@/components/charts/LearnAreaChart";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
 import { Users, BookOpen, Award, Medal, UserCog, BarChart3, Settings, Sparkles } from "lucide-react";
-import StatCard from "@/components/dashboard/StatCard";
+import BentoStat from "@/components/dashboard/BentoStat";
 import ActivityFeed from "@/components/dashboard/ActivityFeed";
 import BarList from "@/components/charts/BarList";
 import { getToken } from "@/lib/authClient";
@@ -61,20 +61,20 @@ export default function AdminDashboardPage() {
         </a>
       </div>
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={Users} label="Total Employees" value={data.totalEmployees.toLocaleString()} />
-        <StatCard icon={BookOpen} label="Active Courses" value={data.activeCourses.toLocaleString()} />
-        <StatCard icon={Award} label="CPD Completion Rate" value={`${data.cpdCompletionRate}%`} />
-        <StatCard icon={Medal} label="Certificates Earned" value={data.certificatesEarned.toLocaleString()} />
+        <BentoStat icon={Users} tone="greenSolid" label="Total Employees" value={data.totalEmployees.toLocaleString()} />
+        <BentoStat icon={BookOpen} tone="blue" label="Active Courses" value={data.activeCourses.toLocaleString()} />
+        <BentoStat icon={Award} tone="teal" label="CPD Completion Rate" value={`${data.cpdCompletionRate}%`} />
+        <BentoStat icon={Medal} tone="amber" label="Certificates Earned" value={data.certificatesEarned.toLocaleString()} />
       </div>
       <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="rounded-xl border border-[var(--border)] bg-white p-5 lg:col-span-2">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-5 lg:col-span-2">
           <div className="mb-1 flex items-center justify-between">
             <h3 className="font-semibold text-[var(--ink)]">Learning Activity</h3>
             <span className="text-xs text-[var(--muted)]">Last 6 Months · completions</span>
           </div>
           <LearnAreaChart data={data.learningActivity} xKey="month" dataKeys={[{ key: "completions", label: "completions", color: "#2e7d5b" }]} unit="" height={200} />
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-[var(--brand)]" /><h3 className="font-semibold text-[var(--ink)]">AI Insights</h3></div>
             <a href="/admin/recommendations" className="text-xs font-medium text-[var(--brand)]">View All</a>
@@ -83,24 +83,24 @@ export default function AdminDashboardPage() {
         </div>
       </div>
       <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
           <h3 className="mb-4 font-semibold text-[var(--ink)]">Department Performance</h3>
           {data.departmentPerformance.length === 0 ? <p className="text-sm text-[var(--muted)]">No data.</p> : <BarList items={data.departmentPerformance} unit="%" />}
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
           <h3 className="mb-4 font-semibold text-[var(--ink)]">Top Skills Gap</h3>
           <div className="flex flex-wrap gap-2">
             {data.skillsGap.map((s) => (<span key={s.name} className="rounded-full border border-[var(--border)] px-3 py-1 text-sm text-[var(--ink)] hover:bg-[var(--brand-tint)]">{s.name}</span>))}
           </div>
           <a href="/admin/recommendations" className="mt-4 flex items-center gap-1 text-sm font-medium text-[var(--brand)]">View Full Analysis →</a>
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
           <h3 className="mb-4 font-semibold text-[var(--ink)]">CPD Compliance Overview</h3>
           <LearnDonutChart data={data.cpdCompliance.map((s) => ({ ...s, color: COMPLIANCE_COLORS[s.name] ?? "#9ca3af" }))} label={`${data.compliancePct}%`} sublabel="Overall" height={140} />
         </div>
       </div>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
           <h3 className="mb-4 font-semibold text-[var(--ink)]">Quick Actions</h3>
           <div className="grid grid-cols-3 gap-3">
             {quickActions.map((qa) => {
@@ -115,7 +115,7 @@ export default function AdminDashboardPage() {
           </div>
         </div>
         {data.recentActivities.length === 0 ? (
-          <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+          <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
             <h3 className="mb-4 font-semibold text-[var(--ink)]">Recent Activities</h3>
             <p className="text-sm text-[var(--muted)]">No recent activity recorded yet.</p>
           </div>

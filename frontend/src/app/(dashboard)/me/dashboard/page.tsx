@@ -102,7 +102,7 @@ export default function EmployeeDashboardPage() {
           the annual CPD target (with pace), the biggest skill gap, and courses finished. */}
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {/* CPD — the labelled ring is the only place the hours numeral appears. */}
-        <Link href="/me/cpd" className="block rounded-xl border border-[var(--border)] bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-md">
+        <Link href="/me/cpd" className="block rounded-2xl border border-[var(--border)] p-5 transition hover:-translate-y-0.5 hover:shadow-md" style={{ background: "#e8f1ed" }}>
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-sm text-[var(--muted)]">CPD Progress</p>
@@ -117,6 +117,7 @@ export default function EmployeeDashboardPage() {
 
         {/* Priority skill gap — the product's core answer to "what am I missing?" */}
         <StatCard icon={Target} tone={data.gapCount > 0 ? TONES.amber : TONES.emerald} label="Priority Skill Gap"
+          bg="#e3eefb"
           href="/me/skills"
           linkText={data.gapCount > 0 ? "View skill gaps" : "View skills"}
           headline={data.topGap ? data.topGap.skill : "No gaps to close"}
@@ -128,6 +129,7 @@ export default function EmployeeDashboardPage() {
 
         {/* Momentum — completed is the number people actually care about. */}
         <StatCard icon={Award} tone={TONES.violet} label="Courses Completed"
+          bg="#ece9fb"
           href="/me/learning"
           linkText={data.completedCount > 0 ? "View my learning" : "Browse courses"}
           headline={data.completedCount > 0 ? String(data.completedCount) : "None yet"}
@@ -139,7 +141,7 @@ export default function EmployeeDashboardPage() {
       </div>
 
       {/* WHAT DO I CONTINUE? — one module, in-progress first then queued. */}
-      <div className="mb-6 rounded-xl border border-[var(--border)] bg-white p-5">
+      <div className="mb-6 rounded-2xl border border-[var(--border)] bg-white p-5">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-3"><Icon3D icon={BookOpen} tone={TONES.blue} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Continue Learning</h3></div>
           <Link href="/me/learning" className="text-sm font-medium text-[var(--brand)] hover:text-[var(--brand-dark)]">View all</Link>
@@ -167,7 +169,7 @@ export default function EmployeeDashboardPage() {
       </div>
 
       {/* WHAT NEXT? — AI recommendations */}
-      <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+      <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-3"><Icon3D icon={Sparkles} tone={TONES.violet} size="sm" /><h3 className="font-semibold text-[var(--ink)]">AI Recommendations</h3></div>
           <Link href="/me/recommendations" className="text-sm font-medium text-[var(--brand)] hover:text-[var(--brand-dark)]">View all</Link>
@@ -206,13 +208,13 @@ export default function EmployeeDashboardPage() {
 
 // Stat card that leads with a short phrase rather than a bare number, so a zero
 // value reads as a call to action instead of an empty slot.
-function StatCard({ icon, tone, label, headline, caption, href, linkText }: {
+function StatCard({ icon, tone, label, headline, caption, href, linkText, bg = "#ffffff" }: {
   icon: React.ComponentProps<typeof Icon3D>["icon"];
   tone: React.ComponentProps<typeof Icon3D>["tone"];
-  label: string; headline: string; caption: string; href: string; linkText: string;
+  label: string; headline: string; caption: string; href: string; linkText: string; bg?: string;
 }) {
   return (
-    <Link href={href} className="block rounded-xl border border-[var(--border)] bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-md">
+    <Link href={href} className="block rounded-2xl border border-[var(--border)] p-5 transition hover:-translate-y-0.5 hover:shadow-md" style={{ background: bg }}>
       <div className="flex items-start gap-3">
         <Icon3D icon={icon} tone={tone} />
         <div className="min-w-0">

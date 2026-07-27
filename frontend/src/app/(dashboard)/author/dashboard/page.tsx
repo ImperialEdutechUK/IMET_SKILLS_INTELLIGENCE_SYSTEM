@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import LearnAreaChart from "@/components/charts/LearnAreaChart";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
 import { Library, BookOpen, AlertCircle, Users, Upload, Tags, ClipboardCheck, Plus } from "lucide-react";
-import StatCard from "@/components/dashboard/StatCard";
+import BentoStat from "@/components/dashboard/BentoStat";
 import ActivityFeed from "@/components/dashboard/ActivityFeed";
 import BarList from "@/components/charts/BarList";
 import { getToken } from "@/lib/authClient";
@@ -64,20 +64,20 @@ export default function AuthorDashboardPage() {
         </a>
       </div>
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={Library} label="Total Courses" value={data.totalCourses.toLocaleString()} />
-        <StatCard icon={BookOpen} label="Published" value={data.published.toLocaleString()} />
-        <StatCard icon={AlertCircle} iconBg="bg-amber-50" label="Needs Completion" value={data.needsCompletion.toLocaleString()} sub="action required" />
-        <StatCard icon={Users} label="Total Enrollments" value={data.totalEnrollments.toLocaleString()} />
+        <BentoStat icon={Library} tone="greenSolid" label="Total Courses" value={data.totalCourses.toLocaleString()} />
+        <BentoStat icon={BookOpen} tone="blue" label="Published" value={data.published.toLocaleString()} />
+        <BentoStat icon={AlertCircle} tone="amber" label="Needs Completion" value={data.needsCompletion.toLocaleString()} sub="action required" />
+        <BentoStat icon={Users} tone="teal" label="Total Enrollments" value={data.totalEnrollments.toLocaleString()} />
       </div>
       <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="rounded-xl border border-[var(--border)] bg-white p-5 lg:col-span-2">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-5 lg:col-span-2">
           <div className="mb-1 flex items-center justify-between">
             <h3 className="font-semibold text-[var(--ink)]">Content Activity</h3>
             <span className="text-xs text-[var(--muted)]">courses / month</span>
           </div>
           <LearnAreaChart data={data.contentActivity} xKey="month" dataKeys={[{ key: "added", label: "Added", color: "#2e7d5b" }, { key: "published", label: "Published", color: "#9fe1cb" }]} unit="" height={200} />
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="font-semibold text-[var(--ink)]">Courses Needing Attention</h3>
             <a href="/author/review" className="text-xs font-medium text-[var(--brand)]">View All</a>
@@ -101,21 +101,21 @@ export default function AuthorDashboardPage() {
         </div>
       </div>
       <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
           <h3 className="mb-4 font-semibold text-[var(--ink)]">Courses by Source</h3>
           <LearnDonutChart data={data.coursesBySource.map((s, i) => ({ ...s, color: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }))} height={140} />
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
           <h3 className="mb-4 font-semibold text-[var(--ink)]">Skill Coverage</h3>
           <BarList items={data.skillCoverage.map((s) => ({ name: s.name, value: s.covered, color: s.covered < 40 ? "#f59e0b" : "var(--brand)" }))} unit="%" />
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
           <h3 className="mb-4 font-semibold text-[var(--ink)]">Top Recommended</h3>
           <p className="text-sm text-[var(--muted)]">Recommendations will appear here once the AI engine is connected.</p>
         </div>
       </div>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
           <h3 className="mb-4 font-semibold text-[var(--ink)]">Quick Actions</h3>
           <div className="flex flex-wrap gap-3">
             {quickActions.map((qa) => {
@@ -130,7 +130,7 @@ export default function AuthorDashboardPage() {
           </div>
         </div>
         {data.recentActivities.length === 0 ? (
-          <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+          <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
             <h3 className="mb-4 font-semibold text-[var(--ink)]">Recent Activity</h3>
             <p className="text-sm text-[var(--muted)]">No recent activity recorded yet.</p>
           </div>

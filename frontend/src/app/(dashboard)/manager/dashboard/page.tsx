@@ -6,7 +6,7 @@ import { Users, BookOpen, Award, TrendingUp, Download, ChevronRight, ShieldCheck
 import LearnAreaChart from "@/components/charts/LearnAreaChart";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
-import Stat3D from "@/components/dashboard/Stat3D";
+import BentoStat from "@/components/dashboard/BentoStat";
 import Dropdown from "@/components/dashboard/Dropdown";
 import CollapsibleCard from "@/components/dashboard/CollapsibleCard";
 import MyAchievementsCard from "@/components/gamification/MyAchievementsCard";
@@ -55,7 +55,7 @@ export default function ManagerDashboardPage() {
   }
 
   if (loading || !data) {
-    return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">{loading ? "Loading…" : "Could not load dashboard."}</p></div>;
+    return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">{loading ? "Loading…" : "Could not load dashboard."}</p></div>;
   }
 
   const { stats } = data;
@@ -110,15 +110,15 @@ export default function ManagerDashboardPage() {
 
       {/* 3D stat tiles — clickable */}
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Stat3D href="/manager/team-learning" icon={Users} tone={TONES.indigo} label="Active learners" value={`${stats.activeLearners} of ${stats.teamMembers}`} sub="Enrolled in a course" />
-        <Stat3D href="/manager/team-learning" icon={BookOpen} tone={TONES.blue} label="Courses in progress" value={stats.coursesInProgress} sub={`${stats.coursesCompleted} completed`} />
-        <Stat3D href="/manager/team-cpd" icon={Award} tone={TONES.amber} label="CPD hours logged" value={`${stats.cpdHoursTotal} of ${stats.teamTarget}h`} sub="Annual team target" />
-        <Stat3D href="/manager/team-skills" icon={TrendingUp} tone={TONES.emerald} label="Avg skill level" value={`${stats.avgSkillLevel}%`} sub="Across the team" />
+        <BentoStat href="/manager/team-learning" icon={Users} tone="greenSolid" label="Active learners" value={`${stats.activeLearners} of ${stats.teamMembers}`} sub="Enrolled in a course" />
+        <BentoStat href="/manager/team-learning" icon={BookOpen} tone="blue" label="Courses in progress" value={stats.coursesInProgress} sub={`${stats.coursesCompleted} completed`} />
+        <BentoStat href="/manager/team-cpd" icon={Award} tone="teal" label="CPD hours logged" value={`${stats.cpdHoursTotal} of ${stats.teamTarget}h`} sub="Annual team target" />
+        <BentoStat href="/manager/team-skills" icon={TrendingUp} tone="amber" label="Avg skill level" value={`${stats.avgSkillLevel}%`} sub="Across the team" />
       </div>
 
       {/* Snapshot: CPD split + who needs attention — always visible, the clear picture */}
       <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
           <div className="mb-3 flex items-center gap-3">
             <Icon3D icon={Award} tone={TONES.amber} size="sm" />
             <div>
@@ -132,7 +132,7 @@ export default function ManagerDashboardPage() {
             <LearnDonutChart data={data.cpdStatusBreakdown} label={`${onTrack}`} sublabel="on track" height={180} />
           )}
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-white lg:col-span-2">
+        <div className="rounded-2xl border border-[var(--border)] bg-white lg:col-span-2">
           <div className="flex items-center gap-3 border-b border-[var(--border)] p-5">
             <Icon3D icon={AlertTriangle} tone={TONES.rose} size="sm" />
             <div className="min-w-0 flex-1">

@@ -1,7 +1,8 @@
 import type { LucideIcon } from "lucide-react";
 
-// Flat, colour-coded icon tile: a soft tint of the tone with the icon in the
-// tone's solid colour. Kept the name/API stable so every caller stays unchanged.
+// Plain icon tile — the app's original brand-tint look. The name/API and the
+// TONES export are kept stable so every caller stays unchanged; `tone` is now
+// ignored (icons are uniform) but still accepted for compatibility.
 export type Icon3DTone = { from: string; to: string };
 
 export const TONES: Record<string, Icon3DTone> = {
@@ -16,7 +17,6 @@ export const TONES: Record<string, Icon3DTone> = {
 
 export default function Icon3D({
   icon: Icon,
-  tone = TONES.emerald,
   size = "md",
 }: {
   icon: LucideIcon;
@@ -27,10 +27,7 @@ export default function Icon3D({
   const icn = size === "lg" ? "h-8 w-8" : size === "sm" ? "h-5 w-5" : "h-6 w-6";
   const radius = size === "lg" ? "rounded-2xl" : "rounded-xl";
   return (
-    <span
-      className={`grid ${dim} shrink-0 place-items-center ${radius}`}
-      style={{ background: `${tone.to}14`, color: tone.to }}
-    >
+    <span className={`grid ${dim} shrink-0 place-items-center ${radius} bg-[var(--brand-tint)] text-[var(--brand-dark)]`}>
       <Icon className={icn} strokeWidth={2} />
     </span>
   );

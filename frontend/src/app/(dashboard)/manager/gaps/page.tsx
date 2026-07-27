@@ -6,12 +6,8 @@ import Stat3D from "@/components/dashboard/Stat3D";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
 import { getToken } from "@/lib/authClient";
 
-const importanceConfig: Record<string, string> = {
-  CRITICAL: "bg-red-50 text-red-700 border-red-200",
-  HIGH: "bg-amber-50 text-amber-700 border-amber-200",
-  MEDIUM: "bg-blue-50 text-blue-700 border-blue-200",
-  LOW: "bg-slate-100 text-slate-600 border-slate-200",
-};
+// Only the skills that really matter get flagged — the rest carry no jargon badge.
+const isPriority = (importance: string) => importance === "CRITICAL" || importance === "HIGH";
 
 interface Gap { skill: string; required: number; current: number; gap: number; importance: string; }
 interface Emp { id: string; fullName: string; department: string; position: string; hasRole: boolean; roleTitle?: string; totalGap: number; criticalGaps: number; gaps: Gap[]; }
@@ -90,6 +86,7 @@ export default function SkillGapsPage() {
           <div className="space-y-2.5">
             {data.employees.map((emp) => {
               const isOpen = open === emp.id;
+              const toImprove = emp.gaps.filter((g) => g.gap > 0).length;
               return (
                 <div key={emp.id} className="overflow-hidden rounded-xl border border-[var(--border)] bg-white">
                   <button onClick={() => emp.hasRole && setOpen(isOpen ? null : emp.id)} className={`flex w-full items-center gap-3 p-3.5 text-left ${emp.hasRole ? "transition-colors hover:bg-slate-50" : "cursor-default"}`}>
@@ -100,8 +97,11 @@ export default function SkillGapsPage() {
                     </div>
                     {emp.hasRole ? (
                       <>
-                        {emp.criticalGaps > 0 && <span className="shrink-0 rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700">{emp.criticalGaps} critical</span>}
-                        <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${emp.totalGap === 0 ? "bg-[var(--brand-tint)] text-[var(--brand-dark)]" : "bg-amber-50 text-amber-700"}`}>{emp.totalGap === 0 ? "On target" : `Gap ${emp.totalGap}`}</span>
+                        {toImprove === 0 ? (
+                          <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">On target</span>
+                        ) : (
+                          <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${emp.criticalGaps > 0 ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700"}`}>{toImprove} to improve</span>
+                        )}
                         <ChevronDown className={`h-4 w-4 shrink-0 text-[var(--muted)] transition-transform ${isOpen ? "rotate-180" : ""}`} />
                       </>
                     ) : (
@@ -116,7 +116,9 @@ export default function SkillGapsPage() {
                             <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
                               <div className="flex flex-wrap items-center gap-2">
                                 <span className="text-sm font-medium text-[var(--ink)]">{g.skill}</span>
-                                <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${importanceConfig[g.importance] ?? importanceConfig.MEDIUM}`}>{g.importance}</span>
+                                {g.gap > 0 && isPriority(g.importance) && (
+                                  <span className="rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-medium text-red-700">Priority</span>
+                                )}
                               </div>
                               <span className="text-xs text-[var(--muted)]">
                                 {levelName(g.current)} <span className="text-slate-400">→</span> {levelName(g.required)}

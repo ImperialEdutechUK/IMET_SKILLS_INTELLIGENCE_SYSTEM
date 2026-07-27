@@ -32,15 +32,15 @@ export default function Icon3D({
       className={`relative grid ${dim} shrink-0 place-items-center ${radius} text-white`}
       style={{
         background: `linear-gradient(150deg, ${tone.from} 0%, ${tone.to} 100%)`,
-        boxShadow: `0 8px 18px -6px ${tone.to}80, inset 0 1px 1px rgba(255,255,255,.45)`,
+        boxShadow: `0 10px 20px -6px ${tone.to}66, 0 2px 4px -1px ${tone.to}4d, inset 0 1.5px 1px rgba(255,255,255,.55), inset 0 -3px 6px ${tone.to}55`,
       }}
     >
-      {/* top gloss highlight */}
+      {/* top-left glossy highlight for a rounded, lit-from-above 3D look */}
       <span
         className={`pointer-events-none absolute inset-0 ${radius}`}
-        style={{ background: "linear-gradient(180deg, rgba(255,255,255,.35) 0%, rgba(255,255,255,0) 55%)" }}
+        style={{ background: "radial-gradient(120% 90% at 28% 8%, rgba(255,255,255,.5) 0%, rgba(255,255,255,0) 45%)" }}
       />
-      <Icon className={`relative ${icn}`} strokeWidth={2.25} />
+      <Icon className={`relative ${icn} drop-shadow-[0_1px_1px_rgba(0,0,0,.18)]`} strokeWidth={2.25} />
     </span>
   );
 }

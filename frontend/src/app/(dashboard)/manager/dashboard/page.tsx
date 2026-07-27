@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Users, BookOpen, Award, TrendingUp, Download, ChevronRight, ShieldCheck, AlertTriangle, BarChart3, PieChart, Activity, Clock } from "lucide-react";
+import { Users, BookOpen, Award, TrendingUp, Download, ChevronRight, ChevronDown, ShieldCheck, AlertTriangle, BarChart3, PieChart, Activity, Clock } from "lucide-react";
 import LearnAreaChart from "@/components/charts/LearnAreaChart";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
 import Icon3D, { TONES, type Icon3DTone } from "@/components/dashboard/Icon3D";
@@ -40,6 +40,8 @@ export default function ManagerDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [reminding, setReminding] = useState(false);
   const [remindMsg, setRemindMsg] = useState("");
+  const [memberFilter, setMemberFilter] = useState("all");
+  const [trendWeeks, setTrendWeeks] = useState(8);
 
   const load = () => fetch(`${API}/api/manager/dashboard`, { headers: { Authorization: `Bearer ${getToken()}` } })
     .then((r) => (r.ok ? r.json() : null)).then((d) => { setData(d); setLoading(false); }).catch(() => setLoading(false));
@@ -65,6 +67,8 @@ export default function ManagerDashboardPage() {
   const onTrack = Math.max(0, stats.teamMembers - behind);
   const totalCourses = stats.coursesInProgress + stats.coursesCompleted;
   const thisWeek = data.progressOverTime.length ? data.progressOverTime[data.progressOverTime.length - 1].hours : 0;
+  const trend = data.progressOverTime.slice(-trendWeeks);
+  const shownMembers = memberFilter === "all" ? data.members : data.members.filter((m) => m.status === memberFilter);
   const today = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
 
   // One clear health verdict for the top of the page.
@@ -117,8 +121,13 @@ export default function ManagerDashboardPage() {
       {/* Snapshot: CPD split + who needs attention — always visible, the clear picture */}
       <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="rounded-xl border border-[var(--border)] bg-white p-5">
-          <h3 className="mb-1 font-semibold text-[var(--ink)]">CPD status</h3>
-          <p className="mb-3 text-xs text-[var(--muted)]">How the team is pacing against target</p>
+          <div className="mb-3 flex items-center gap-3">
+            <Icon3D icon={Award} tone={TONES.amber} size="sm" />
+            <div>
+              <h3 className="font-semibold text-[var(--ink)]">CPD status</h3>
+              <p className="text-xs text-[var(--muted)]">How the team is pacing against target</p>
+            </div>
+          </div>
           {stats.teamMembers === 0 ? (
             <p className="text-sm text-[var(--muted)]">No team members yet.</p>
           ) : (
@@ -126,9 +135,12 @@ export default function ManagerDashboardPage() {
           )}
         </div>
         <div className="rounded-xl border border-[var(--border)] bg-white lg:col-span-2">
-          <div className="flex items-center justify-between border-b border-[var(--border)] p-5">
-            <h3 className="font-semibold text-[var(--ink)]">Who needs attention</h3>
-            <span className="text-xs text-[var(--muted)]">Click a name to open their dashboard</span>
+          <div className="flex items-center gap-3 border-b border-[var(--border)] p-5">
+            <Icon3D icon={AlertTriangle} tone={TONES.rose} size="sm" />
+            <div className="min-w-0 flex-1">
+              <h3 className="font-semibold text-[var(--ink)]">Who needs attention</h3>
+              <p className="text-xs text-[var(--muted)]">Click a name to open their dashboard</p>
+            </div>
           </div>
           {data.attention.length === 0 ? (
             <p className="p-5 text-sm text-[var(--muted)]">Everyone is on track. 🎉</p>
@@ -159,11 +171,27 @@ export default function ManagerDashboardPage() {
             <p className="text-sm text-[var(--muted)]">No employees in {data.departmentName} yet.</p>
           ) : (
             <div className="-mx-5 -mb-5">
-              <div className="hidden gap-3 border-b border-[var(--border)] px-5 py-2 text-[11px] font-medium uppercase tracking-wide text-[var(--muted)] md:grid md:grid-cols-[2fr_1fr_1fr_1fr_auto]">
+              <div className="flex items-center justify-between gap-3 px-5 pb-3">
+                <span className="text-xs text-[var(--muted)]">Showing {shownMembers.length} of {data.members.length}</span>
+                <Dropdown
+                  value={memberFilter}
+                  onChange={setMemberFilter}
+                  options={[
+                    { value: "all", label: "All statuses" },
+                    { value: "at_risk", label: "At risk" },
+                    { value: "attention", label: "Behind target" },
+                    { value: "on_track", label: "On track" },
+                  ]}
+                />
+              </div>
+              <div className="hidden gap-3 border-b border-t border-[var(--border)] px-5 py-2 text-[11px] font-medium uppercase tracking-wide text-[var(--muted)] md:grid md:grid-cols-[2fr_1fr_1fr_1fr_auto]">
                 <span>Member</span><span>Skill level</span><span>CPD</span><span>Courses</span><span className="w-24 text-right">Status</span>
               </div>
+              {shownMembers.length === 0 ? (
+                <p className="px-5 py-6 text-sm text-[var(--muted)]">No members match this filter.</p>
+              ) : (
               <ul className="divide-y divide-[var(--border)]">
-                {data.members.map((m) => {
+                {shownMembers.map((m) => {
                   const st = STATUS[m.status] ?? STATUS.on_track;
                   return (
                     <li key={m.id}>
@@ -184,15 +212,23 @@ export default function ManagerDashboardPage() {
                   );
                 })}
               </ul>
+              )}
             </div>
           )}
         </CollapsibleCard>
 
-        <CollapsibleCard title="Team learning hours" subtitle={thisWeek > 0 ? `${thisWeek}h logged this week · last 8 weeks` : "Last 8 weeks"} icon={BarChart3} tone={TONES.blue}>
-          <LearnAreaChart data={data.progressOverTime} xKey="label" dataKeys={[{ key: "hours", label: "hours", color: "#2e7d5b" }]} unit="h" height={220} />
+        <CollapsibleCard title="Team learning hours" subtitle={thisWeek > 0 ? `${thisWeek}h logged this week` : "CPD hours logged over time"} icon={BarChart3} tone={TONES.blue}>
+          <div className="mb-4 flex justify-end">
+            <Dropdown
+              value={String(trendWeeks)}
+              onChange={(v) => setTrendWeeks(Number(v))}
+              options={[{ value: "8", label: "Last 8 weeks" }, { value: "4", label: "Last 4 weeks" }]}
+            />
+          </div>
+          <LearnAreaChart data={trend} xKey="label" dataKeys={[{ key: "hours", label: "hours", color: "#3b82f6" }]} unit="h" height={220} />
         </CollapsibleCard>
 
-        <CollapsibleCard title="Learning by category" subtitle={`${totalCourses} course${totalCourses === 1 ? "" : "s"} across the team`} icon={PieChart} tone={TONES.violet}>
+        <CollapsibleCard title="Learning by category" subtitle={`${totalCourses} course${totalCourses === 1 ? "" : "s"} across the team`} icon={PieChart} tone={TONES.blue}>
           {data.categoryBreakdown.length === 0 ? (
             <p className="text-sm text-[var(--muted)]">No enrolments yet.</p>
           ) : (
@@ -200,7 +236,7 @@ export default function ManagerDashboardPage() {
           )}
         </CollapsibleCard>
 
-        <CollapsibleCard title="Recent team activity" subtitle="Enrolments, completions and CPD logged" icon={Activity} tone={TONES.emerald}>
+        <CollapsibleCard title="Recent team activity" subtitle="Enrolments, completions and CPD logged" icon={Activity} tone={TONES.violet}>
           {data.recentActivity.length === 0 ? (
             <p className="text-sm text-[var(--muted)]">No team activity yet. It appears here as employees enrol, complete courses and log CPD.</p>
           ) : (
@@ -232,6 +268,23 @@ function StatTile({ href, icon, tone, label, value, sub }: { href: string; icon:
       <p className="mt-0.5 text-2xl font-bold leading-none text-[var(--ink)]">{value}</p>
       <p className="mt-1.5 text-xs text-[var(--muted)]">{sub}</p>
     </Link>
+  );
+}
+
+// Compact, professional dropdown menu (native select for reliability/a11y,
+// styled to match the dashboard with a chevron affordance).
+function Dropdown({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
+  return (
+    <div className="relative inline-flex">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="appearance-none rounded-lg border border-[var(--border)] bg-white py-1.5 pl-3 pr-8 text-xs font-medium text-[var(--ink)] transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[var(--brand)]/30"
+      >
+        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--muted)]" />
+    </div>
   );
 }
 

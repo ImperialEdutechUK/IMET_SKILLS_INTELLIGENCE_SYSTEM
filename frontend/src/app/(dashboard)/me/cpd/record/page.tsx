@@ -74,7 +74,7 @@ export default function RecordCpdPage() {
       <h1 className="mb-6 text-2xl font-bold text-[var(--ink)]">Record CPD Activity</h1>
 
       {/* Stepper */}
-      <div className="mb-6 flex items-center gap-2 rounded-xl border border-[var(--border)] bg-white p-4">
+      <div className="mb-6 flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-white p-4">
         {STEPS.map((s, i) => (
           <div key={s} className="flex flex-1 items-center gap-2">
             <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-semibold ${i < step ? "bg-[var(--brand)] text-white" : i === step ? "bg-[var(--brand)] text-white" : "bg-slate-100 text-[var(--muted)]"}`}>
@@ -86,7 +86,7 @@ export default function RecordCpdPage() {
         ))}
       </div>
 
-      <div className="rounded-xl border border-[var(--border)] bg-white p-6">
+      <div className="rounded-2xl border border-[var(--border)] bg-white p-6">
         {step === 0 && (
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

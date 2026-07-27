@@ -15,7 +15,7 @@ export default function LearningManagementPage() {
         <StatCard icon={Users} label="Total Enrollments" value={542} delta="This month" deltaPositive />
         <StatCard icon={Star} label="Avg Rating" value="4.6" delta="Up from 4.4" deltaPositive />
       </div>
-      <div className="rounded-xl border border-[var(--border)] bg-white">
+      <div className="rounded-2xl border border-[var(--border)] bg-white">
         <div className="border-b border-[var(--border)] p-5"><h3 className="font-semibold text-[var(--ink)]">Course Catalogue</h3></div>
         <ul className="divide-y divide-[var(--border)]">
           {mockCourses.map((course) => (

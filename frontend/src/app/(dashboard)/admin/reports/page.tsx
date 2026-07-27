@@ -15,11 +15,11 @@ export default function AdminReportsPage() {
         <StatCard icon={BarChart3} label="Certificates" value={542} delta="7.2% up" deltaPositive />
       </div>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
           <h3 className="mb-4 font-semibold text-[var(--ink)]">Learning Activity · completions</h3>
           <LearnAreaChart data={learningActivityData} xKey="month" dataKeys={[{key:"completions",label:"completions",color:"#2e7d5b"}]} unit="" height={200} />
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
           <h3 className="mb-4 font-semibold text-[var(--ink)]">Department Performance</h3>
           <BarList items={departmentPerformance} unit="%" />
         </div>

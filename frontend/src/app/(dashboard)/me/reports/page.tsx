@@ -51,8 +51,8 @@ export default function MyReportsPage() {
     URL.revokeObjectURL(url);
   };
 
-  if (loading) return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
-  if (!data) return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load reports.</p></div>;
+  if (loading) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
+  if (!data) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load reports.</p></div>;
 
   const delta = (n: number, unit = "") => (n === 0 ? "no change vs last week" : `${n > 0 ? "↑" : "↓"} ${Math.abs(n)}${unit} vs last week`);
 
@@ -78,14 +78,14 @@ export default function MyReportsPage() {
       </div>
 
       <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
           <h3 className="mb-4 font-semibold text-[var(--ink)]">CPD Hours Over Time <span className="text-xs font-normal text-[var(--muted)]">· last 8 weeks</span></h3>
           <LearnAreaChart data={data.overTime} xKey="label" dataKeys={[{ key: "hours", label: "hours", color: "#2e7d5b" }]} unit="h" height={220} />
           {data.overTime.reduce((s, w) => s + w.hours, 0) > 0 && data.overTime.filter((w) => w.hours > 0).length <= 1 && (
             <p className="mt-2 text-xs text-[var(--muted)]">Early days — the empty weeks are history, not missing data. Keep logging and the trend will fill in.</p>
           )}
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
           <h3 className="mb-4 font-semibold text-[var(--ink)]">Hours by Activity Type</h3>
           {/* A donut only earns its place with 2+ categories; a single 100% slice says nothing. */}
           {data.hoursByType.length === 0 ? (
@@ -100,7 +100,7 @@ export default function MyReportsPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-[var(--border)] bg-white">
+        <div className="rounded-2xl border border-[var(--border)] bg-white">
           <div className="flex items-center justify-between border-b border-[var(--border)] p-5">
             <h3 className="font-semibold text-[var(--ink)]">Recent Activity</h3>
             <Link href="/me/cpd" className="inline-flex items-center gap-1 text-xs font-medium text-[var(--brand)] hover:text-[var(--brand-dark)]">Full feed on My CPD <ArrowRight className="h-3 w-3" /></Link>
@@ -119,7 +119,7 @@ export default function MyReportsPage() {
             </ul>
           )}
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
           <h3 className="mb-4 font-semibold text-[var(--ink)]">Progress Summary</h3>
           <ProgressRow label="CPD Hours Goal" pct={data.progress.cpdGoal} color="bg-[var(--brand)]" />
           <div className="mt-4"><ProgressRow label="Course Completion" pct={data.progress.courseCompletion} color="bg-purple-500" /></div>

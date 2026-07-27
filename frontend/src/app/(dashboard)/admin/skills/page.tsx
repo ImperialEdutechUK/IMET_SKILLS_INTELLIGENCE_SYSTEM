@@ -15,7 +15,7 @@ export default function SkillsManagementPage() {
         <StatCard icon={Target} iconBg="bg-amber-50" label="Critical Gaps" value={skillsGap.length} delta="Needs courses" deltaPositive={false} />
       </div>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
           <h3 className="mb-4 font-semibold text-[var(--ink)]">Top Skill Gaps</h3>
           <ul className="space-y-3">
             {skillsGap.map((s) => (
@@ -26,7 +26,7 @@ export default function SkillsManagementPage() {
             ))}
           </ul>
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
           <h3 className="mb-4 font-semibold text-[var(--ink)]">All Skills</h3>
           <ul className="space-y-2">
             {mySkills.map((s) => (

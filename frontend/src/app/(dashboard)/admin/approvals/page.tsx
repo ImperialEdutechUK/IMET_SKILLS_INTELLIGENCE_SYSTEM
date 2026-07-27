@@ -62,11 +62,11 @@ export default function ApprovalsPage() {
       </div>
 
       {loading ? (
-        <div className="rounded-xl border border-[var(--border)] bg-white p-6">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-6">
           <p className="text-sm text-[var(--muted)]">Loading…</p>
         </div>
       ) : pending.length === 0 ? (
-        <div className="rounded-xl border border-[var(--border)] bg-white p-8 text-center">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-8 text-center">
           <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[var(--brand-tint)] text-[var(--brand-dark)]">
             <UserCheck className="h-6 w-6" />
           </span>
@@ -76,7 +76,7 @@ export default function ApprovalsPage() {
       ) : (
         <div className="space-y-3">
           {pending.map((p) => (
-            <div key={p.id} className="rounded-xl border border-[var(--border)] bg-white p-5">
+            <div key={p.id} className="rounded-2xl border border-[var(--border)] bg-white p-5">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
                   <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[var(--brand-tint)] text-sm font-semibold text-[var(--brand-dark)]">

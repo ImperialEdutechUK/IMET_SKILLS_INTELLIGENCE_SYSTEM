@@ -87,9 +87,9 @@ export default function TeamCpdPage() {
       {notifyMsg && <div className="mb-4 rounded-lg border border-[var(--border)] bg-[var(--brand-tint)] px-4 py-2.5 text-sm text-[var(--brand-dark)]">{notifyMsg}</div>}
 
       {loading ? (
-        <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>
       ) : !data ? (
-        <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load team CPD.</p></div>
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load team CPD.</p></div>
       ) : (
         <>
           {/* Stat cards */}
@@ -102,7 +102,7 @@ export default function TeamCpdPage() {
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             {/* Members Behind Target */}
-            <div className="lg:col-span-2 rounded-xl border border-[var(--border)] bg-white">
+            <div className="lg:col-span-2 rounded-2xl border border-[var(--border)] bg-white">
               <div className="flex items-center gap-3 border-b border-[var(--border)] p-5"><Icon3D icon={AlertTriangle} tone={TONES.rose} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Members Behind Target</h3></div>
               {data.behindTarget.length === 0 ? (
                 <p className="p-5 text-sm text-[var(--muted)]">Everyone is on track. No members behind target.</p>
@@ -133,7 +133,7 @@ export default function TeamCpdPage() {
             </div>
 
             {/* CPD Target Summary donut */}
-            <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+            <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
               <div className="mb-4 flex items-center gap-3"><Icon3D icon={Award} tone={TONES.amber} size="sm" /><h3 className="font-semibold text-[var(--ink)]">CPD Target Summary</h3></div>
               {data.totalMembers === 0 ? (
                 <p className="text-sm text-[var(--muted)]">No members in this view.</p>
@@ -144,7 +144,7 @@ export default function TeamCpdPage() {
           </div>
 
           {/* Recent CPD Submissions */}
-          <div className="mt-6 rounded-xl border border-[var(--border)] bg-white">
+          <div className="mt-6 rounded-2xl border border-[var(--border)] bg-white">
             <div className="flex items-center gap-3 border-b border-[var(--border)] p-5"><Icon3D icon={Clock} tone={TONES.blue} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Recent CPD Submissions</h3></div>
             {data.recentSubmissions.length === 0 ? (
               <p className="p-5 text-sm text-[var(--muted)]">No CPD submissions yet.</p>

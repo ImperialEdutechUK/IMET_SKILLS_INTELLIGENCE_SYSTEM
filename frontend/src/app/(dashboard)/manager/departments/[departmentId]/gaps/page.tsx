@@ -31,8 +31,8 @@ export default function DeptGapsPage() {
     fetch(`${API}/api/manager/gaps?departmentId=${departmentId}`, { headers: { Authorization: `Bearer ${getToken()}` } })
       .then((r) => (r.ok ? r.json() : null)).then((d) => { setData(d); setLoading(false); if (d?.employees) { const f = d.employees.find((e: any) => e.hasRole); if (f) setOpen(f.id); } }).catch(() => setLoading(false));
   }, [departmentId]);
-  if (loading) return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
-  if (!data) return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load skill gaps.</p></div>;
+  if (loading) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
+  if (!data) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load skill gaps.</p></div>;
   return (
     <div>
       <div className="mb-6"><div className="flex items-center gap-2"><TrendingUp className="h-5 w-5 text-[var(--brand)]" /><h1 className="text-2xl font-bold text-[var(--ink)]">Skill Gaps</h1></div><p className="mt-1 text-sm text-[var(--muted)]">Current skills against role requirements for this department.</p></div>
@@ -45,7 +45,7 @@ export default function DeptGapsPage() {
         {data.employees.map((emp: any) => {
           const isOpen = open === emp.id;
           return (
-            <div key={emp.id} className="rounded-xl border border-[var(--border)] bg-white">
+            <div key={emp.id} className="rounded-2xl border border-[var(--border)] bg-white">
               <button onClick={() => emp.hasRole && setOpen(isOpen ? null : emp.id)} className={`flex w-full items-center gap-4 p-5 text-left ${emp.hasRole ? "" : "cursor-default"}`}>
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--brand-tint)] text-xs font-semibold text-[var(--brand-dark)]">{emp.fullName.split(" ").map((p: string) => p[0]).join("").toUpperCase()}</span>
                 <div className="min-w-0 flex-1">

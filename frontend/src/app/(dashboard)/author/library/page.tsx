@@ -48,7 +48,7 @@ export default function CourseLibraryPage() {
         <StatCard icon={AlertCircle} iconBg="bg-amber-50" label="Draft" value={data ? data.draft.toLocaleString() : "—"} />
         <StatCard icon={Users} label="Total Enrollments" value={data ? data.totalEnrollments.toLocaleString() : "—"} />
       </div>
-      <div className="rounded-xl border border-[var(--border)] bg-white">
+      <div className="rounded-2xl border border-[var(--border)] bg-white">
         <div className="border-b border-[var(--border)] p-5 flex items-center gap-3">
           <div className="relative max-w-sm flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />

@@ -48,9 +48,9 @@ export default function LeaderboardPage() {
       </div>
 
       {loading ? (
-        <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>
       ) : rows.length === 0 ? (
-        <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">No team members to rank yet.</p></div>
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">No team members to rank yet.</p></div>
       ) : (
         <>
           {/* Podium */}

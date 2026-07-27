@@ -82,7 +82,7 @@ export default function ManagerReportsPage() {
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {REPORT_CARDS.map((c) => (
-          <Link key={c.title} href={c.href} className="group flex h-full flex-col rounded-xl border border-[var(--border)] bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-md">
+          <Link key={c.title} href={c.href} className="group flex h-full flex-col rounded-2xl border border-[var(--border)] bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-md">
             <Icon3D icon={c.icon} tone={c.tone} />
             <h3 className="mt-3 font-semibold text-[var(--ink)]">{c.title}</h3>
             <p className="mt-1 flex-1 text-sm text-[var(--muted)]">{c.desc}</p>
@@ -94,9 +94,9 @@ export default function ManagerReportsPage() {
       </div>
 
       {loading ? (
-        <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>
       ) : !data ? (
-        <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load reports.</p></div>
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load reports.</p></div>
       ) : (
         <>
           <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
@@ -108,12 +108,12 @@ export default function ManagerReportsPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <div className="rounded-xl border border-[var(--border)] bg-white p-5 lg:col-span-2">
+            <div className="rounded-2xl border border-[var(--border)] bg-white p-5 lg:col-span-2">
               <div className="mb-4 flex items-center gap-3"><Icon3D icon={BarChart3} tone={TONES.blue} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Learning Progress Trend <span className="text-xs font-normal text-[var(--muted)]">· last 8 weeks</span></h3></div>
               <LearnAreaChart data={data.trend} xKey="label" dataKeys={[{ key: "avgProgress", label: "progress %", color: "#2e7d5b" }, { key: "cpdHours", label: "CPD hours", color: "#3b82f6" }]} height={220} />
             </div>
 
-            <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+            <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
               <div className="mb-4 flex items-center gap-3"><Icon3D icon={CheckCircle2} tone={TONES.emerald} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Progress Summary</h3></div>
               <ProgressRow label="Learning Progress" pct={data.progress.learningProgress} color="bg-[var(--brand)]" />
               <div className="mt-4"><ProgressRow label="CPD Progress" pct={data.progress.cpdProgress} color="bg-blue-500" /></div>

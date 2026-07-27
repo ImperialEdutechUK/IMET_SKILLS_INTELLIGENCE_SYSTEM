@@ -61,7 +61,7 @@ export default function SettingsPage() {
     <div>
       <div className="mb-6"><h1 className="text-2xl font-bold text-[var(--ink)]">Settings</h1><p className="mt-1 text-sm text-[var(--muted)]">Manage your account preferences.</p></div>
       <div className="max-w-2xl space-y-6">
-        <div className="rounded-xl border border-[var(--border)] bg-white p-6">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-6">
           <div className="mb-4 flex items-center gap-2"><User className="h-4 w-4 text-[var(--brand)]" /><h3 className="font-semibold text-[var(--ink)]">Profile</h3></div>
           <div className="space-y-4">
             <div><label className="mb-1.5 block text-sm font-medium text-[var(--ink)]">Full Name</label><input value={name} onChange={e => setName(e.target.value)} disabled={!loaded} className="w-full rounded-lg border border-[var(--border)] px-3 py-2.5 text-sm outline-none focus:border-[var(--brand)]" /></div>
@@ -73,7 +73,7 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-white p-6">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-6">
           <div className="mb-4 flex items-center gap-2"><Lock className="h-4 w-4 text-[var(--brand)]" /><h3 className="font-semibold text-[var(--ink)]">Change Password</h3></div>
           <div className="space-y-4">
             <div><label className="mb-1.5 block text-sm font-medium text-[var(--ink)]">Current Password</label><input type="password" value={current} onChange={e => setCurrent(e.target.value)} placeholder="••••••••" className="w-full rounded-lg border border-[var(--border)] px-3 py-2.5 text-sm outline-none focus:border-[var(--brand)]" /></div>
@@ -84,7 +84,7 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-white p-6">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-6">
           <div className="mb-4 flex items-center gap-2"><Bell className="h-4 w-4 text-[var(--brand)]" /><h3 className="font-semibold text-[var(--ink)]">Notifications</h3></div>
           <p className="mb-3 text-xs text-[var(--muted)]">Notification preferences are not yet configurable.</p>
           {["Course updates", "CPD reminders", "New recommendations", "Team activity"].map((n) => (

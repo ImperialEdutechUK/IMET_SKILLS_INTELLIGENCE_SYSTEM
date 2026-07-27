@@ -64,7 +64,7 @@ export default function DepartmentDetailPage() {
 
   if (loading) {
     return (
-      <div className="rounded-xl border border-[var(--border)] bg-white p-6">
+      <div className="rounded-2xl border border-[var(--border)] bg-white p-6">
         <p className="text-sm text-[var(--muted)]">Loading…</p>
       </div>
     );
@@ -72,7 +72,7 @@ export default function DepartmentDetailPage() {
 
   if (!data) {
     return (
-      <div className="rounded-xl border border-[var(--border)] bg-white p-6">
+      <div className="rounded-2xl border border-[var(--border)] bg-white p-6">
         <p className="text-sm text-[var(--muted)]">Department not found.</p>
       </div>
     );
@@ -109,7 +109,7 @@ export default function DepartmentDetailPage() {
         <StatCard icon={BarChart3} label="Average Skill Level" value={`${summary.avgSkillLevel}/5`} />
       </div>
       <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="rounded-xl border border-[var(--border)] bg-white p-5 lg:col-span-2">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-5 lg:col-span-2">
           <h3 className="mb-4 font-semibold text-[var(--ink)]">Course Progress</h3>
           <div className="grid grid-cols-3 gap-4 text-center">
             {[
@@ -127,14 +127,14 @@ export default function DepartmentDetailPage() {
         {attentionItems.length > 0 ? (
           <AttentionList items={attentionItems} />
         ) : (
-          <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+          <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
             <h3 className="mb-2 font-semibold text-[var(--ink)]">Employees Needing Attention</h3>
             <p className="text-sm text-[var(--muted)]">Nobody is currently below target.</p>
           </div>
         )}
       </div>
       <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 rounded-xl border border-[var(--border)] bg-white p-5">
+        <div className="lg:col-span-2 rounded-2xl border border-[var(--border)] bg-white p-5">
           {activities.length > 0 ? (
             <ActivityFeed items={activities} title="Recent Activity" />
           ) : (
@@ -144,7 +144,7 @@ export default function DepartmentDetailPage() {
             </>
           )}
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
           <h3 className="mb-4 font-semibold text-[var(--ink)]">Learning by Category</h3>
           {categoryData.length > 0 ? (
             <LearnDonutChart data={categoryData} label={String(totalEnrollments)} sublabel="Enrollments" height={140} />
@@ -153,7 +153,7 @@ export default function DepartmentDetailPage() {
           )}
         </div>
       </div>
-      <div className="rounded-xl border border-[var(--border)] bg-white">
+      <div className="rounded-2xl border border-[var(--border)] bg-white">
         <div className="border-b border-[var(--border)] p-5">
           <h3 className="font-semibold text-[var(--ink)]">Members</h3>
         </div>

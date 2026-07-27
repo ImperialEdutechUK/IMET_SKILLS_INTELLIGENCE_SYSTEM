@@ -14,11 +14,11 @@ export default function CpdManagementPage() {
         <StatCard icon={Award} label="Annual Target" value="40 hrs" sub="Per employee" />
       </div>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
           <h3 className="mb-4 font-semibold text-[var(--ink)]">Compliance Overview</h3>
           <LearnDonutChart data={cpdComplianceData} label="78%" sublabel="Overall" height={160} />
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
           <h3 className="mb-4 font-semibold text-[var(--ink)]">CPD Targets by Department</h3>
           <ul className="space-y-3">
             {DEPARTMENTS.map((dept, i) => (

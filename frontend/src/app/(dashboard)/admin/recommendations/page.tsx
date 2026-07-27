@@ -26,8 +26,8 @@ export default function AdminRecommendationsPage() {
       .catch(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
-  if (!data) return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load insights.</p></div>;
+  if (loading) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
+  if (!data) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load insights.</p></div>;
 
   return (
     <div>
@@ -47,7 +47,7 @@ export default function AdminRecommendationsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+          <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
             <h3 className="mb-1 font-semibold text-[var(--ink)]">Top Priority Skills (Org-wide)</h3>
             <p className="mb-4 text-xs text-[var(--muted)]">Highest-priority skill gaps across the organisation.</p>
             <ul className="space-y-3">
@@ -66,7 +66,7 @@ export default function AdminRecommendationsPage() {
             </ul>
           </div>
 
-          <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+          <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
             <h3 className="mb-1 font-semibold text-[var(--ink)]">Departments by Gap Severity</h3>
             <p className="mb-4 text-xs text-[var(--muted)]">Ranked by critical gaps, then total gaps.</p>
             <ul className="space-y-3">

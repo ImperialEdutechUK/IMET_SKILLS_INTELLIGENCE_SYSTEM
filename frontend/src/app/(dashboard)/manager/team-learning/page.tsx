@@ -80,9 +80,9 @@ export default function TeamLearningPage() {
       </div>
 
       {loading ? (
-        <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>
       ) : !data ? (
-        <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load team learning.</p></div>
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load team learning.</p></div>
       ) : (
         <>
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -92,7 +92,7 @@ export default function TeamLearningPage() {
             <Stat3D icon={BarChart3} tone={TONES.amber} label="Average Progress" value={`${data.avgCompletion}%`} />
           </div>
 
-          <div className="rounded-xl border border-[var(--border)] bg-white">
+          <div className="rounded-2xl border border-[var(--border)] bg-white">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] p-5">
               <div className="relative w-full max-w-xs">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />

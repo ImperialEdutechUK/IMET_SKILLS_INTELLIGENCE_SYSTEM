@@ -13,7 +13,7 @@ export default function AuthorReportsPage() {
         <StatCard icon={BarChart3} label="Total Enrollments" value={authorCourses.reduce((s,c) => s+c.enrollments, 0)} delta="12% up" deltaPositive />
         <StatCard icon={BarChart3} label="Avg Enrollments" value={Math.round(authorCourses.filter(c=>c.enrollments>0).reduce((s,c) => s+c.enrollments,0)/authorCourses.filter(c=>c.enrollments>0).length)} />
       </div>
-      <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+      <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
         <h3 className="mb-4 font-semibold text-[var(--ink)]">Content Activity · courses / month</h3>
         <LearnAreaChart data={contentActivityData} xKey="month" dataKeys={[{key:"added",label:"Added",color:"#2e7d5b"},{key:"published",label:"Published",color:"#9fe1cb"}]} unit="" height={200} />
       </div>

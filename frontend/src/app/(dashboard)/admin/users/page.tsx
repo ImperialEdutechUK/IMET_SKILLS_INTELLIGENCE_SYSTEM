@@ -36,8 +36,8 @@ export default function UserManagementPage() {
       .catch(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
-  if (!data) return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load users.</p></div>;
+  if (loading) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
+  if (!data) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load users.</p></div>;
 
   const filtered = data.users.filter((u) => u.fullName.toLowerCase().includes(search.toLowerCase()) || u.department.toLowerCase().includes(search.toLowerCase()));
 
@@ -63,7 +63,7 @@ export default function UserManagementPage() {
         <StatCard icon={Users} iconBg="bg-amber-50" label="Pending" value={data.pending} sub="awaiting approval" />
         <StatCard icon={Users} label="Departments" value={data.departmentCount} />
       </div>
-      <div className="rounded-xl border border-[var(--border)] bg-white">
+      <div className="rounded-2xl border border-[var(--border)] bg-white">
         <div className="border-b border-[var(--border)] p-5">
           <div className="relative max-w-sm"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search users..." className="w-full rounded-lg border border-[var(--border)] py-2 pl-9 pr-3 text-sm outline-none focus:border-[var(--brand)]" /></div>
         </div>

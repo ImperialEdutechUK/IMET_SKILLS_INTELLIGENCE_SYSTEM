@@ -12,34 +12,34 @@ interface StatCardProps {
   onClick?: () => void;
 }
 
-export default function StatCard({
-  icon: Icon,
-  iconBg = "bg-[var(--brand-tint)]",
-  label,
-  value,
-  delta,
-  deltaPositive = true,
-  sub,
-}: StatCardProps) {
+// Colourful Bento stat tile. Derives its tint from the legacy `iconBg` hint so
+// existing call sites (amber = warning, red = risk, etc.) stay meaningful while
+// adopting the bento look.
+function toneFor(iconBg?: string): { bg: string; fg: string } {
+  const s = iconBg ?? "";
+  if (s.includes("amber") || s.includes("yellow") || s.includes("orange")) return { bg: "#fbefd6", fg: "#b45309" };
+  if (s.includes("red") || s.includes("rose")) return { bg: "#fde8ea", fg: "#be123c" };
+  if (s.includes("blue") || s.includes("sky") || s.includes("indigo")) return { bg: "#e3eefb", fg: "#1d4ed8" };
+  if (s.includes("purple") || s.includes("violet")) return { bg: "#ece9fb", fg: "#6d28d9" };
+  return { bg: "#e8f1ed", fg: "#215c43" }; // green default
+}
+
+export default function StatCard({ icon: Icon, iconBg, label, value, delta, deltaPositive = true, sub }: StatCardProps) {
+  const c = toneFor(iconBg);
   return (
-    <div className="flex h-full gap-4 rounded-xl border border-[var(--border)] bg-white p-5">
-      <span className={`grid h-12 w-12 shrink-0 self-start place-items-center rounded-xl ${iconBg} text-[var(--brand-dark)]`}>
-        <Icon className="h-6 w-6" />
+    <div className="flex h-full flex-col rounded-2xl p-5" style={{ background: c.bg }}>
+      <span className="grid h-11 w-11 place-items-center rounded-xl bg-white/70">
+        <Icon className="h-5 w-5" style={{ color: c.fg }} />
       </span>
-      {/* Value block is pushed to the bottom (mt-auto) so numbers line up across
-          the row no matter how many lines each label wraps to. */}
-      <div className="flex min-w-0 flex-1 flex-col">
-        <p className="text-sm text-[var(--muted)]">{label}</p>
-        <div className="mt-auto pt-2">
-          <p className="text-2xl font-bold leading-none text-[var(--ink)]">{value}</p>
-          {delta && (
-            <p className={`mt-1.5 flex items-center gap-1 text-xs font-medium ${deltaPositive ? "text-[var(--brand)]" : "text-amber-600"}`}>
-              <TrendingUp className="h-3 w-3" />
-              {delta}
-            </p>
-          )}
-          {sub && <p className="mt-1 text-xs text-[var(--muted)]">{sub}</p>}
-        </div>
+      <div className="mt-3">
+        <p className="text-[2rem] font-extrabold leading-none" style={{ color: c.fg }}>{value}</p>
+        <p className="mt-1.5 text-sm font-medium" style={{ color: c.fg, opacity: 0.85 }}>{label}</p>
+        {delta && (
+          <p className="mt-1 flex items-center gap-1 text-xs font-medium" style={{ color: deltaPositive ? c.fg : "#b45309" }}>
+            <TrendingUp className="h-3 w-3" /> {delta}
+          </p>
+        )}
+        {sub && <p className="mt-0.5 text-xs" style={{ color: c.fg, opacity: 0.7 }}>{sub}</p>}
       </div>
     </div>
   );

@@ -81,8 +81,8 @@ export default function MyLearningPage() {
     setLogOpen((s) => ({ ...s, [id]: false }));
   };
 
-  if (loading) return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
-  if (!data) return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load your courses.</p></div>;
+  if (loading) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
+  if (!data) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load your courses.</p></div>;
 
   return (
     <div>
@@ -298,7 +298,7 @@ function ModalField({ label, required, children }: { label: string; required?: b
 
 function Section({ title, children, empty, emptyText }: { title: string; children: React.ReactNode; empty: boolean; emptyText: string }) {
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-white">
+    <div className="rounded-2xl border border-[var(--border)] bg-white">
       <div className="border-b border-[var(--border)] p-5"><h3 className="font-semibold text-[var(--ink)]">{title}</h3></div>
       {empty ? <p className="p-5 text-sm text-[var(--muted)]">{emptyText}</p> : children}
     </div>

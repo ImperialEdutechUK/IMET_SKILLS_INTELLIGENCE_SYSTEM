@@ -44,14 +44,14 @@ export default function EmployeeDetailPage() {
       .catch(() => setLoading(false));
   }, [id]);
 
-  if (loading) return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
+  if (loading) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
   if (notFound) return (
     <div>
       <BackLink />
-      <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">This employee isn&apos;t in your department, or doesn&apos;t exist.</p></div>
+      <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">This employee isn&apos;t in your department, or doesn&apos;t exist.</p></div>
     </div>
   );
-  if (!data) return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load this employee.</p></div>;
+  if (!data) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load this employee.</p></div>;
 
   const status = data.cpd.status ?? "on_track";
   const badge = STATUS_BADGE[status] ?? STATUS_BADGE.on_track;
@@ -62,7 +62,7 @@ export default function EmployeeDetailPage() {
       <BackLink />
 
       {/* Header */}
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-[var(--border)] bg-white p-5">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[var(--border)] bg-white p-5">
         <div className="flex items-center gap-4">
           <span className="grid h-14 w-14 place-items-center rounded-full bg-[var(--brand-tint)] text-lg font-bold text-[var(--brand-dark)]">
             {data.fullName.split(" ").map((n) => n[0]).slice(0, 2).join("")}
@@ -86,7 +86,7 @@ export default function EmployeeDetailPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Skills & gaps — bar per skill (current vs target) */}
-        <div className="lg:col-span-2 rounded-xl border border-[var(--border)] bg-white p-5">
+        <div className="lg:col-span-2 rounded-2xl border border-[var(--border)] bg-white p-5">
           <div className="mb-4 flex items-center gap-3"><Icon3D icon={Target} tone={TONES.emerald} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Skills &amp; Gaps</h3></div>
           {topSkills.length === 0 ? (
             <p className="text-sm text-[var(--muted)]">No skills recorded yet.</p>
@@ -111,7 +111,7 @@ export default function EmployeeDetailPage() {
 
         {/* CPD ring + recent activity */}
         <div className="space-y-6">
-          <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+          <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
             <div className="mb-4 flex items-center gap-3"><Icon3D icon={Award} tone={TONES.amber} size="sm" /><h3 className="font-semibold text-[var(--ink)]">CPD Progress</h3></div>
             <div className="flex items-center gap-4">
               <ProgressRing percentage={data.cpd.progress} size={84} strokeWidth={8} />
@@ -121,7 +121,7 @@ export default function EmployeeDetailPage() {
               </div>
             </div>
           </div>
-          <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+          <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
             <div className="mb-3 flex items-center gap-3"><Icon3D icon={Activity} tone={TONES.violet} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Recent Activity</h3></div>
             {data.recentActivities.length === 0 ? (
               <p className="text-sm text-[var(--muted)]">No CPD activity yet.</p>
@@ -157,20 +157,20 @@ function BackLink() {
   );
 }
 
-function Tile({ icon, tone, label, value, sub }: { icon: LucideIcon; tone: Icon3DTone; label: string; value: string | number; sub: string }) {
+function Tile({ icon: Icon, tone, label, value, sub }: { icon: LucideIcon; tone: Icon3DTone; label: string; value: string | number; sub: string }) {
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-white p-5">
-      <Icon3D icon={icon} tone={tone} />
-      <p className="mt-3 text-sm text-[var(--muted)]">{label}</p>
-      <p className="mt-0.5 text-2xl font-bold leading-none text-[var(--ink)]">{value}</p>
-      <p className="mt-1.5 text-xs text-[var(--muted)]">{sub}</p>
+    <div className="flex h-full flex-col rounded-2xl p-5" style={{ background: `${tone.to}14` }}>
+      <span className="grid h-11 w-11 place-items-center rounded-xl bg-white/70"><Icon className="h-5 w-5" style={{ color: tone.to }} /></span>
+      <p className="mt-3 text-[2rem] font-extrabold leading-none" style={{ color: tone.to }}>{value}</p>
+      <p className="mt-1.5 text-sm font-medium" style={{ color: tone.to, opacity: 0.85 }}>{label}</p>
+      <p className="mt-0.5 text-xs" style={{ color: tone.to, opacity: 0.7 }}>{sub}</p>
     </div>
   );
 }
 
 function CourseList({ title, courses, showProgress }: { title: string; courses: Course[]; showProgress?: boolean }) {
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-white">
+    <div className="rounded-2xl border border-[var(--border)] bg-white">
       <div className="border-b border-[var(--border)] p-5"><h3 className="font-semibold text-[var(--ink)]">{title} <span className="text-sm font-normal text-[var(--muted)]">({courses.length})</span></h3></div>
       {courses.length === 0 ? (
         <p className="p-5 text-sm text-[var(--muted)]">Nothing here yet.</p>

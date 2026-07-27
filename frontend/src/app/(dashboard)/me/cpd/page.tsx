@@ -60,8 +60,8 @@ export default function MyCpdPage() {
     if (fileRef.current) fileRef.current.value = "";
   };
 
-  if (loading) return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
-  if (!data) return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load CPD data.</p></div>;
+  if (loading) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
+  if (!data) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load CPD data.</p></div>;
 
   return (
     <div>
@@ -107,7 +107,7 @@ export default function MyCpdPage() {
 
       {/* Hero — the single home for CPD status. Folds the former four stat cards
           (progress %, total hours, activities, streak) and the hours goal. */}
-      <div className="mb-6 rounded-xl border border-[var(--border)] bg-white p-5">
+      <div className="mb-6 rounded-2xl border border-[var(--border)] bg-white p-5">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
           <ProgressRing percentage={data.pct} size={104} strokeWidth={9} />
           <div className="flex-1">
@@ -123,7 +123,7 @@ export default function MyCpdPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Recent activities */}
-        <div className="lg:col-span-2 rounded-xl border border-[var(--border)] bg-white">
+        <div className="lg:col-span-2 rounded-2xl border border-[var(--border)] bg-white">
           <div className="flex items-center gap-3 border-b border-[var(--border)] p-5"><Icon3D icon={Activity} tone={TONES.violet} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Recent Activity</h3></div>
           {data.activities.length === 0 ? (
             <p className="p-5 text-sm text-[var(--muted)]">No CPD activities yet. Record one or import your CPD log.</p>
@@ -147,7 +147,7 @@ export default function MyCpdPage() {
 
         {/* Right column: categories only (hours + activities goals now live in the hero) */}
         <div className="space-y-6">
-          <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+          <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
             <div className="mb-4 flex items-center gap-3"><Icon3D icon={PieChart} tone={TONES.violet} size="sm" /><h3 className="font-semibold text-[var(--ink)]">CPD Categories</h3></div>
             {/* A donut only earns its place with 2+ categories; a lone 100% slice says nothing. */}
             {data.categories.length === 0 ? (

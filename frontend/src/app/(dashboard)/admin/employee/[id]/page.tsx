@@ -57,8 +57,8 @@ export default function AdminEmployeeDetailPage() {
       .catch(() => setLoading(false));
   }, [id]);
 
-  if (loading) return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
-  if (!data) return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load this employee.</p></div>;
+  if (loading) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
+  if (!data) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load this employee.</p></div>;
 
   const cpdBadge = data.cpd.status === "at_risk" ? { t: "At Risk", c: "bg-red-50 text-red-700" }
     : data.cpd.status === "attention" ? { t: "Attention", c: "bg-amber-50 text-amber-700" }
@@ -85,7 +85,7 @@ export default function AdminEmployeeDetailPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Courses */}
-        <div className="rounded-xl border border-[var(--border)] bg-white">
+        <div className="rounded-2xl border border-[var(--border)] bg-white">
           <div className="flex items-center justify-between border-b border-[var(--border)] p-5">
             <h3 className="font-semibold text-[var(--ink)]">Courses</h3>
             <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${cpdBadge.c}`}>CPD {cpdBadge.t}</span>
@@ -114,7 +114,7 @@ export default function AdminEmployeeDetailPage() {
         </div>
 
         {/* Skill gaps */}
-        <div className="rounded-xl border border-[var(--border)] bg-white">
+        <div className="rounded-2xl border border-[var(--border)] bg-white">
           <div className="flex items-center justify-between border-b border-[var(--border)] p-5">
             <h3 className="font-semibold text-[var(--ink)]">Skill Gaps</h3>
             {data.roleTitle && <span className="text-xs text-[var(--muted)]">{data.roleTitle}</span>}

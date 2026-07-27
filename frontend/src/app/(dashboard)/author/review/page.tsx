@@ -28,8 +28,8 @@ export default function ContentReviewPage() {
       .catch(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
-  if (!data) return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load review queue.</p></div>;
+  if (loading) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
+  if (!data) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load review queue.</p></div>;
 
   return (
     <div>
@@ -40,7 +40,7 @@ export default function ContentReviewPage() {
         <StatCard icon={ClipboardCheck} label="Missing Outcomes" value={data.missingOutcomes.toLocaleString()} />
       </div>
       {data.courses.length === 0 ? (
-        <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">All courses are complete.</p></div>
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">All courses are complete.</p></div>
       ) : (
         <>
           <p className="mb-4 text-xs text-[var(--muted)]">Showing the {data.courses.length} most recent of {data.needsAttention.toLocaleString()} incomplete courses.</p>
@@ -48,7 +48,7 @@ export default function ContentReviewPage() {
             {data.courses.map((course) => {
               const cfg = missingConfig[course.missing] ?? missingConfig.curriculum;
               return (
-                <div key={course.id} className="rounded-xl border border-[var(--border)] bg-white p-5">
+                <div key={course.id} className="rounded-2xl border border-[var(--border)] bg-white p-5">
                   <div className="flex items-start gap-4">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">

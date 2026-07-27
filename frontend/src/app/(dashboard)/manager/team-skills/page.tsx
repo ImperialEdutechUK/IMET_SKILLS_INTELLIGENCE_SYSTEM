@@ -58,9 +58,9 @@ export default function TeamSkillsPage() {
       </div>
 
       {loading ? (
-        <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>
       ) : !data ? (
-        <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load team skills.</p></div>
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load team skills.</p></div>
       ) : (
         <>
           <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -71,7 +71,7 @@ export default function TeamSkillsPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+            <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
               <div className="mb-4 flex items-center gap-3"><Icon3D icon={BarChart3} tone={TONES.emerald} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Skill Level Overview</h3></div>
               {data.skillOverview.length === 0 ? (
                 <p className="text-sm text-[var(--muted)]">No skills tracked in this view.</p>
@@ -80,7 +80,7 @@ export default function TeamSkillsPage() {
               )}
             </div>
 
-            <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+            <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
               <div className="mb-4 flex items-center gap-3"><Icon3D icon={AlertTriangle} tone={TONES.amber} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Skills That Need Improvement</h3></div>
               {data.needImprovement.length === 0 ? (
                 <p className="text-sm text-[var(--muted)]">No skill gaps in this view. Nice work!</p>
@@ -102,7 +102,7 @@ export default function TeamSkillsPage() {
             </div>
           </div>
 
-          <div className="mt-6 rounded-xl border border-[var(--border)] bg-white">
+          <div className="mt-6 rounded-2xl border border-[var(--border)] bg-white">
             <div className="flex items-center gap-3 border-b border-[var(--border)] p-5">
               <Icon3D icon={Users} tone={TONES.indigo} size="sm" />
               <h3 className="font-semibold text-[var(--ink)]">Team Members Who Need Skill Improvement</h3>

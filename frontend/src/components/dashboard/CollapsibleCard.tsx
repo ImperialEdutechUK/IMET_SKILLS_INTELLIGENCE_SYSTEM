@@ -26,7 +26,7 @@ export default function CollapsibleCard({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-white">
+    <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-white">
       <button
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}

@@ -34,7 +34,7 @@ export default function AttentionList({
   viewAllHref?: string;
 }) {
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+    <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="font-semibold text-[var(--ink)]">{title}</h3>
         {viewAllHref && (

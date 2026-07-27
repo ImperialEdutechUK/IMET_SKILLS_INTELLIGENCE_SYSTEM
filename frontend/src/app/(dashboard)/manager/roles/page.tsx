@@ -40,8 +40,8 @@ export default function RoleProfilesPage() {
       .catch(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
-  if (!data) return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load role profiles.</p></div>;
+  if (loading) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
+  if (!data) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load role profiles.</p></div>;
 
   const unmatchedPositions = data.positionsInUse.filter((p) => !data.roles.some((r) => r.title === p));
 
@@ -63,13 +63,13 @@ export default function RoleProfilesPage() {
       )}
 
       {data.roles.length === 0 ? (
-        <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">No role profiles defined yet.</p></div>
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">No role profiles defined yet.</p></div>
       ) : (
         <div className="space-y-4">
           {data.roles.map((role) => {
             const isOpen = openRole === role.id;
             return (
-              <div key={role.id} className="rounded-xl border border-[var(--border)] bg-white">
+              <div key={role.id} className="rounded-2xl border border-[var(--border)] bg-white">
                 <button onClick={() => setOpenRole(isOpen ? null : role.id)} className="flex w-full items-start justify-between gap-4 p-5 text-left">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">

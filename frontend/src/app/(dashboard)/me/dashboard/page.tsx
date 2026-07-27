@@ -70,8 +70,8 @@ export default function EmployeeDashboardPage() {
     setEnrolling((s) => ({ ...s, [courseId]: false }));
   };
 
-  if (loading) return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
-  if (!data) return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Account not found. Please sign in again.</p></div>;
+  if (loading) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
+  if (!data) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Account not found. Please sign in again.</p></div>;
 
   const pace = PACE[data.cpdStatus] ?? PACE.on_track;
   const paceText = pace.text(Math.abs(data.cpdDelta));

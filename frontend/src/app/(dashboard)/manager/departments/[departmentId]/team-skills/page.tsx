@@ -14,8 +14,8 @@ export default function DeptTeamSkillsPage() {
     fetch(`${API}/api/manager/team-skills?departmentId=${departmentId}`, { headers: { Authorization: `Bearer ${getToken()}` } })
       .then((r) => (r.ok ? r.json() : null)).then((d) => { setData(d); setLoading(false); }).catch(() => setLoading(false));
   }, [departmentId]);
-  if (loading) return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
-  if (!data) return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load team skills.</p></div>;
+  if (loading) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
+  if (!data) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load team skills.</p></div>;
   return (
     <div>
       <div className="mb-6"><h1 className="text-2xl font-bold text-[var(--ink)]">Skills</h1><p className="mt-1 text-sm text-[var(--muted)]">Skill levels and gaps for this department.</p></div>
@@ -25,11 +25,11 @@ export default function DeptTeamSkillsPage() {
         <StatCard icon={Target} iconBg="bg-amber-50" label="Critical Gaps" value={data.criticalGaps} sub="needs attention" />
       </div>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
           <h3 className="mb-4 font-semibold text-[var(--ink)]">Top Skill Gaps</h3>
           {data.gaps.length === 0 ? <p className="text-sm text-[var(--muted)]">No gaps to show.</p> : <BarList items={data.gaps.map((g: any) => ({ name: g.name, value: g.value, max: 5 }))} unit="" />}
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
           <h3 className="mb-4 font-semibold text-[var(--ink)]">Average Levels</h3>
           {data.matrix.length === 0 ? <p className="text-sm text-[var(--muted)]">No skills tracked in this view.</p> : (
             <ul className="space-y-4">

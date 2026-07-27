@@ -9,7 +9,7 @@ export default function AddCoursePage() {
     <div>
       <div className="mb-6"><h1 className="text-2xl font-bold text-[var(--ink)]">Add / Import Course</h1><p className="mt-1 text-sm text-[var(--muted)]">Add a course to the recommendation engine&apos;s working set.</p></div>
       <div className="max-w-2xl space-y-6">
-        <div className="rounded-xl border border-[var(--border)] bg-white p-6">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-6">
           <div className="mb-4 flex items-center gap-2"><BookOpen className="h-4 w-4 text-[var(--brand)]" /><h3 className="font-semibold text-[var(--ink)]">Course Details</h3></div>
           <div className="space-y-4">
             <div><label className="mb-1.5 block text-sm font-medium text-[var(--ink)]">Source</label>
@@ -44,7 +44,7 @@ export default function AddCoursePage() {
             </div>
           </div>
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-white p-6">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-6">
           <div className="mb-4 flex items-center gap-2"><Upload className="h-4 w-4 text-[var(--brand)]" /><h3 className="font-semibold text-[var(--ink)]">Bulk Import (CSV)</h3></div>
           <p className="mb-3 text-sm text-[var(--muted)]">Upload a CSV with columns: title, description, curriculum, learning_outcomes, source, external_url, category, level, duration_hours, cpd_hours</p>
           <button className="flex items-center gap-2 rounded-lg border-2 border-dashed border-[var(--border)] px-6 py-4 text-sm text-[var(--muted)] hover:border-[var(--brand)] hover:text-[var(--brand)]"><Upload className="h-4 w-4" /> Click to upload CSV</button>

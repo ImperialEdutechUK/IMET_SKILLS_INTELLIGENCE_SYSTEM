@@ -13,8 +13,8 @@ export default function DeptTeamCpdPage() {
     fetch(`${API}/api/manager/team-cpd?departmentId=${departmentId}`, { headers: { Authorization: `Bearer ${getToken()}` } })
       .then((r) => (r.ok ? r.json() : null)).then((d) => { setData(d); setLoading(false); }).catch(() => setLoading(false));
   }, [departmentId]);
-  if (loading) return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
-  if (!data) return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load team CPD.</p></div>;
+  if (loading) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
+  if (!data) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load team CPD.</p></div>;
   return (
     <div>
       <div className="mb-6"><h1 className="text-2xl font-bold text-[var(--ink)]">CPD</h1><p className="mt-1 text-sm text-[var(--muted)]">CPD progress for this department.</p></div>
@@ -23,7 +23,7 @@ export default function DeptTeamCpdPage() {
         <StatCard icon={Award} label="On Track" value={data.onTrack} sub="members" />
         <StatCard icon={Award} iconBg="bg-amber-50" label="At Risk" value={data.atRisk} sub="needs attention" />
       </div>
-      <div className="rounded-xl border border-[var(--border)] bg-white">
+      <div className="rounded-2xl border border-[var(--border)] bg-white">
         <div className="border-b border-[var(--border)] p-5"><h3 className="font-semibold text-[var(--ink)]">Individual CPD Progress</h3></div>
         {data.members.length === 0 ? <p className="p-5 text-sm text-[var(--muted)]">No team members in this department.</p> : (
           <ul className="divide-y divide-[var(--border)]">

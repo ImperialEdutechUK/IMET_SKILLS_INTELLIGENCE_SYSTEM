@@ -25,7 +25,7 @@ export default function RecommendationCard({
 }: RecommendationCardProps) {
   if (compact) {
     return (
-      <div className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-white p-4">
+      <div className="flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-white p-4">
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[var(--brand-tint)] text-[var(--brand-dark)]">
           <Sparkles className="h-5 w-5" />
         </span>
@@ -47,7 +47,7 @@ export default function RecommendationCard({
   }
 
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+    <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
       <div className="flex items-start gap-3">
         <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[var(--brand-tint)] text-[var(--brand-dark)]">
           <Sparkles className="h-5 w-5" />

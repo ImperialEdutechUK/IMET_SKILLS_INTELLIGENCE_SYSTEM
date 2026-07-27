@@ -67,8 +67,8 @@ export default function MySkillsPage() {
     setSaving(false);
   };
 
-  if (loading) return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
-  if (!data) return <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load your skills.</p></div>;
+  if (loading) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
+  if (!data) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load your skills.</p></div>;
 
   return (
     <div>
@@ -143,7 +143,7 @@ export default function MySkillsPage() {
             <Stat3D icon={PlusCircle} tone={TONES.violet} label="New Skills" value={data.overview.newSkills} sub="Recently added" />
           </div>
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <div className="lg:col-span-2 rounded-xl border border-[var(--border)] bg-white">
+            <div className="lg:col-span-2 rounded-2xl border border-[var(--border)] bg-white">
               <div className="flex items-center gap-3 border-b border-[var(--border)] p-5"><Icon3D icon={TrendingUp} tone={TONES.emerald} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Your Skills</h3></div>
               {data.skills.length === 0 ? <p className="p-5 text-sm text-[var(--muted)]">No skills recorded yet.</p> : (
                 <ul className="divide-y divide-[var(--border)]">
@@ -158,12 +158,12 @@ export default function MySkillsPage() {
               )}
             </div>
             <div className="space-y-6">
-              <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+              <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
                 <div className="mb-4 flex items-center gap-3"><Icon3D icon={PieChart} tone={TONES.violet} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Skill Distribution</h3></div>
                 {data.distribution.length === 0 ? <p className="text-sm text-[var(--muted)]">No data.</p> :
                   <LearnDonutChart data={data.distribution} label={`${data.overview.total}`} sublabel="Total" height={160} />}
               </div>
-              <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+              <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
                 <div className="mb-3 flex items-center gap-3"><Icon3D icon={Star} tone={TONES.emerald} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Top Strengths</h3></div>
                 {data.topStrengths.length === 0 ? <p className="text-sm text-[var(--muted)]">Build a skill to Advanced to see it here.</p> : (
                   <ul className="space-y-2">{data.topStrengths.map((s) => <li key={s} className="flex items-center gap-2 text-sm text-[var(--ink)]"><CheckCircle2 className="h-4 w-4 text-[var(--brand)]" /> {s}</li>)}</ul>
@@ -176,7 +176,7 @@ export default function MySkillsPage() {
 
       {tab === "improve" && (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2 rounded-xl border border-[var(--border)] bg-white">
+          <div className="lg:col-span-2 rounded-2xl border border-[var(--border)] bg-white">
             <div className="flex items-center gap-3 border-b border-[var(--border)] p-5"><Icon3D icon={Target} tone={TONES.amber} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Skills to Improve</h3></div>
             {data.toImprove.length === 0 ? <p className="p-5 text-sm text-[var(--muted)]">You&apos;re on target across your skills. Nice work!</p> : (
               <ul className="divide-y divide-[var(--border)]">
@@ -203,7 +203,7 @@ export default function MySkillsPage() {
               ["Career Growth", "Boost your profile and open new opportunities."],
               ["Personal Growth", "Build confidence and solve real-world problems."],
             ]} />
-            <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+            <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
               <h3 className="mb-3 font-semibold text-[var(--ink)]">Recommended Next Steps</h3>
               <ul className="space-y-2 text-sm text-[var(--muted)]">
                 <li>• Start a course to build these skills</li>
@@ -222,7 +222,7 @@ export default function MySkillsPage() {
 
 function InfoCard({ title, items }: { title: string; items: [string, string][] }) {
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-white p-5">
+    <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
       <h3 className="mb-4 font-semibold text-[var(--ink)]">{title}</h3>
       <ul className="space-y-3">
         {items.map(([h, b]) => (

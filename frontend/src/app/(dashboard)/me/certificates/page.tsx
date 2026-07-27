@@ -58,9 +58,9 @@ export default function MyCertificatesPage() {
       {!loading && <AchievementsBento certificates={certificates.length} coursesCompleted={stats.coursesCompleted} cpdHours={stats.cpdHours} />}
 
       {loading ? (
-        <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>
       ) : certificates.length === 0 ? (
-        <div className="rounded-xl border border-[var(--border)] bg-white p-8 text-center">
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-8 text-center">
           <div className="mx-auto w-fit"><Icon3D icon={Award} tone={TONES.violet} /></div>
           <p className="mt-3 text-sm font-medium text-[var(--ink)]">No certificates yet.</p>
           <p className="mt-1 text-sm text-[var(--muted)]">Completing a course earns one automatically, or add one manually with its link.</p>
@@ -73,7 +73,7 @@ export default function MyCertificatesPage() {
         <h2 className="mb-3 text-sm font-semibold text-[var(--ink)]">Your certificates</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {certificates.map((cert) => (
-            <div key={cert.id} className="flex flex-col rounded-xl border border-[var(--border)] bg-white p-5">
+            <div key={cert.id} className="flex flex-col rounded-2xl border border-[var(--border)] bg-white p-5">
               <div className="flex items-start justify-between">
                 <Icon3D icon={Award} tone={TONES.violet} />
                 <StatusBadge status={cert.status} />

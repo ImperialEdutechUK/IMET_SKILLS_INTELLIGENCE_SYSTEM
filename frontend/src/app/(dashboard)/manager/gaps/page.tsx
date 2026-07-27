@@ -67,9 +67,9 @@ export default function SkillGapsPage() {
       </div>
 
       {loading ? (
-        <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>
       ) : !data ? (
-        <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load skill gaps.</p></div>
+        <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load skill gaps.</p></div>
       ) : (
         <>
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -88,7 +88,7 @@ export default function SkillGapsPage() {
               const isOpen = open === emp.id;
               const toImprove = emp.gaps.filter((g) => g.gap > 0).length;
               return (
-                <div key={emp.id} className="overflow-hidden rounded-xl border border-[var(--border)] bg-white">
+                <div key={emp.id} className="overflow-hidden rounded-2xl border border-[var(--border)] bg-white">
                   <button onClick={() => emp.hasRole && setOpen(isOpen ? null : emp.id)} className={`flex w-full items-center gap-3 p-3.5 text-left ${emp.hasRole ? "transition-colors hover:bg-slate-50" : "cursor-default"}`}>
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--brand-tint)] text-xs font-semibold text-[var(--brand-dark)]">{emp.fullName.split(" ").map((p) => p[0]).join("").toUpperCase()}</span>
                     <div className="min-w-0 flex-1">

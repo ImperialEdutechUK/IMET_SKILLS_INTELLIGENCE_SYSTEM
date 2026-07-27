@@ -2,12 +2,15 @@
 import { Search, Settings } from "lucide-react";
 import Avatar from "@/components/ui/Avatar";
 import NotificationBell from "@/components/layout/NotificationBell";
+import GamificationPill from "@/components/gamification/GamificationPill";
 import type { SessionUser } from "@/types";
 
 export default function Topbar({ user }: { user: SessionUser }) {
   // Only managers/admins can search people; employees/authors see a scope that
   // matches what their role can actually reach.
   const canSearchPeople = user.role === "manager" || user.role === "admin";
+  // Everyone who learns carries their level/XP in the header on every page.
+  const showGame = user.role !== "admin";
   return (
     <header className="flex h-16 items-center justify-between border-b border-[var(--border)] bg-white px-6">
       <div className="relative w-72">
@@ -18,6 +21,7 @@ export default function Topbar({ user }: { user: SessionUser }) {
         />
       </div>
       <div className="flex items-center gap-3">
+        {showGame && <GamificationPill />}
         <NotificationBell />
         <button className="grid h-9 w-9 place-items-center rounded-lg border border-[var(--border)] text-[var(--muted)] hover:bg-slate-50">
           <Settings className="h-4 w-4" />

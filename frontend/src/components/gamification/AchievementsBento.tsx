@@ -55,6 +55,7 @@ export default function AchievementsBento(input: GamInput) {
             <span className="text-2xl">{g.next.emoji}</span>
             <p className="text-sm font-bold text-[var(--brand-dark)]">Next: {g.next.label}</p>
             <p className="text-xs text-[var(--brand-dark)]/80">{g.toNext} more certificate{g.toNext === 1 ? "" : "s"}</p>
+            <p className="text-[11px] font-medium text-amber-600">⏱ {g.next.days}-day challenge</p>
           </>
         ) : (
           <>
@@ -75,9 +76,9 @@ export default function AchievementsBento(input: GamInput) {
         ) : (
           <div className="min-w-0 flex-1">
             <p className="font-semibold text-[var(--ink)]">Reach 🥇 Gold to unlock a reward</p>
-            <p className="text-sm text-[var(--muted)]">{5 - g.certCount} more certificate{5 - g.certCount === 1 ? "" : "s"} (5 total) to claim a {GOLD_PRIZE}.</p>
+            <p className="text-sm text-[var(--muted)]">{g.toPrize} more certificate{g.toPrize === 1 ? "" : "s"} ({g.prizeAt} total) to claim a {GOLD_PRIZE}.</p>
             <div className="mt-2 h-2 max-w-xs overflow-hidden rounded-full bg-white">
-              <div className="h-full rounded-full bg-[var(--brand)]" style={{ width: `${Math.min(100, (g.certCount / 5) * 100)}%` }} />
+              <div className="h-full rounded-full bg-[var(--brand)]" style={{ width: `${Math.min(100, (g.certCount / g.prizeAt) * 100)}%` }} />
             </div>
           </div>
         )}
@@ -102,6 +103,7 @@ export default function AchievementsBento(input: GamInput) {
                   {g.current?.key === b.key && <span className="rounded-full bg-[var(--brand)] px-2 py-0.5 text-[9px] font-bold text-white">NEW</span>}
                   <p className={`text-xs font-bold ${earned ? "text-[var(--ink)]" : "text-[var(--muted)]"}`}>{b.label}</p>
                   <p className="text-[10px] text-[var(--muted)]">{earned ? "Earned ✓" : `${b.need} certs`}</p>
+                  <p className="text-[10px] font-medium text-amber-600">⏱ {b.days}-day challenge</p>
                 </div>
               );
             })}

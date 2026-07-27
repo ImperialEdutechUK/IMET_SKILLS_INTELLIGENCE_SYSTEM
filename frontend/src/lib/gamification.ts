@@ -8,17 +8,19 @@ export interface BadgeTier {
   key: BadgeKey;
   label: string;
   need: number;   // certificates required to earn it
+  days: number;   // challenging time frame to earn them within
   emoji: string;
   from: string;   // medal gradient (light)
   to: string;     // medal gradient (dark)
 }
 
-// Metal-coloured medals read instantly as bronze→platinum (kept vivid on purpose).
+// Metal-coloured medals read instantly as bronze→platinum. Each carries a
+// deliberately challenging time frame (~5 certificates per month, sustained).
 export const BADGES: BadgeTier[] = [
-  { key: "bronze",   label: "Bronze",   need: 1,  emoji: "🥉", from: "#e8b06b", to: "#a9691f" },
-  { key: "silver",   label: "Silver",   need: 3,  emoji: "🥈", from: "#dfe6ec", to: "#9aa7b4" },
-  { key: "gold",     label: "Gold",     need: 5,  emoji: "🥇", from: "#ffdf6e", to: "#e0a005" },
-  { key: "platinum", label: "Platinum", need: 10, emoji: "🏆", from: "#a7f3d0", to: "#0f766e" },
+  { key: "bronze",   label: "Bronze",   need: 5,  days: 30,  emoji: "🥉", from: "#e8b06b", to: "#a9691f" },
+  { key: "silver",   label: "Silver",   need: 10, days: 60,  emoji: "🥈", from: "#dfe6ec", to: "#9aa7b4" },
+  { key: "gold",     label: "Gold",     need: 15, days: 90,  emoji: "🥇", from: "#ffdf6e", to: "#e0a005" },
+  { key: "platinum", label: "Platinum", need: 20, days: 120, emoji: "🏆", from: "#a7f3d0", to: "#0f766e" },
 ];
 
 // XP is earned across the whole system, so every action nudges the learner back.
@@ -31,8 +33,8 @@ export const XP_PER_LEVEL = 500;
 export const LEVEL_TITLES = ["Rookie", "Explorer", "Achiever", "Specialist", "Expert", "Master", "Legend"];
 export const levelTitle = (level: number) => LEVEL_TITLES[Math.min(level - 1, LEVEL_TITLES.length - 1)];
 
-// The reward you unlock at Gold (5 certificates).
-export const GOLD_PRIZE = "£50 learning voucher";
+// The reward you unlock at Gold (15 certificates).
+export const GOLD_PRIZE = "£100 cash prize";
 
 export interface GamInput { certificates: number; coursesCompleted?: number; cpdHours?: number }
 
@@ -53,6 +55,8 @@ export interface Gamification {
   toNext: number;              // certificates still needed for `next`
   goldUnlocked: boolean;
   prize: string | null;
+  prizeAt: number;             // certificates required to unlock the cash prize
+  toPrize: number;             // certificates still needed for the prize
   badges: BadgeTier[];
 }
 
@@ -83,6 +87,7 @@ export function computeGamification(input: GamInput): Gamification {
     certCount, coursesCompleted, cpdHours,
     xp, level, title: levelTitle(level), levelPct, xpIntoLevel, xpForLevel: XP_PER_LEVEL, xpToNextLevel,
     earned, current, next, toNext,
-    goldUnlocked, prize: goldUnlocked ? GOLD_PRIZE : null, badges: BADGES,
+    goldUnlocked, prize: goldUnlocked ? GOLD_PRIZE : null,
+    prizeAt: gold.need, toPrize: Math.max(0, gold.need - certCount), badges: BADGES,
   };
 }

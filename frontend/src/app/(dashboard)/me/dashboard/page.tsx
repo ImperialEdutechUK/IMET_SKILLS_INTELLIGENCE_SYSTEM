@@ -96,7 +96,7 @@ export default function EmployeeDashboardPage() {
 
       {/* Gamification — dedicated widget, connected to the same badges/XP the
           Certificates page shows (keeps it visible across the app). */}
-      <AchievementsCard certCount={certCount} />
+      <AchievementsCard certificates={certCount} coursesCompleted={data.completedCount} cpdHours={data.cpdHours} />
 
       {/* WHERE AM I? — three stats, each stating one fact once:
           the annual CPD target (with pace), the biggest skill gap, and courses finished. */}

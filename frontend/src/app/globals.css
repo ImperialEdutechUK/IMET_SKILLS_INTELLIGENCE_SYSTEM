@@ -15,3 +15,45 @@ body {
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   color: var(--ink);
 }
+
+/* ---- Gamification motion ---------------------------------------------- */
+@keyframes gam-shine {
+  0%   { transform: translateX(-130%) skewX(-18deg); }
+  100% { transform: translateX(230%) skewX(-18deg); }
+}
+@keyframes gam-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+@keyframes gam-pop {
+  0%   { transform: scale(.82); opacity: 0; }
+  60%  { transform: scale(1.04); opacity: 1; }
+  100% { transform: scale(1); }
+}
+@keyframes gam-fill {
+  from { width: 0; }
+}
+@keyframes gam-pulse-ring {
+  0%   { box-shadow: 0 0 0 0 rgba(46,125,91,.45); }
+  70%  { box-shadow: 0 0 0 12px rgba(46,125,91,0); }
+  100% { box-shadow: 0 0 0 0 rgba(46,125,91,0); }
+}
+
+/* A glossy sweep across earned medals. Parent must be relative + overflow-hidden. */
+.gam-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.6) 50%, transparent 65%);
+  transform: translateX(-130%) skewX(-18deg);
+  animation: gam-shine 3.2s ease-in-out infinite;
+  animation-delay: 1s;
+}
+.gam-float      { animation: gam-float 3s ease-in-out infinite; }
+.gam-pop        { animation: gam-pop .45s cubic-bezier(.2,.8,.3,1.2) both; }
+.gam-fill       { animation: gam-fill 1s ease-out both; }
+.gam-pulse-ring { animation: gam-pulse-ring 2s ease-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .gam-shine::after, .gam-float, .gam-pop, .gam-fill, .gam-pulse-ring { animation: none; }
+}

@@ -22,6 +22,9 @@ export default function MyCertificatesPage() {
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
+  // Completed courses + CPD hours also feed XP, so the game state here matches
+  // the dashboard exactly (same computeGamification inputs everywhere).
+  const [stats, setStats] = useState({ coursesCompleted: 0, cpdHours: 0 });
 
   const load = () => {
     fetch(`${API}/api/me/certificates`, { headers: { Authorization: `Bearer ${getToken()}` } })
@@ -29,7 +32,13 @@ export default function MyCertificatesPage() {
       .then((d) => { if (d) setCertificates(d.certificates); setLoading(false); })
       .catch(() => setLoading(false));
   };
-  useEffect(load, []);
+  useEffect(() => {
+    load();
+    fetch(`${API}/api/me/dashboard`, { headers: { Authorization: `Bearer ${getToken()}` } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d) setStats({ coursesCompleted: d.completedCount ?? 0, cpdHours: d.cpdHours ?? 0 }); })
+      .catch(() => {});
+  }, []);
 
   return (
     <div>
@@ -46,7 +55,7 @@ export default function MyCertificatesPage() {
         </button>
       </div>
 
-      {!loading && <AchievementsBento certCount={certificates.length} />}
+      {!loading && <AchievementsBento certificates={certificates.length} coursesCompleted={stats.coursesCompleted} cpdHours={stats.cpdHours} />}
 
       {loading ? (
         <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>

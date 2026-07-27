@@ -1,9 +1,8 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { BookOpen, Clock, Map, CheckCircle2, PlayCircle, Plus, ExternalLink, X } from "lucide-react";
+import { BookOpen, Clock, CheckCircle2, PlayCircle, Plus, ExternalLink, X } from "lucide-react";
 import Stat3D from "@/components/dashboard/Stat3D";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
 import { getToken } from "@/lib/authClient";
@@ -16,32 +15,19 @@ interface Course {
   progress: number; status: string; externalUrl: string | null;
   createdAt: string; completedAt: string | null; certificateId: string | null;
 }
-interface PathItem {
-  id: string; name: string; description: string; totalCourses: number; completedCourses: number; progress: number; status: string;
-}
 interface LearningData {
   stats: { inProgress: number; completed: number; notStarted: number; certificatesEarned: number; hoursThisMonth: number };
-  inProgress: Course[]; notStarted: Course[]; completed: Course[]; learningPaths: PathItem[];
+  inProgress: Course[]; notStarted: Course[]; completed: Course[];
 }
 
-type Tab = "in_progress" | "not_started" | "completed" | "paths";
+type Tab = "in_progress" | "not_started" | "completed";
 const TABS: { key: Tab; label: string }[] = [
   { key: "not_started", label: "Not Started" },
   { key: "in_progress", label: "In Progress" },
   { key: "completed", label: "Completed" },
-  { key: "paths", label: "Learning Paths" },
 ];
 
 export default function MyLearningPage() {
-  return (
-    <Suspense fallback={<div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>}>
-      <MyLearningInner />
-    </Suspense>
-  );
-}
-
-function MyLearningInner() {
-  const params = useSearchParams();
   const [data, setData] = useState<LearningData | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("not_started");
@@ -59,23 +45,20 @@ function MyLearningInner() {
   useEffect(() => { load(); }, [load]);
 
   // Land the user on content, not an empty state: once data arrives, select the first
-  // non-empty tab (respecting tab order). A ?tab= deep-link or a manual click wins.
+  // non-empty tab (respecting tab order). A manual click wins.
   const didInit = useRef(false);
   useEffect(() => {
     if (!data || didInit.current) return;
     didInit.current = true;
-    const deep = params.get("tab");
-    if (deep === "paths") { setTab("paths"); return; }
     const counts: Record<Tab, number> = {
       not_started: data.stats.notStarted,
       in_progress: data.stats.inProgress,
       completed: data.stats.completed,
-      paths: data.learningPaths.length,
     };
-    const order: Tab[] = ["not_started", "in_progress", "completed", "paths"];
+    const order: Tab[] = ["not_started", "in_progress", "completed"];
     const firstNonEmpty = order.find((k) => counts[k] > 0);
     if (firstNonEmpty) setTab(firstNonEmpty);
-  }, [data, params]);
+  }, [data]);
 
   const patch = async (id: string, body: Record<string, unknown>) => {
     setBusy((s) => ({ ...s, [id]: true }));
@@ -108,7 +91,7 @@ function MyLearningInner() {
           <Icon3D icon={BookOpen} tone={TONES.blue} />
           <div>
             <h1 className="text-2xl font-bold text-[var(--ink)]">My Learning</h1>
-            <p className="mt-1 text-sm text-[var(--muted)]">Track your courses, learning paths and progress.</p>
+            <p className="mt-1 text-sm text-[var(--muted)]">Track your courses and progress.</p>
           </div>
         </div>
         <button onClick={() => setShowAdd(true)} className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-dark)]">
@@ -123,7 +106,6 @@ function MyLearningInner() {
             not_started: data.stats.notStarted,
             in_progress: data.stats.inProgress,
             completed: data.stats.completed,
-            paths: data.learningPaths.length,
           };
           return (
             <button key={t.key} onClick={() => setTab(t.key)}
@@ -209,25 +191,6 @@ function MyLearningInner() {
               </div>
               <span className="shrink-0 rounded-full bg-[var(--brand-tint)] px-2.5 py-1 text-xs font-medium text-[var(--brand-dark)]">+{c.cpdHours} CPD</span>
               {c.certificateId && <Link href="/me/certificates" className="shrink-0 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--ink)] hover:bg-slate-50">View Certificate</Link>}
-            </div>
-          ))}
-        </Section>
-      )}
-
-      {tab === "paths" && (
-        <Section title="Learning Paths" empty={data.learningPaths.length === 0} emptyText="No learning paths available yet. Learning paths group courses into a step-by-step route and appear here once created.">
-          {data.learningPaths.map((p) => (
-            <div key={p.id} className="flex flex-col gap-4 border-b border-[var(--border)] p-5 last:border-0 md:flex-row md:items-center">
-              <Icon3D icon={Map} tone={TONES.violet} size="sm" />
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-[var(--ink)]">{p.name}</p>
-                {p.description && <p className="mt-0.5 line-clamp-1 text-xs text-[var(--muted)]">{p.description}</p>}
-                <p className="mt-1 text-[11px] text-[var(--muted)]">{p.completedCourses}/{p.totalCourses} courses completed</p>
-              </div>
-              <div className="w-full md:w-48">
-                <p className="mb-1 text-xs font-semibold text-[var(--brand)]">{p.progress}%</p>
-                <div className="h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-[var(--brand)]" style={{ width: `${p.progress}%` }} /></div>
-              </div>
             </div>
           ))}
         </Section>

@@ -34,7 +34,7 @@ export const LEVEL_TITLES = ["Rookie", "Explorer", "Achiever", "Specialist", "Ex
 export const levelTitle = (level: number) => LEVEL_TITLES[Math.min(level - 1, LEVEL_TITLES.length - 1)];
 
 // The reward you unlock at Gold (15 certificates).
-export const GOLD_PRIZE = "£100 cash prize";
+export const GOLD_PRIZE = "cash prize";
 
 export interface GamInput { certificates: number; coursesCompleted?: number; cpdHours?: number }
 

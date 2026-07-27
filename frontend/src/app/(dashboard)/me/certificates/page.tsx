@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Award, Plus, ExternalLink, X, Upload, FileText } from "lucide-react";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
+import AchievementsBento from "@/components/gamification/AchievementsBento";
 import { getToken } from "@/lib/authClient";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -45,6 +46,8 @@ export default function MyCertificatesPage() {
         </button>
       </div>
 
+      {!loading && <AchievementsBento certCount={certificates.length} />}
+
       {loading ? (
         <div className="rounded-xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>
       ) : certificates.length === 0 ? (
@@ -57,6 +60,8 @@ export default function MyCertificatesPage() {
           </button>
         </div>
       ) : (
+        <>
+        <h2 className="mb-3 text-sm font-semibold text-[var(--ink)]">Your certificates</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {certificates.map((cert) => (
             <div key={cert.id} className="flex flex-col rounded-xl border border-[var(--border)] bg-white p-5">
@@ -78,6 +83,7 @@ export default function MyCertificatesPage() {
             </div>
           ))}
         </div>
+        </>
       )}
 
       {showAdd && <AddCertificateModal onClose={() => setShowAdd(false)} onSaved={() => { setShowAdd(false); setLoading(true); load(); }} />}
@@ -144,8 +150,8 @@ function AddCertificateModal({ onClose, onSaved }: { onClose: () => void; onSave
   };
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div className="w-full max-w-md rounded-2xl border border-white/60 bg-white/85 p-6 shadow-2xl backdrop-blur-xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-bold text-[var(--ink)]">Add Certificate</h2>
           <button onClick={onClose} className="text-[var(--muted)] hover:text-[var(--ink)]"><X className="h-5 w-5" /></button>

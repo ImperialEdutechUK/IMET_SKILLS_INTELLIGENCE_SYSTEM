@@ -5,10 +5,10 @@ import Link from "next/link";
 import { Users, BookOpen, Award, TrendingUp, Download, ChevronRight, ChevronDown, ShieldCheck, AlertTriangle, BarChart3, PieChart, Activity, Clock } from "lucide-react";
 import LearnAreaChart from "@/components/charts/LearnAreaChart";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
-import Icon3D, { TONES, type Icon3DTone } from "@/components/dashboard/Icon3D";
+import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
+import Stat3D from "@/components/dashboard/Stat3D";
 import CollapsibleCard from "@/components/dashboard/CollapsibleCard";
 import { getToken } from "@/lib/authClient";
-import type { LucideIcon } from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -112,10 +112,10 @@ export default function ManagerDashboardPage() {
 
       {/* 3D stat tiles — clickable */}
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatTile href="/manager/team-learning" icon={Users} tone={TONES.indigo} label="Active learners" value={`${stats.activeLearners} of ${stats.teamMembers}`} sub="Enrolled in a course" />
-        <StatTile href="/manager/team-learning" icon={BookOpen} tone={TONES.blue} label="Courses in progress" value={stats.coursesInProgress} sub={`${stats.coursesCompleted} completed`} />
-        <StatTile href="/manager/team-cpd" icon={Award} tone={TONES.amber} label="CPD hours logged" value={`${stats.cpdHoursTotal} of ${stats.teamTarget}h`} sub="Annual team target" />
-        <StatTile href="/manager/team-skills" icon={TrendingUp} tone={TONES.emerald} label="Avg skill level" value={`${stats.avgSkillLevel}%`} sub="Across the team" />
+        <Stat3D href="/manager/team-learning" icon={Users} tone={TONES.indigo} label="Active learners" value={`${stats.activeLearners} of ${stats.teamMembers}`} sub="Enrolled in a course" />
+        <Stat3D href="/manager/team-learning" icon={BookOpen} tone={TONES.blue} label="Courses in progress" value={stats.coursesInProgress} sub={`${stats.coursesCompleted} completed`} />
+        <Stat3D href="/manager/team-cpd" icon={Award} tone={TONES.amber} label="CPD hours logged" value={`${stats.cpdHoursTotal} of ${stats.teamTarget}h`} sub="Annual team target" />
+        <Stat3D href="/manager/team-skills" icon={TrendingUp} tone={TONES.emerald} label="Avg skill level" value={`${stats.avgSkillLevel}%`} sub="Across the team" />
       </div>
 
       {/* Snapshot: CPD split + who needs attention — always visible, the clear picture */}
@@ -257,17 +257,6 @@ export default function ManagerDashboardPage() {
         </CollapsibleCard>
       </div>
     </div>
-  );
-}
-
-function StatTile({ href, icon, tone, label, value, sub }: { href: string; icon: LucideIcon; tone: Icon3DTone; label: string; value: string | number; sub: string }) {
-  return (
-    <Link href={href} className="block rounded-xl border border-[var(--border)] bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-md">
-      <Icon3D icon={icon} tone={tone} />
-      <p className="mt-3 text-sm text-[var(--muted)]">{label}</p>
-      <p className="mt-0.5 text-2xl font-bold leading-none text-[var(--ink)]">{value}</p>
-      <p className="mt-1.5 text-xs text-[var(--muted)]">{sub}</p>
-    </Link>
   );
 }
 

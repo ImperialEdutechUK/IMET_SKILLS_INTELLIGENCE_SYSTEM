@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
 import { BookOpen, CheckCircle, BarChart3, Users, Search, Download } from "lucide-react";
-import StatCard from "@/components/dashboard/StatCard";
+import Stat3D from "@/components/dashboard/Stat3D";
+import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
 import { getToken } from "@/lib/authClient";
 
 interface Member {
@@ -67,9 +68,12 @@ export default function TeamLearningPage() {
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--ink)]">Team Learning</h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">Track your team&apos;s learning progress and course activity.</p>
+        <div className="flex items-center gap-3">
+          <Icon3D icon={BookOpen} tone={TONES.blue} />
+          <div>
+            <h1 className="text-2xl font-bold text-[var(--ink)]">Team Learning</h1>
+            <p className="mt-1 text-sm text-[var(--muted)]">Track your team&apos;s learning progress and course activity.</p>
+          </div>
         </div>
       </div>
 
@@ -80,10 +84,10 @@ export default function TeamLearningPage() {
       ) : (
         <>
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard icon={Users} label="Total Team Members" value={data.teamMembers} />
-            <StatCard icon={BookOpen} label="Courses In Progress" value={data.inProgress} />
-            <StatCard icon={CheckCircle} label="Completed Courses" value={data.completed} />
-            <StatCard icon={BarChart3} label="Average Progress" value={`${data.avgCompletion}%`} />
+            <Stat3D icon={Users} tone={TONES.indigo} label="Total Team Members" value={data.teamMembers} />
+            <Stat3D icon={BookOpen} tone={TONES.blue} label="Courses In Progress" value={data.inProgress} />
+            <Stat3D icon={CheckCircle} tone={TONES.emerald} label="Completed Courses" value={data.completed} />
+            <Stat3D icon={BarChart3} tone={TONES.amber} label="Average Progress" value={`${data.avgCompletion}%`} />
           </div>
 
           <div className="rounded-xl border border-[var(--border)] bg-white">

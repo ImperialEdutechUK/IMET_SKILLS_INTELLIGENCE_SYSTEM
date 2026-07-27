@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Clock, TrendingUp, CheckCircle2, AlertTriangle, BookOpen } from "lucide-react";
-import StatCard from "@/components/dashboard/StatCard";
+import { Clock, TrendingUp, CheckCircle2, AlertTriangle, BookOpen, Award } from "lucide-react";
+import Stat3D from "@/components/dashboard/Stat3D";
+import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
 import { getToken } from "@/lib/authClient";
 
@@ -67,9 +68,12 @@ export default function TeamCpdPage() {
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--ink)]">Team CPD</h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">Track and manage your team&apos;s CPD progress.</p>
+        <div className="flex items-center gap-3">
+          <Icon3D icon={Award} tone={TONES.amber} />
+          <div>
+            <h1 className="text-2xl font-bold text-[var(--ink)]">Team CPD</h1>
+            <p className="mt-1 text-sm text-[var(--muted)]">Track and manage your team&apos;s CPD progress.</p>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button onClick={sendAlerts} disabled={notifying}
@@ -88,16 +92,16 @@ export default function TeamCpdPage() {
         <>
           {/* Stat cards */}
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard icon={Clock} label="Total CPD Hours" value={`${data.totalCpdHours}`} sub="Logged across team" />
-            <StatCard icon={TrendingUp} label="Average CPD / Member" value={`${data.avgPerMember}`} sub="Hours per member" />
-            <StatCard icon={CheckCircle2} label="Members On Track" value={data.onTrack} sub={`of ${data.totalMembers} members`} />
-            <StatCard icon={AlertTriangle} iconBg="bg-amber-50" label="Members Behind Target" value={data.atRisk + data.attention} sub="Need attention" />
+            <Stat3D icon={Clock} tone={TONES.amber} label="Total CPD Hours" value={`${data.totalCpdHours}`} sub="Logged across team" />
+            <Stat3D icon={TrendingUp} tone={TONES.blue} label="Average CPD / Member" value={`${data.avgPerMember}`} sub="Hours per member" />
+            <Stat3D icon={CheckCircle2} tone={TONES.emerald} label="Members On Track" value={data.onTrack} sub={`of ${data.totalMembers} members`} />
+            <Stat3D icon={AlertTriangle} tone={TONES.rose} label="Members Behind Target" value={data.atRisk + data.attention} sub="Need attention" />
           </div>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             {/* Members Behind Target */}
             <div className="lg:col-span-2 rounded-xl border border-[var(--border)] bg-white">
-              <div className="border-b border-[var(--border)] p-5"><h3 className="font-semibold text-[var(--ink)]">Members Behind Target</h3></div>
+              <div className="flex items-center gap-3 border-b border-[var(--border)] p-5"><Icon3D icon={AlertTriangle} tone={TONES.rose} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Members Behind Target</h3></div>
               {data.behindTarget.length === 0 ? (
                 <p className="p-5 text-sm text-[var(--muted)]">Everyone is on track. No members behind target.</p>
               ) : (
@@ -128,7 +132,7 @@ export default function TeamCpdPage() {
 
             {/* CPD Target Summary donut */}
             <div className="rounded-xl border border-[var(--border)] bg-white p-5">
-              <h3 className="mb-4 font-semibold text-[var(--ink)]">CPD Target Summary</h3>
+              <div className="mb-4 flex items-center gap-3"><Icon3D icon={Award} tone={TONES.amber} size="sm" /><h3 className="font-semibold text-[var(--ink)]">CPD Target Summary</h3></div>
               {data.totalMembers === 0 ? (
                 <p className="text-sm text-[var(--muted)]">No members in this view.</p>
               ) : (
@@ -139,7 +143,7 @@ export default function TeamCpdPage() {
 
           {/* Recent CPD Submissions */}
           <div className="mt-6 rounded-xl border border-[var(--border)] bg-white">
-            <div className="border-b border-[var(--border)] p-5"><h3 className="font-semibold text-[var(--ink)]">Recent CPD Submissions</h3></div>
+            <div className="flex items-center gap-3 border-b border-[var(--border)] p-5"><Icon3D icon={Clock} tone={TONES.blue} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Recent CPD Submissions</h3></div>
             {data.recentSubmissions.length === 0 ? (
               <p className="p-5 text-sm text-[var(--muted)]">No CPD submissions yet.</p>
             ) : (

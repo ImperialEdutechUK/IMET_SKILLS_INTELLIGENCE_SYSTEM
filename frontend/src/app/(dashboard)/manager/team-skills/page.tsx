@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { Gauge, Star, AlertTriangle, Users, ArrowUpRight } from "lucide-react";
-import StatCard from "@/components/dashboard/StatCard";
+import { Gauge, Star, AlertTriangle, Users, ArrowUpRight, BarChart3 } from "lucide-react";
+import Stat3D from "@/components/dashboard/Stat3D";
+import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
 import BarList from "@/components/charts/BarList";
 import { getToken } from "@/lib/authClient";
 
@@ -45,9 +46,12 @@ export default function TeamSkillsPage() {
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--ink)]">Team Skills</h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">Overview of your team&apos;s skills and areas for improvement.</p>
+        <div className="flex items-center gap-3">
+          <Icon3D icon={Gauge} tone={TONES.emerald} />
+          <div>
+            <h1 className="text-2xl font-bold text-[var(--ink)]">Team Skills</h1>
+            <p className="mt-1 text-sm text-[var(--muted)]">Overview of your team&apos;s skills and areas for improvement.</p>
+          </div>
         </div>
       </div>
 
@@ -58,15 +62,15 @@ export default function TeamSkillsPage() {
       ) : (
         <>
           <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <StatCard icon={Gauge} label="Average Skill Level" value={`${data.avgTeamLevel}%`} sub="Across your team" />
-            <StatCard icon={Star} label="Strong Skills" value={data.strongSkills} sub="At a good level" />
-            <StatCard icon={AlertTriangle} iconBg="bg-amber-50" label="Skills to Improve" value={data.skillsToImprove} sub="Needs attention" />
-            <StatCard icon={Users} label="Team Members" value={data.teamMembers} sub="With tracked skills" />
+            <Stat3D icon={Gauge} tone={TONES.emerald} label="Average Skill Level" value={`${data.avgTeamLevel}%`} sub="Across your team" />
+            <Stat3D icon={Star} tone={TONES.blue} label="Strong Skills" value={data.strongSkills} sub="At a good level" />
+            <Stat3D icon={AlertTriangle} tone={TONES.amber} label="Skills to Improve" value={data.skillsToImprove} sub="Needs attention" />
+            <Stat3D icon={Users} tone={TONES.indigo} label="Team Members" value={data.teamMembers} sub="With tracked skills" />
           </div>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div className="rounded-xl border border-[var(--border)] bg-white p-5">
-              <h3 className="mb-4 font-semibold text-[var(--ink)]">Skill Level Overview</h3>
+              <div className="mb-4 flex items-center gap-3"><Icon3D icon={BarChart3} tone={TONES.emerald} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Skill Level Overview</h3></div>
               {data.skillOverview.length === 0 ? (
                 <p className="text-sm text-[var(--muted)]">No skills tracked in this view.</p>
               ) : (
@@ -75,7 +79,7 @@ export default function TeamSkillsPage() {
             </div>
 
             <div className="rounded-xl border border-[var(--border)] bg-white p-5">
-              <h3 className="mb-4 font-semibold text-[var(--ink)]">Skills That Need Improvement</h3>
+              <div className="mb-4 flex items-center gap-3"><Icon3D icon={AlertTriangle} tone={TONES.amber} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Skills That Need Improvement</h3></div>
               {data.needImprovement.length === 0 ? (
                 <p className="text-sm text-[var(--muted)]">No skill gaps in this view. Nice work!</p>
               ) : (
@@ -97,7 +101,8 @@ export default function TeamSkillsPage() {
           </div>
 
           <div className="mt-6 rounded-xl border border-[var(--border)] bg-white">
-            <div className="border-b border-[var(--border)] p-5">
+            <div className="flex items-center gap-3 border-b border-[var(--border)] p-5">
+              <Icon3D icon={Users} tone={TONES.indigo} size="sm" />
               <h3 className="font-semibold text-[var(--ink)]">Team Members Who Need Skill Improvement</h3>
             </div>
             {data.memberNeeds.length === 0 ? (

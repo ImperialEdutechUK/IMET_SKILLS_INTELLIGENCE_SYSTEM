@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Bell, CheckCheck, AlertTriangle, Award, Clock, Info } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
 import { getToken } from "@/lib/authClient";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -68,14 +69,17 @@ export default function ManagerNotificationsPage() {
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-[var(--ink)]">Notifications</h1>
-            {unreadCount > 0 && (
-              <span className="rounded-full bg-[var(--brand)] px-2 py-0.5 text-xs font-semibold text-white">{unreadCount} new</span>
-            )}
+        <div className="flex items-center gap-3">
+          <Icon3D icon={Bell} tone={TONES.rose} />
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold text-[var(--ink)]">Notifications</h1>
+              {unreadCount > 0 && (
+                <span className="rounded-full bg-[var(--brand)] px-2 py-0.5 text-xs font-semibold text-white">{unreadCount} new</span>
+              )}
+            </div>
+            <p className="mt-1 text-sm text-[var(--muted)]">Stay updated with important alerts and activities.</p>
           </div>
-          <p className="mt-1 text-sm text-[var(--muted)]">Stay updated with important alerts and activities.</p>
         </div>
         <button onClick={markAllRead} disabled={unreadCount === 0} className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--ink)] hover:bg-slate-50 disabled:opacity-50">
           <CheckCheck className="h-4 w-4" /> Mark all as read

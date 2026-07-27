@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Target, Award, BookOpen, ScrollText, TrendingUp } from "lucide-react";
+import { ArrowLeft, Target, Award, BookOpen, ScrollText, TrendingUp, Activity } from "lucide-react";
 import ProgressRing from "@/components/cpd/ProgressRing";
+import Icon3D, { TONES, type Icon3DTone } from "@/components/dashboard/Icon3D";
+import type { LucideIcon } from "lucide-react";
 import { getToken } from "@/lib/authClient";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -76,16 +78,16 @@ export default function EmployeeDetailPage() {
 
       {/* Stat tiles */}
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Tile icon={TrendingUp} tint="bg-amber-50 text-amber-600" label="Avg Skill Level" value={`${data.avgSkillPercent}%`} sub={`${data.gapsCount} gap${data.gapsCount === 1 ? "" : "s"} to close`} />
-        <Tile icon={Award} tint="bg-[var(--brand-tint)] text-[var(--brand-dark)]" label="CPD Progress" value={`${data.cpd.progress}%`} sub={`${data.cpd.hours} / ${data.cpd.target} hrs`} />
-        <Tile icon={BookOpen} tint="bg-blue-50 text-blue-600" label="Courses" value={data.courseCounts.completed} sub={`${data.courseCounts.inProgress} in progress`} />
-        <Tile icon={ScrollText} tint="bg-purple-50 text-purple-600" label="Certificates" value={data.certificates} sub="Earned" />
+        <Tile icon={TrendingUp} tone={TONES.emerald} label="Avg Skill Level" value={`${data.avgSkillPercent}%`} sub={`${data.gapsCount} gap${data.gapsCount === 1 ? "" : "s"} to close`} />
+        <Tile icon={Award} tone={TONES.amber} label="CPD Progress" value={`${data.cpd.progress}%`} sub={`${data.cpd.hours} / ${data.cpd.target} hrs`} />
+        <Tile icon={BookOpen} tone={TONES.blue} label="Courses" value={data.courseCounts.completed} sub={`${data.courseCounts.inProgress} in progress`} />
+        <Tile icon={ScrollText} tone={TONES.violet} label="Certificates" value={data.certificates} sub="Earned" />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Skills & gaps — bar per skill (current vs target) */}
         <div className="lg:col-span-2 rounded-xl border border-[var(--border)] bg-white p-5">
-          <div className="mb-4 flex items-center gap-2"><Target className="h-4 w-4 text-[var(--brand)]" /><h3 className="font-semibold text-[var(--ink)]">Skills & Gaps</h3></div>
+          <div className="mb-4 flex items-center gap-3"><Icon3D icon={Target} tone={TONES.emerald} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Skills &amp; Gaps</h3></div>
           {topSkills.length === 0 ? (
             <p className="text-sm text-[var(--muted)]">No skills recorded yet.</p>
           ) : (
@@ -110,7 +112,7 @@ export default function EmployeeDetailPage() {
         {/* CPD ring + recent activity */}
         <div className="space-y-6">
           <div className="rounded-xl border border-[var(--border)] bg-white p-5">
-            <h3 className="mb-4 font-semibold text-[var(--ink)]">CPD Progress</h3>
+            <div className="mb-4 flex items-center gap-3"><Icon3D icon={Award} tone={TONES.amber} size="sm" /><h3 className="font-semibold text-[var(--ink)]">CPD Progress</h3></div>
             <div className="flex items-center gap-4">
               <ProgressRing percentage={data.cpd.progress} size={84} strokeWidth={8} />
               <div>
@@ -120,7 +122,7 @@ export default function EmployeeDetailPage() {
             </div>
           </div>
           <div className="rounded-xl border border-[var(--border)] bg-white p-5">
-            <h3 className="mb-3 font-semibold text-[var(--ink)]">Recent Activity</h3>
+            <div className="mb-3 flex items-center gap-3"><Icon3D icon={Activity} tone={TONES.violet} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Recent Activity</h3></div>
             {data.recentActivities.length === 0 ? (
               <p className="text-sm text-[var(--muted)]">No CPD activity yet.</p>
             ) : (
@@ -155,17 +157,13 @@ function BackLink() {
   );
 }
 
-function Tile({ icon: Icon, tint, label, value, sub }: { icon: React.ComponentType<{ className?: string }>; tint: string; label: string; value: string | number; sub: string }) {
+function Tile({ icon, tone, label, value, sub }: { icon: LucideIcon; tone: Icon3DTone; label: string; value: string | number; sub: string }) {
   return (
     <div className="rounded-xl border border-[var(--border)] bg-white p-5">
-      <div className="flex items-start gap-3">
-        <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg ${tint}`}><Icon className="h-5 w-5" /></span>
-        <div className="min-w-0">
-          <p className="text-sm text-[var(--muted)]">{label}</p>
-          <p className="mt-0.5 text-2xl font-bold text-[var(--ink)]">{value}</p>
-          <p className="text-xs text-[var(--muted)]">{sub}</p>
-        </div>
-      </div>
+      <Icon3D icon={icon} tone={tone} />
+      <p className="mt-3 text-sm text-[var(--muted)]">{label}</p>
+      <p className="mt-0.5 text-2xl font-bold leading-none text-[var(--ink)]">{value}</p>
+      <p className="mt-1.5 text-xs text-[var(--muted)]">{sub}</p>
     </div>
   );
 }

@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Users, BookOpen, Award, Clock, TrendingUp, Download, ArrowRight, ArrowLeft, GraduationCap, Target, CheckCircle2 } from "lucide-react";
-import StatCard from "@/components/dashboard/StatCard";
+import { Users, BookOpen, Award, Clock, TrendingUp, Download, ArrowRight, ArrowLeft, GraduationCap, Target, CheckCircle2, ScrollText, BarChart3 } from "lucide-react";
+import Stat3D from "@/components/dashboard/Stat3D";
+import Icon3D, { TONES, type Icon3DTone } from "@/components/dashboard/Icon3D";
 import LearnAreaChart from "@/components/charts/LearnAreaChart";
 import { getToken } from "@/lib/authClient";
 
@@ -16,11 +17,11 @@ interface ReportData {
   recentReports: { name: string; generatedOn: string; format: string }[];
 }
 
-const REPORT_CARDS = [
-  { title: "Team Learning Report", desc: "Course enrolments, completions and progress across your team.", href: "/manager/team-learning", icon: GraduationCap },
-  { title: "Team Skills Report", desc: "Skill levels and gaps measured against role requirements.", href: "/manager/team-skills", icon: Target },
-  { title: "Team CPD Report", desc: "CPD hours logged versus annual targets, with at-risk flags.", href: "/manager/team-cpd", icon: Clock },
-  { title: "Completion Rate Report", desc: "How much of your team's learning is finished versus in progress.", href: "/manager/reports", icon: CheckCircle2 },
+const REPORT_CARDS: { title: string; desc: string; href: string; icon: typeof GraduationCap; tone: Icon3DTone }[] = [
+  { title: "Team Learning Report", desc: "Course enrolments, completions and progress across your team.", href: "/manager/team-learning", icon: GraduationCap, tone: TONES.blue },
+  { title: "Team Skills Report", desc: "Skill levels and gaps measured against role requirements.", href: "/manager/team-skills", icon: Target, tone: TONES.emerald },
+  { title: "Team CPD Report", desc: "CPD hours logged versus annual targets, with at-risk flags.", href: "/manager/team-cpd", icon: Clock, tone: TONES.amber },
+  { title: "Completion Rate Report", desc: "How much of your team's learning is finished versus in progress.", href: "/manager/reports", icon: CheckCircle2, tone: TONES.violet },
 ];
 
 export default function ManagerReportsPage() {
@@ -65,9 +66,12 @@ export default function ManagerReportsPage() {
         <ArrowLeft className="h-4 w-4" /> Back to dashboard
       </Link>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--ink)]">Reports</h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">View and export key reports to track your team&apos;s learning performance.</p>
+        <div className="flex items-center gap-3">
+          <Icon3D icon={ScrollText} tone={TONES.blue} />
+          <div>
+            <h1 className="text-2xl font-bold text-[var(--ink)]">Reports</h1>
+            <p className="mt-1 text-sm text-[var(--muted)]">View and export key reports to track your team&apos;s learning performance.</p>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <button onClick={exportCsv} disabled={!data} className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--ink)] hover:bg-slate-50 disabled:opacity-50">
@@ -79,9 +83,7 @@ export default function ManagerReportsPage() {
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {REPORT_CARDS.map((c) => (
           <div key={c.title} className="flex h-full flex-col rounded-xl border border-[var(--border)] bg-white p-5">
-            <span className="grid h-10 w-10 place-items-center rounded-xl bg-[var(--brand-tint)] text-[var(--brand-dark)]">
-              <c.icon className="h-5 w-5" />
-            </span>
+            <Icon3D icon={c.icon} tone={c.tone} />
             <h3 className="mt-3 font-semibold text-[var(--ink)]">{c.title}</h3>
             <p className="mt-1 flex-1 text-sm text-[var(--muted)]">{c.desc}</p>
             <Link href={c.href} className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-[var(--brand)] hover:underline">
@@ -98,21 +100,21 @@ export default function ManagerReportsPage() {
       ) : (
         <>
           <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
-            <StatCard icon={Users} label="Total Members" value={data.stats.totalMembers} />
-            <StatCard icon={BookOpen} label="Courses In Progress" value={data.stats.coursesInProgress} />
-            <StatCard icon={Award} label="Completed Courses" value={data.stats.coursesCompleted} />
-            <StatCard icon={Clock} label="CPD Hours" value={data.stats.totalCpdHours} />
-            <StatCard icon={TrendingUp} label="Average Progress" value={`${data.stats.avgProgress}%`} />
+            <Stat3D icon={Users} tone={TONES.indigo} label="Total Members" value={data.stats.totalMembers} />
+            <Stat3D icon={BookOpen} tone={TONES.blue} label="Courses In Progress" value={data.stats.coursesInProgress} />
+            <Stat3D icon={Award} tone={TONES.emerald} label="Completed Courses" value={data.stats.coursesCompleted} />
+            <Stat3D icon={Clock} tone={TONES.amber} label="CPD Hours" value={data.stats.totalCpdHours} />
+            <Stat3D icon={TrendingUp} tone={TONES.violet} label="Average Progress" value={`${data.stats.avgProgress}%`} />
           </div>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <div className="rounded-xl border border-[var(--border)] bg-white p-5 lg:col-span-2">
-              <h3 className="mb-4 font-semibold text-[var(--ink)]">Learning Progress Trend <span className="text-xs font-normal text-[var(--muted)]">· last 8 weeks</span></h3>
+              <div className="mb-4 flex items-center gap-3"><Icon3D icon={BarChart3} tone={TONES.blue} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Learning Progress Trend <span className="text-xs font-normal text-[var(--muted)]">· last 8 weeks</span></h3></div>
               <LearnAreaChart data={data.trend} xKey="label" dataKeys={[{ key: "avgProgress", label: "progress %", color: "#2e7d5b" }, { key: "cpdHours", label: "CPD hours", color: "#3b82f6" }]} height={220} />
             </div>
 
             <div className="rounded-xl border border-[var(--border)] bg-white p-5">
-              <h3 className="mb-4 font-semibold text-[var(--ink)]">Progress Summary</h3>
+              <div className="mb-4 flex items-center gap-3"><Icon3D icon={CheckCircle2} tone={TONES.emerald} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Progress Summary</h3></div>
               <ProgressRow label="Learning Progress" pct={data.progress.learningProgress} color="bg-[var(--brand)]" />
               <div className="mt-4"><ProgressRow label="CPD Progress" pct={data.progress.cpdProgress} color="bg-blue-500" /></div>
               <div className="mt-4"><ProgressRow label="Completion Rate" pct={data.progress.completionRate} color="bg-amber-500" /></div>

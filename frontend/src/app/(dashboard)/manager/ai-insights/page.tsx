@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Sparkles, AlertTriangle, TrendingUp, Target, GraduationCap, CheckCircle2 } from "lucide-react";
-import StatCard from "@/components/dashboard/StatCard";
+import Stat3D from "@/components/dashboard/Stat3D";
+import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
 import ProgressRing from "@/components/cpd/ProgressRing";
 import AttentionList from "@/components/dashboard/AttentionList";
 import { getToken } from "@/lib/authClient";
@@ -57,8 +58,8 @@ export default function AiInsightsPage() {
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-[var(--brand)]" />
+        <div className="flex items-center gap-3">
+          <Icon3D icon={Sparkles} tone={TONES.violet} />
           <div>
             <h1 className="text-2xl font-bold text-[var(--ink)]">AI Insights</h1>
             <p className="mt-1 text-sm text-[var(--muted)]">AI-powered insights and recommendations to help your team learn and grow.</p>
@@ -77,16 +78,16 @@ export default function AiInsightsPage() {
       ) : (
         <>
           <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
-            <StatCard icon={AlertTriangle} iconBg="bg-red-50" label="Top Priority" value={data.stats.topPriority} sub="Members need improvement" />
-            <StatCard icon={GraduationCap} label="Recommended Trainings" value={data.stats.recommendedTrainings} />
-            <StatCard icon={Target} iconBg="bg-amber-50" label="Skill Gaps Identified" value={data.stats.skillGapsIdentified} />
-            <StatCard icon={TrendingUp} label="Learning Trend" value={data.stats.learningTrend} sub="Team momentum" />
-            <StatCard icon={Sparkles} label="Engagement Score" value={`${data.stats.engagementScore}%`} />
+            <Stat3D icon={AlertTriangle} tone={TONES.rose} label="Top Priority" value={data.stats.topPriority} sub="Members need improvement" />
+            <Stat3D icon={GraduationCap} tone={TONES.blue} label="Recommended Trainings" value={data.stats.recommendedTrainings} />
+            <Stat3D icon={Target} tone={TONES.amber} label="Skill Gaps Identified" value={data.stats.skillGapsIdentified} />
+            <Stat3D icon={TrendingUp} tone={TONES.emerald} label="Learning Trend" value={data.stats.learningTrend} sub="Team momentum" />
+            <Stat3D icon={Sparkles} tone={TONES.violet} label="Engagement Score" value={`${data.stats.engagementScore}%`} />
           </div>
 
           <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
             <div className="rounded-xl border border-[var(--border)] bg-white p-5">
-              <h3 className="mb-4 font-semibold text-[var(--ink)]">Team Learning Health</h3>
+              <div className="mb-4 flex items-center gap-3"><Icon3D icon={TrendingUp} tone={TONES.emerald} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Team Learning Health</h3></div>
               <div className="flex flex-col items-center">
                 <ProgressRing percentage={data.teamHealth.score} label={`${data.teamHealth.score}%`} sublabel={data.teamHealth.label} />
               </div>
@@ -100,8 +101,8 @@ export default function AiInsightsPage() {
             </div>
 
             <div className="rounded-xl border border-[var(--border)] bg-white p-5 lg:col-span-2">
-              <h3 className="mb-1 font-semibold text-[var(--ink)]">Top Skill Gaps</h3>
-              <p className="mb-4 text-xs text-[var(--muted)]">Skills where the most team members need to improve.</p>
+              <div className="mb-1 flex items-center gap-3"><Icon3D icon={Target} tone={TONES.amber} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Top Skill Gaps</h3></div>
+              <p className="mb-4 ml-[52px] text-xs text-[var(--muted)]">Skills where the most team members need to improve.</p>
               {data.topSkillGaps.length === 0 ? (
                 <p className="text-sm text-[var(--muted)]">No outstanding gaps.</p>
               ) : (
@@ -128,7 +129,7 @@ export default function AiInsightsPage() {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {data.membersNeedingAttention.length === 0 ? (
               <div className="rounded-xl border border-[var(--border)] bg-white p-5">
-                <h3 className="mb-4 font-semibold text-[var(--ink)]">Members Who Need Attention</h3>
+                <div className="mb-4 flex items-center gap-3"><Icon3D icon={AlertTriangle} tone={TONES.rose} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Members Who Need Attention</h3></div>
                 <p className="text-sm text-[var(--muted)]">No members need attention right now.</p>
               </div>
             ) : (
@@ -136,8 +137,8 @@ export default function AiInsightsPage() {
             )}
 
             <div className="rounded-xl border border-[var(--border)] bg-white p-5">
-              <div className="mb-4 flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-[var(--brand)]" />
+              <div className="mb-4 flex items-center gap-3">
+                <Icon3D icon={Sparkles} tone={TONES.violet} size="sm" />
                 <h3 className="font-semibold text-[var(--ink)]">AI Summary</h3>
               </div>
               {data.aiSummary.length === 0 ? (

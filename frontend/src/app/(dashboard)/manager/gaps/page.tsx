@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { TrendingUp, AlertTriangle, Users } from "lucide-react";
-import StatCard from "@/components/dashboard/StatCard";
+import { TrendingUp, AlertTriangle, Users, BarChart3 } from "lucide-react";
+import Stat3D from "@/components/dashboard/Stat3D";
+import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
 import { getToken } from "@/lib/authClient";
 
 const importanceConfig: Record<string, string> = {
@@ -57,7 +58,10 @@ export default function SkillGapsPage() {
   return (
     <div>
       <div className="mb-6 flex items-start justify-between gap-4">
-        <div><div className="flex items-center gap-2"><TrendingUp className="h-5 w-5 text-[var(--brand)]" /><h1 className="text-2xl font-bold text-[var(--ink)]">Skill Gaps</h1></div><p className="mt-1 text-sm text-[var(--muted)]">Each employee's current skills against their role's requirements.</p></div>
+        <div className="flex items-center gap-3">
+          <Icon3D icon={BarChart3} tone={TONES.violet} />
+          <div><h1 className="text-2xl font-bold text-[var(--ink)]">Skill Gaps</h1><p className="mt-1 text-sm text-[var(--muted)]">Each employee&apos;s current skills against their role&apos;s requirements.</p></div>
+        </div>
         <select value={deptId} onChange={e => setDeptId(e.target.value)} className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm outline-none focus:border-[var(--brand)]">
           <option value="">All Departments</option>
           {depts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
@@ -71,9 +75,9 @@ export default function SkillGapsPage() {
       ) : (
         <>
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <StatCard icon={Users} label="Employees" value={data.totalEmployees} />
-            <StatCard icon={TrendingUp} label="With Role Profile" value={data.withRoleProfile} sub="gap computable" />
-            <StatCard icon={AlertTriangle} iconBg="bg-amber-50" label="No Role Profile" value={data.withoutRoleProfile} sub="position unmatched" />
+            <Stat3D icon={Users} tone={TONES.indigo} label="Employees" value={data.totalEmployees} />
+            <Stat3D icon={TrendingUp} tone={TONES.emerald} label="With Role Profile" value={data.withRoleProfile} sub="gap computable" />
+            <Stat3D icon={AlertTriangle} tone={TONES.rose} label="No Role Profile" value={data.withoutRoleProfile} sub="position unmatched" />
           </div>
 
           <div className="mb-4 flex items-center gap-4 text-xs text-[var(--muted)]">

@@ -14,10 +14,20 @@ export default function GamificationPill() {
   const [input, setInput] = useState<GamInput | null>(null);
 
   useEffect(() => {
-    fetch(`${API}/api/me/gamification`, { headers: { Authorization: `Bearer ${getToken()}` } })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (d) setInput({ certificates: d.certificates, coursesCompleted: d.coursesCompleted, cpdHours: d.cpdHours }); })
-      .catch(() => {});
+    const h = { headers: { Authorization: `Bearer ${getToken()}` } };
+    // Read already-deployed endpoints so the pill works without waiting on a
+    // backend redeploy; certificate count + completed courses + CPD hours.
+    Promise.all([
+      fetch(`${API}/api/me/certificates`, h).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      fetch(`${API}/api/me/dashboard`, h).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+    ]).then(([certs, dash]) => {
+      if (!certs && !dash) return;
+      setInput({
+        certificates: certs?.certificates?.length ?? 0,
+        coursesCompleted: dash?.completedCount ?? 0,
+        cpdHours: dash?.cpdHours ?? 0,
+      });
+    });
   }, []);
 
   if (!input) return null;

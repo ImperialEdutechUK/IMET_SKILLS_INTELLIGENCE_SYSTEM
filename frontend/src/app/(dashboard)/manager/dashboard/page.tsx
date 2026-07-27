@@ -9,6 +9,7 @@ import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
 import Stat3D from "@/components/dashboard/Stat3D";
 import Dropdown from "@/components/dashboard/Dropdown";
 import CollapsibleCard from "@/components/dashboard/CollapsibleCard";
+import MyAchievementsCard from "@/components/gamification/MyAchievementsCard";
 import { getToken } from "@/lib/authClient";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -86,6 +87,9 @@ export default function ManagerDashboardPage() {
           <Download className="h-4 w-4" /> Export report
         </Link>
       </div>
+
+      {/* Your own learning game — visible right here on the team dashboard too. */}
+      <MyAchievementsCard />
 
       {/* At-a-glance health — the one thing a manager should read first */}
       <div className="mb-6 flex flex-wrap items-center gap-4 rounded-2xl border border-[var(--border)] bg-white p-5">

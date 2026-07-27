@@ -3,7 +3,36 @@ import { prisma } from "@/lib/db";
 import { verifyToken } from "@/lib/verifyToken";
 
 import { getCpdTargetHours } from "@/lib/cpd-target";
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+const LEVEL_LABEL = ["Not Started", "Beginner", "Intermediate", "Advanced", "Expert"];
+const label = (n: number) => LEVEL_LABEL[Math.max(0, Math.min(4, n))];
+const round1 = (n: number) => Math.round(n * 10) / 10;
+
+// The CPD target is ANNUAL (calendar year), so a flat percentage is time-blind:
+// 20% done in February is fine, in November it is not. Pace compares hours logged
+// against the hours you'd expect by today — expected = (days elapsed / days in year) × target.
+function cpdPace(hours: number, target: number) {
+  const now = new Date();
+  const yearStart = new Date(now.getFullYear(), 0, 1);
+  const yearEnd = new Date(now.getFullYear() + 1, 0, 1);
+  const daysInYear = Math.round((yearEnd.getTime() - yearStart.getTime()) / 86400000);
+  const daysElapsed = Math.min(daysInYear, Math.max(1, Math.ceil((now.getTime() - yearStart.getTime()) / 86400000)));
+  const daysLeft = Math.max(0, daysInYear - daysElapsed);
+
+  const expected = (daysElapsed / daysInYear) * target;
+  const delta = hours - expected; // + ahead of pace, − behind pace
+
+  // 10% of the annual target is the tolerance band before "behind" is worth flagging.
+  const tolerance = target * 0.1;
+  let status: "complete" | "ahead" | "on_track" | "slightly_behind" | "behind";
+  if (hours >= target) status = "complete";
+  else if (delta >= tolerance) status = "ahead";
+  else if (delta >= 0) status = "on_track";
+  else if (delta >= -tolerance) status = "slightly_behind";
+  else status = "behind";
+
+  return { expected: round1(expected), delta: round1(delta), daysLeft, status };
+}
 
 export async function GET(req: Request) {
   const authUser = verifyToken(req);
@@ -14,9 +43,9 @@ export async function GET(req: Request) {
   const user = await prisma.user.findUnique({
     where: { id: authUser.id },
     include: {
-      enrollments: { include: { course: { include: { category: true } } } },
-      cpdRecords: true,
-      userSkills: true,
+      enrollments: { include: { course: true }, orderBy: { updatedAt: "desc" } },
+      cpdRecords: { select: { hours: true } },
+      userSkills: { include: { skill: { select: { name: true } } } },
       recommendations: {
         where: { dismissed: false },
         orderBy: { matchScore: "desc" },
@@ -40,54 +69,72 @@ export async function GET(req: Request) {
     });
   }
 
+  // Role-based gaps from the deterministic engine. Falls back to the employee's own
+  // self-set targets when no role profile has been analysed for them yet.
+  const gaps = await prisma.skillGap.findMany({
+    where: { userId: user.id },
+    include: { skill: { select: { name: true } } },
+    orderBy: { priorityScore: "desc" },
+    take: 1,
+  });
+  const gapCount = await prisma.skillGap.count({ where: { userId: user.id } });
+
+  const selfGaps = user.userSkills
+    .filter((s) => s.currentLevel < s.targetLevel)
+    .sort((a, b) => b.targetLevel - b.currentLevel - (a.targetLevel - a.currentLevel));
+
+  let topGap: { skill: string; currentLabel: string; requiredLabel: string } | null = null;
+  if (gaps[0]) {
+    topGap = {
+      skill: gaps[0].skill.name,
+      currentLabel: label(gaps[0].currentLevel),
+      requiredLabel: label(gaps[0].requiredLevel),
+    };
+  } else if (selfGaps[0]) {
+    topGap = {
+      skill: selfGaps[0].skill.name,
+      currentLabel: label(selfGaps[0].currentLevel),
+      requiredLabel: label(selfGaps[0].targetLevel),
+    };
+  }
+
   const inProgress = user.enrollments.filter((e) => e.status === "in_progress");
-  const completedCourseIds = new Set(
-    user.enrollments.filter((e) => e.status === "completed").map((e) => e.courseId)
-  );
+  const notStarted = user.enrollments.filter((e) => e.status === "not_started");
+  const completedCount = user.enrollments.filter((e) => e.status === "completed").length;
 
-  // Learning paths in progress (started but not fully complete for this user).
-  const paths = await prisma.learningPath.findMany({ include: { items: true } });
-  const learningPathsInProgress = paths.filter((p) => {
-    if (p.items.length === 0) return false;
-    const done = p.items.filter((it) => completedCourseIds.has(it.courseId)).length;
-    return done > 0 && done < p.items.length;
-  }).length;
+  // "Continue Learning" shows what is genuinely actionable: courses already underway
+  // first, then queued ones (adding a recommendation creates a not_started enrollment,
+  // so without these the card would look empty right after you add a course).
+  const continueList = [...inProgress, ...notStarted].slice(0, 3).map((enr) => ({
+    id: enr.id,
+    title: enr.course.title,
+    progress: enr.progress,
+    status: enr.status,
+    externalUrl: enr.course.externalUrl ?? null,
+  }));
 
-  const cpdHours = user.cpdRecords.reduce((sum, r) => sum + r.hours, 0);
+  const cpdHours = round1(user.cpdRecords.reduce((sum, r) => sum + r.hours, 0));
   const cpdTargetHours = await getCpdTargetHours(user.departmentId);
   const cpdPercent = Math.min(100, Math.round((cpdHours / cpdTargetHours) * 100));
-  const skillsImproving = user.userSkills.filter((s) => s.currentLevel < s.targetLevel).length;
+  const pace = cpdPace(cpdHours, cpdTargetHours);
   const topRecs = user.recommendations.slice(0, 2);
-
-  const now = new Date();
-  const monthBuckets: { month: string; hours: number }[] = [];
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    monthBuckets.push({ month: MONTHS[d.getMonth()], hours: 0 });
-  }
-  for (const rec of user.cpdRecords) {
-    const logged = new Date(rec.loggedAt);
-    const monthsAgo = (now.getFullYear() - logged.getFullYear()) * 12 + (now.getMonth() - logged.getMonth());
-    if (monthsAgo >= 0 && monthsAgo <= 5) {
-      monthBuckets[5 - monthsAgo].hours += rec.hours;
-    }
-  }
 
   return NextResponse.json({
     fullName: user.fullName,
     cpdHours,
     cpdPercent,
     cpdTarget: cpdTargetHours,
-    enrolledCount: user.enrollments.length,
-    learningPathsInProgress,
-    skillsImproving,
+    cpdExpected: pace.expected,
+    cpdDelta: pace.delta,
+    cpdDaysLeft: pace.daysLeft,
+    cpdStatus: pace.status,
+    completedCount,
+    inProgressCount: inProgress.length,
+    notStartedCount: notStarted.length,
+    gapCount: gapCount > 0 ? gapCount : selfGaps.length,
+    topGap,
     notifications: unreadNotifications.map((n) => ({ id: n.id, title: n.title, body: n.body })),
-    inProgress: inProgress.map((enr) => ({
-      id: enr.id,
-      title: enr.course.title,
-      progress: enr.progress,
-      externalUrl: enr.course.externalUrl ?? null,
-    })),
+    inProgress: continueList,
     topRecs: topRecs.map((rec) => ({
       id: rec.id,
       courseId: rec.courseId,
@@ -100,6 +147,5 @@ export async function GET(req: Request) {
       rating: rec.course.rating ?? null,
       externalUrl: rec.course.externalUrl ?? "#",
     })),
-    monthBuckets,
   });
 }

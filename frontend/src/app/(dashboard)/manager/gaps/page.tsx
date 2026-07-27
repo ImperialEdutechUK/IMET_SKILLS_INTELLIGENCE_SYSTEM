@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { TrendingUp, AlertTriangle, Users, BarChart3 } from "lucide-react";
+import { TrendingUp, AlertTriangle, Users, BarChart3, ChevronDown } from "lucide-react";
 import Stat3D from "@/components/dashboard/Stat3D";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
 import { getToken } from "@/lib/authClient";
@@ -51,7 +51,7 @@ export default function SkillGapsPage() {
     const q = deptId ? `?departmentId=${deptId}` : "";
     fetch(`${API}/api/manager/gaps${q}`, { headers: { Authorization: `Bearer ${getToken()}` } })
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { setData(d); setLoading(false); if (d?.employees) { const first = d.employees.find((e: Emp) => e.hasRole); if (first) setOpen(first.id); } })
+      .then((d) => { setData(d); setLoading(false); setOpen(null); })
       .catch(() => setLoading(false));
   }, [deptId]);
 
@@ -87,28 +87,29 @@ export default function SkillGapsPage() {
             <span className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-full bg-emerald-500" /> On target</span>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-2.5">
             {data.employees.map((emp) => {
               const isOpen = open === emp.id;
               return (
-                <div key={emp.id} className="rounded-xl border border-[var(--border)] bg-white">
-                  <button onClick={() => emp.hasRole && setOpen(isOpen ? null : emp.id)} className={`flex w-full items-center gap-4 p-5 text-left ${emp.hasRole ? "" : "cursor-default"}`}>
-                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--brand-tint)] text-xs font-semibold text-[var(--brand-dark)]">{emp.fullName.split(" ").map((p) => p[0]).join("").toUpperCase()}</span>
+                <div key={emp.id} className="overflow-hidden rounded-xl border border-[var(--border)] bg-white">
+                  <button onClick={() => emp.hasRole && setOpen(isOpen ? null : emp.id)} className={`flex w-full items-center gap-3 p-3.5 text-left ${emp.hasRole ? "transition-colors hover:bg-slate-50" : "cursor-default"}`}>
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--brand-tint)] text-xs font-semibold text-[var(--brand-dark)]">{emp.fullName.split(" ").map((p) => p[0]).join("").toUpperCase()}</span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-[var(--ink)]">{emp.fullName}</p>
-                      <p className="text-xs text-[var(--muted)]">{emp.department} · {emp.position}</p>
+                      <p className="truncate text-sm font-medium text-[var(--ink)]">{emp.fullName}</p>
+                      <p className="truncate text-xs text-[var(--muted)]">{emp.department} · {emp.position}</p>
                     </div>
                     {emp.hasRole ? (
                       <>
                         {emp.criticalGaps > 0 && <span className="shrink-0 rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700">{emp.criticalGaps} critical</span>}
                         <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${emp.totalGap === 0 ? "bg-[var(--brand-tint)] text-[var(--brand-dark)]" : "bg-amber-50 text-amber-700"}`}>{emp.totalGap === 0 ? "On target" : `Gap ${emp.totalGap}`}</span>
+                        <ChevronDown className={`h-4 w-4 shrink-0 text-[var(--muted)] transition-transform ${isOpen ? "rotate-180" : ""}`} />
                       </>
                     ) : (
                       <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">No role profile</span>
                     )}
                   </button>
                   {isOpen && emp.hasRole && (
-                    <div className="border-t border-[var(--border)] p-5">
+                    <div className="border-t border-[var(--border)] p-4">
                       <ul className="space-y-4">
                         {emp.gaps.map((g) => (
                           <li key={g.skill}>

@@ -82,14 +82,14 @@ export default function ManagerReportsPage() {
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {REPORT_CARDS.map((c) => (
-          <div key={c.title} className="flex h-full flex-col rounded-xl border border-[var(--border)] bg-white p-5">
+          <Link key={c.title} href={c.href} className="group flex h-full flex-col rounded-xl border border-[var(--border)] bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-md">
             <Icon3D icon={c.icon} tone={c.tone} />
             <h3 className="mt-3 font-semibold text-[var(--ink)]">{c.title}</h3>
             <p className="mt-1 flex-1 text-sm text-[var(--muted)]">{c.desc}</p>
-            <Link href={c.href} className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-[var(--brand)] hover:underline">
+            <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-[var(--brand)] group-hover:underline">
               View Report <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
+            </span>
+          </Link>
         ))}
       </div>
 

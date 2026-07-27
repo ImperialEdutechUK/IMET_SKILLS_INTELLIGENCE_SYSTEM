@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Users, BookOpen, Award, TrendingUp, Download, ChevronRight, ChevronDown, ShieldCheck, AlertTriangle, BarChart3, PieChart, Activity, Clock } from "lucide-react";
+import { Users, BookOpen, Award, TrendingUp, Download, ChevronRight, ShieldCheck, AlertTriangle, BarChart3, PieChart, Activity, Clock } from "lucide-react";
 import LearnAreaChart from "@/components/charts/LearnAreaChart";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
 import Stat3D from "@/components/dashboard/Stat3D";
+import Dropdown from "@/components/dashboard/Dropdown";
 import CollapsibleCard from "@/components/dashboard/CollapsibleCard";
 import { getToken } from "@/lib/authClient";
 
@@ -184,7 +185,7 @@ export default function ManagerDashboardPage() {
                   ]}
                 />
               </div>
-              <div className="hidden gap-3 border-b border-t border-[var(--border)] px-5 py-2 text-[11px] font-medium uppercase tracking-wide text-[var(--muted)] md:grid md:grid-cols-[2fr_1fr_1fr_1fr_auto]">
+              <div className="hidden gap-3 border-b border-t border-[var(--border)] bg-slate-50/60 px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-[var(--ink)] md:grid md:grid-cols-[2fr_1fr_1fr_1fr_auto]">
                 <span>Member</span><span>Skill level</span><span>CPD</span><span>Courses</span><span className="w-24 text-right">Status</span>
               </div>
               {shownMembers.length === 0 ? (
@@ -256,23 +257,6 @@ export default function ManagerDashboardPage() {
           )}
         </CollapsibleCard>
       </div>
-    </div>
-  );
-}
-
-// Compact, professional dropdown menu (native select for reliability/a11y,
-// styled to match the dashboard with a chevron affordance).
-function Dropdown({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
-  return (
-    <div className="relative inline-flex">
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="appearance-none rounded-lg border border-[var(--border)] bg-white py-1.5 pl-3 pr-8 text-xs font-medium text-[var(--ink)] transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[var(--brand)]/30"
-      >
-        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-      </select>
-      <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--muted)]" />
     </div>
   );
 }

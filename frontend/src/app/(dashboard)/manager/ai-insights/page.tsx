@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Sparkles, AlertTriangle, TrendingUp, Target, GraduationCap, CheckCircle2 } from "lucide-react";
+import Link from "next/link";
+import { Sparkles, AlertTriangle, TrendingUp, Target, GraduationCap, CheckCircle2, ChevronRight } from "lucide-react";
 import Stat3D from "@/components/dashboard/Stat3D";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
+import Dropdown from "@/components/dashboard/Dropdown";
 import ProgressRing from "@/components/cpd/ProgressRing";
 import AttentionList from "@/components/dashboard/AttentionList";
 import { getToken } from "@/lib/authClient";
@@ -42,6 +44,7 @@ const gapBar: Record<string, { color: string; width: string }> = {
 export default function AiInsightsPage() {
   const [data, setData] = useState<Data | null>(null);
   const [loading, setLoading] = useState(true);
+  const [gapFilter, setGapFilter] = useState("all");
 
   const load = useCallback(() => {
     setLoading(true);
@@ -78,11 +81,11 @@ export default function AiInsightsPage() {
       ) : (
         <>
           <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
-            <Stat3D icon={AlertTriangle} tone={TONES.rose} label="Top Priority" value={data.stats.topPriority} sub="Members need improvement" />
-            <Stat3D icon={GraduationCap} tone={TONES.blue} label="Recommended Trainings" value={data.stats.recommendedTrainings} />
-            <Stat3D icon={Target} tone={TONES.amber} label="Skill Gaps Identified" value={data.stats.skillGapsIdentified} />
-            <Stat3D icon={TrendingUp} tone={TONES.emerald} label="Learning Trend" value={data.stats.learningTrend} sub="Team momentum" />
-            <Stat3D icon={Sparkles} tone={TONES.violet} label="Engagement Score" value={`${data.stats.engagementScore}%`} />
+            <Stat3D icon={AlertTriangle} tone={TONES.rose} label="Top Priority" value={data.stats.topPriority} sub="Members need improvement" href="/manager/gaps" />
+            <Stat3D icon={GraduationCap} tone={TONES.blue} label="Recommended Trainings" value={data.stats.recommendedTrainings} href="/manager/team-learning" />
+            <Stat3D icon={Target} tone={TONES.amber} label="Skill Gaps Identified" value={data.stats.skillGapsIdentified} href="/manager/gaps" />
+            <Stat3D icon={TrendingUp} tone={TONES.emerald} label="Learning Trend" value={data.stats.learningTrend} sub="Team momentum" href="/manager/team-learning" />
+            <Stat3D icon={Sparkles} tone={TONES.violet} label="Engagement Score" value={`${data.stats.engagementScore}%`} href="/manager/team-cpd" />
           </div>
 
           <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -101,28 +104,46 @@ export default function AiInsightsPage() {
             </div>
 
             <div className="rounded-xl border border-[var(--border)] bg-white p-5 lg:col-span-2">
-              <div className="mb-1 flex items-center gap-3"><Icon3D icon={Target} tone={TONES.amber} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Top Skill Gaps</h3></div>
-              <p className="mb-4 ml-[52px] text-xs text-[var(--muted)]">Skills where the most team members need to improve.</p>
-              {data.topSkillGaps.length === 0 ? (
-                <p className="text-sm text-[var(--muted)]">No outstanding gaps.</p>
-              ) : (
-                <ul className="space-y-4">
-                  {data.topSkillGaps.map((s) => (
-                    <li key={s.skill} className="flex items-center gap-4">
-                      <div className="min-w-0 flex-1">
-                        <div className="mb-1.5 flex items-center justify-between gap-2">
-                          <span className="truncate text-sm font-medium text-[var(--ink)]">{s.skill}</span>
-                          <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${gapBadge[s.gapLevel]}`}>{s.gapLevel}</span>
-                        </div>
-                        <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
-                          <div className={`h-full rounded-full ${gapBar[s.gapLevel].color}`} style={{ width: gapBar[s.gapLevel].width }} />
-                        </div>
-                      </div>
-                      <span className="w-20 shrink-0 text-right text-xs text-[var(--muted)]">{s.membersAffected} {s.membersAffected === 1 ? "member" : "members"}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <div className="mb-1 flex items-center gap-3">
+                <Icon3D icon={Target} tone={TONES.amber} size="sm" />
+                <h3 className="flex-1 font-semibold text-[var(--ink)]">Top Skill Gaps</h3>
+                <Dropdown
+                  value={gapFilter}
+                  onChange={setGapFilter}
+                  options={[
+                    { value: "all", label: "All levels" },
+                    { value: "High", label: "High" },
+                    { value: "Medium", label: "Medium" },
+                    { value: "Low", label: "Low" },
+                  ]}
+                />
+              </div>
+              <p className="mb-4 ml-[52px] text-xs text-[var(--muted)]">Skills where the most team members need to improve. Click one to view the gap breakdown.</p>
+              {(() => {
+                const gaps = gapFilter === "all" ? data.topSkillGaps : data.topSkillGaps.filter((s) => s.gapLevel === gapFilter);
+                if (gaps.length === 0) return <p className="text-sm text-[var(--muted)]">No skill gaps at this level.</p>;
+                return (
+                  <ul className="space-y-2">
+                    {gaps.map((s) => (
+                      <li key={s.skill}>
+                        <Link href="/manager/gaps" className="-mx-2 flex items-center gap-4 rounded-lg px-2 py-2 transition-colors hover:bg-slate-50">
+                          <div className="min-w-0 flex-1">
+                            <div className="mb-1.5 flex items-center justify-between gap-2">
+                              <span className="truncate text-sm font-medium text-[var(--ink)]">{s.skill}</span>
+                              <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${gapBadge[s.gapLevel]}`}>{s.gapLevel}</span>
+                            </div>
+                            <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+                              <div className={`h-full rounded-full ${gapBar[s.gapLevel].color}`} style={{ width: gapBar[s.gapLevel].width }} />
+                            </div>
+                          </div>
+                          <span className="w-20 shrink-0 text-right text-xs text-[var(--muted)]">{s.membersAffected} {s.membersAffected === 1 ? "member" : "members"}</span>
+                          <ChevronRight className="h-4 w-4 shrink-0 text-slate-300" />
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                );
+              })()}
             </div>
           </div>
 
@@ -133,7 +154,7 @@ export default function AiInsightsPage() {
                 <p className="text-sm text-[var(--muted)]">No members need attention right now.</p>
               </div>
             ) : (
-              <AttentionList items={data.membersNeedingAttention} title="Members Who Need Attention" />
+              <AttentionList items={data.membersNeedingAttention} title="Members Who Need Attention" viewAllHref="/manager/team-cpd" />
             )}
 
             <div className="rounded-xl border border-[var(--border)] bg-white p-5">

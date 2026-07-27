@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { TrendingUp, Star, Target, PlusCircle, Sparkles, CheckCircle2, ArrowUpRight, Plus, X, PieChart } from "lucide-react";
+import { TrendingUp, Star, Target, PlusCircle, CheckCircle2, ArrowUpRight, Plus, X, PieChart } from "lucide-react";
 import Stat3D from "@/components/dashboard/Stat3D";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
@@ -12,7 +12,6 @@ const API = process.env.NEXT_PUBLIC_API_URL;
 
 interface Skill { id: string; name: string; category: string; currentLevel: number; targetLevel: number; currentLabel: string; targetLabel: string }
 interface Improve { name: string; category: string; current: number; target: number; currentLabel: string; targetLabel: string; gap: number; priority: string }
-interface Suggest { skill: string; currentLevel: number; requiredLevel: number; currentLabel: string; requiredLabel: string; relevance: number; impact: string; priority: string }
 interface SkillsData {
   overview: { total: number; strengths: number; toImprove: number; newSkills: number };
   skills: Skill[];
@@ -20,10 +19,9 @@ interface SkillsData {
   topStrengths: string[];
   recentlyAdded: { name: string; date: string }[];
   toImprove: Improve[];
-  aiSuggested: Suggest[];
 }
 
-type Tab = "overview" | "improve" | "ai";
+type Tab = "overview" | "improve";
 const levelBadge: Record<string, string> = {
   Advanced: "bg-[var(--brand-tint)] text-[var(--brand-dark)]", Expert: "bg-[var(--brand-tint)] text-[var(--brand-dark)]",
   Intermediate: "bg-blue-50 text-blue-700", Beginner: "bg-amber-50 text-amber-700", "Not Started": "bg-slate-100 text-slate-600",
@@ -130,7 +128,7 @@ export default function MySkillsPage() {
       )}
 
       <div className="mb-6 flex flex-wrap gap-6 border-b border-[var(--border)]">
-        {([["overview", "Overview"], ["improve", "Skills to Improve"], ["ai", "AI Suggested Skills"]] as [Tab, string][]).map(([k, l]) => (
+        {([["overview", "Overview"], ["improve", "Skills to Improve"]] as [Tab, string][]).map(([k, l]) => (
           <button key={k} onClick={() => setTab(k)}
             className={`-mb-px border-b-2 pb-2.5 text-sm font-medium transition-colors ${tab === k ? "border-[var(--brand)] text-[var(--brand)]" : "border-transparent text-[var(--muted)] hover:text-[var(--ink)]"}`}>{l}</button>
         ))}
@@ -218,37 +216,6 @@ export default function MySkillsPage() {
         </div>
       )}
 
-      {tab === "ai" && (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2 rounded-xl border border-[var(--border)] bg-white">
-            <div className="flex items-center gap-3 border-b border-[var(--border)] p-5"><Icon3D icon={Sparkles} tone={TONES.violet} size="sm" /><h3 className="font-semibold text-[var(--ink)]">AI Suggested Skills</h3></div>
-            {data.aiSuggested.length === 0 ? (
-              <p className="p-5 text-sm text-[var(--muted)]">No AI suggestions yet — they appear once your role profile and skill gaps are analysed.</p>
-            ) : (
-              <ul className="divide-y divide-[var(--border)]">
-                {data.aiSuggested.map((s) => (
-                  <li key={s.skill} className="flex items-center gap-4 px-5 py-4">
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-purple-50 text-purple-600"><Sparkles className="h-4 w-4" /></span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-[var(--ink)]">{s.skill}</p>
-                      <p className="text-xs text-[var(--muted)]">{s.currentLabel} → {s.requiredLabel}</p>
-                    </div>
-                    <span className="shrink-0 text-xs font-semibold text-[var(--brand)]">{s.relevance}%<span className="ml-1 font-normal text-[var(--muted)]">match</span></span>
-                    <span className="hidden shrink-0 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700 sm:inline">{s.impact}</span>
-                    <Link href="/me/recommendations" className="shrink-0 rounded-lg border border-[var(--brand)] px-3 py-1.5 text-xs font-medium text-[var(--brand)] hover:bg-[var(--brand-tint)]">Start Learning</Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-          <InfoCard title="Why these skills?" items={[
-            ["Role demand", "High demand for your role."],
-            ["Top performers", "Frequently used by top performers."],
-            ["Career goals", "Aligns with your growth path."],
-            ["Market trends", "Based on industry and market trends."],
-          ]} />
-        </div>
-      )}
     </div>
   );
 }

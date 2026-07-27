@@ -1,12 +1,13 @@
 "use client";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { clearAuth } from "@/lib/authClient";
-import { GraduationCap, LogOut, ArrowLeft } from "lucide-react";
+import { GraduationCap, LogOut, ArrowLeft, ChevronDown } from "lucide-react";
 import { navFor, departmentNav } from "@/lib/nav";
 import Avatar from "@/components/ui/Avatar";
-import type { SessionUser } from "@/types";
+import type { NavSection, SessionUser } from "@/types";
 
 export default function Sidebar({ user }: { user: SessionUser }) {
   const pathname = usePathname();
@@ -35,34 +36,7 @@ export default function Sidebar({ user }: { user: SessionUser }) {
       )}
       <nav className="flex-1 overflow-y-auto p-3">
         {sections.map((section, si) => (
-          <div key={si} className={si > 0 ? "mt-4" : ""}>
-            {section.title && (
-              <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-[var(--muted)]">
-                {section.title}
-              </p>
-            )}
-            <ul className="space-y-0.5">
-              {section.items.map((item) => {
-                const active = pathname === item.href || pathname.startsWith(item.href + "/");
-                const Icon = item.icon;
-                return (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                        active
-                          ? "bg-[var(--brand-tint)] text-[var(--brand-dark)]"
-                          : "text-[var(--muted)] hover:bg-slate-50 hover:text-[var(--ink)]"
-                      }`}
-                    >
-                      <Icon className="h-4 w-4 shrink-0" />
-                      {item.label}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
+          <NavGroup key={section.title ?? si} section={section} pathname={pathname} className={si > 0 ? "mt-4" : ""} />
         ))}
       </nav>
 
@@ -83,5 +57,52 @@ export default function Sidebar({ user }: { user: SessionUser }) {
         </button>
       </div>
     </aside>
+  );
+}
+
+// A nav section. Titled sections collapse (open by default) so a manager can fold
+// away the group they aren't using; untitled sections are always shown.
+function NavGroup({ section, pathname, className }: { section: NavSection; pathname: string; className: string }) {
+  const [open, setOpen] = useState(true);
+  const collapsible = !!section.title;
+  const showItems = !collapsible || open;
+
+  return (
+    <div className={className}>
+      {section.title && (
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+          className="mb-1 flex w-full items-center justify-between gap-2 rounded-lg px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-[var(--muted)] transition-colors hover:text-[var(--ink)]"
+        >
+          {section.title}
+          <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${open ? "" : "-rotate-90"}`} />
+        </button>
+      )}
+      {showItems && (
+        <ul className="space-y-0.5">
+          {section.items.map((item) => {
+            const active = pathname === item.href || pathname.startsWith(item.href + "/");
+            const Icon = item.icon;
+            return (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                    active
+                      ? "bg-[var(--brand-tint)] text-[var(--brand-dark)]"
+                      : "text-[var(--muted)] hover:bg-slate-50 hover:text-[var(--ink)]"
+                  }`}
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  {item.label}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
   );
 }

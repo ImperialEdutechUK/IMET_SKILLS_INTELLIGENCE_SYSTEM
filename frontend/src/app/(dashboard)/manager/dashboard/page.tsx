@@ -13,10 +13,6 @@ import { getToken } from "@/lib/authClient";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
-interface Member {
-  id: string; fullName: string; position: string; avgSkillPercent: number;
-  cpdProgress: number; coursesInProgress: number; coursesCompleted: number; status: string;
-}
 interface DashData {
   fullName: string;
   departmentName: string;
@@ -26,7 +22,6 @@ interface DashData {
   recentActivity: { id: string; user: string; action: string; type: string; time: string }[];
   categoryBreakdown: { name: string; value: number; color: string }[];
   cpdStatusBreakdown: { name: string; value: number; color: string }[];
-  members: Member[];
 }
 
 const STATUS: Record<string, { label: string; cls: string }> = {
@@ -41,7 +36,6 @@ export default function ManagerDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [reminding, setReminding] = useState(false);
   const [remindMsg, setRemindMsg] = useState("");
-  const [memberFilter, setMemberFilter] = useState("all");
   const [trendWeeks, setTrendWeeks] = useState(8);
 
   const load = () => fetch(`${API}/api/manager/dashboard`, { headers: { Authorization: `Bearer ${getToken()}` } })
@@ -69,8 +63,7 @@ export default function ManagerDashboardPage() {
   const totalCourses = stats.coursesInProgress + stats.coursesCompleted;
   const thisWeek = data.progressOverTime.length ? data.progressOverTime[data.progressOverTime.length - 1].hours : 0;
   const trend = data.progressOverTime.slice(-trendWeeks);
-  const shownMembers = memberFilter === "all" ? data.members : data.members.filter((m) => m.status === memberFilter);
-  const today = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+  const today =new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
 
   // One clear health verdict for the top of the page.
   const health = stats.teamMembers === 0
@@ -167,57 +160,6 @@ export default function ManagerDashboardPage() {
 
       {/* Detail behind dropdowns — keeps the main view clear, detail one click away */}
       <div className="space-y-4">
-        <CollapsibleCard title="Team members" subtitle={`${stats.teamMembers} people · click a row to open their dashboard`} icon={Users} tone={TONES.indigo} defaultOpen right={<span className="mr-1 hidden text-xs text-[var(--muted)] sm:inline"><span className="font-semibold text-[var(--ink)]">{stats.avgSkillLevel}%</span> avg skill · <span className="font-semibold text-[var(--ink)]">{stats.cpdCompletion}%</span> avg CPD</span>}>
-          {data.members.length === 0 ? (
-            <p className="text-sm text-[var(--muted)]">No employees in {data.departmentName} yet.</p>
-          ) : (
-            <div className="-mx-5 -mb-5">
-              <div className="flex items-center justify-between gap-3 px-5 pb-3">
-                <span className="text-xs text-[var(--muted)]">Showing {shownMembers.length} of {data.members.length}</span>
-                <Dropdown
-                  value={memberFilter}
-                  onChange={setMemberFilter}
-                  options={[
-                    { value: "all", label: "All statuses" },
-                    { value: "at_risk", label: "At risk" },
-                    { value: "attention", label: "Behind target" },
-                    { value: "on_track", label: "On track" },
-                  ]}
-                />
-              </div>
-              <div className="hidden gap-3 border-b border-t border-[var(--border)] bg-slate-50/60 px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-[var(--ink)] md:grid md:grid-cols-[2fr_1fr_1fr_1fr_auto]">
-                <span>Member</span><span>Skill level</span><span>CPD</span><span>Courses</span><span className="w-24 text-right">Status</span>
-              </div>
-              {shownMembers.length === 0 ? (
-                <p className="px-5 py-6 text-sm text-[var(--muted)]">No members match this filter.</p>
-              ) : (
-              <ul className="divide-y divide-[var(--border)]">
-                {shownMembers.map((m) => {
-                  const st = STATUS[m.status] ?? STATUS.on_track;
-                  return (
-                    <li key={m.id}>
-                      <Link href={`/manager/employees/${m.id}`} className="grid grid-cols-1 items-center gap-3 px-5 py-3.5 transition-colors hover:bg-slate-50 md:grid-cols-[2fr_1fr_1fr_1fr_auto]">
-                        <div className="flex items-center gap-3">
-                          <Avatar name={m.fullName} />
-                          <div className="min-w-0"><p className="truncate text-sm font-medium text-[var(--ink)]">{m.fullName}</p><p className="truncate text-xs text-[var(--muted)]">{m.position}</p></div>
-                        </div>
-                        <MiniBar value={m.avgSkillPercent} />
-                        <MiniBar value={m.cpdProgress} />
-                        <span className="text-xs text-[var(--muted)]">{m.coursesCompleted} done · {m.coursesInProgress} active</span>
-                        <span className="flex items-center justify-end gap-2">
-                          <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${st.cls}`}>{st.label}</span>
-                          <ChevronRight className="h-4 w-4 text-slate-300" />
-                        </span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-              )}
-            </div>
-          )}
-        </CollapsibleCard>
-
         <CollapsibleCard title="Team learning hours" subtitle={thisWeek > 0 ? `${thisWeek}h logged this week` : "CPD hours logged over time"} icon={BarChart3} tone={TONES.blue}>
           <div className="mb-4 flex justify-end">
             <Dropdown
@@ -270,11 +212,3 @@ function Avatar({ name }: { name: string }) {
   return <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--brand-tint)] text-xs font-semibold text-[var(--brand-dark)]">{name.split(" ").map((n) => n[0]).slice(0, 2).join("")}</span>;
 }
 
-function MiniBar({ value }: { value: number }) {
-  return (
-    <div className="flex items-center gap-2">
-      <div className="h-1.5 w-full max-w-[80px] overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-[var(--brand)]" style={{ width: `${Math.min(100, value)}%` }} /></div>
-      <span className="w-9 shrink-0 text-xs font-medium text-[var(--ink)]">{value}%</span>
-    </div>
-  );
-}

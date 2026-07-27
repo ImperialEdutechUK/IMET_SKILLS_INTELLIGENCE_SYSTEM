@@ -20,15 +20,17 @@ interface Dept { id: string; name: string; }
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
+const LEVELS = ["None", "Basic", "Intermediate", "Advanced", "Expert"];
+const levelName = (n: number) => LEVELS[n] ?? `Level ${n}`;
+
+// Simple, readable gap bar: the full track is the level the role requires, the
+// green fill is how much of that the employee already has. Full = on target.
 function GapBar({ current, required }: { current: number; required: number }) {
+  const pct = required > 0 ? Math.min(100, Math.round((current / required) * 100)) : 100;
+  const met = current >= required;
   return (
-    <div className="flex gap-1">
-      {Array.from({ length: 5 }).map((_, i) => {
-        let bg = "#e6ebe8";
-        if (i < current) bg = "var(--brand)";
-        else if (i < required) bg = "#fca5a5";
-        return <span key={i} className="h-2 w-2 rounded-full" style={{ background: bg }} />;
-      })}
+    <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
+      <div className={`h-full rounded-full ${met ? "bg-emerald-500" : "bg-[var(--brand)]"}`} style={{ width: `${pct}%` }} />
     </div>
   );
 }
@@ -80,9 +82,9 @@ export default function SkillGapsPage() {
             <Stat3D icon={AlertTriangle} tone={TONES.rose} label="No Role Profile" value={data.withoutRoleProfile} sub="position unmatched" />
           </div>
 
-          <div className="mb-4 flex items-center gap-4 text-xs text-[var(--muted)]">
-            <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: "var(--brand)" }} /> Current level</span>
-            <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: "#fca5a5" }} /> Gap to required</span>
+          <div className="mb-4 flex flex-wrap items-center gap-4 text-xs text-[var(--muted)]">
+            <span className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-full bg-[var(--brand)]" /> Progress toward the level the role needs</span>
+            <span className="flex items-center gap-1.5"><span className="h-2.5 w-6 rounded-full bg-emerald-500" /> On target</span>
           </div>
 
           <div className="space-y-4">
@@ -107,20 +109,22 @@ export default function SkillGapsPage() {
                   </button>
                   {isOpen && emp.hasRole && (
                     <div className="border-t border-[var(--border)] p-5">
-                      <ul className="space-y-3">
+                      <ul className="space-y-4">
                         {emp.gaps.map((g) => (
-                          <li key={g.skill} className="flex items-center gap-4">
-                            <div className="min-w-0 flex-1">
+                          <li key={g.skill}>
+                            <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
                               <div className="flex flex-wrap items-center gap-2">
                                 <span className="text-sm font-medium text-[var(--ink)]">{g.skill}</span>
                                 <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${importanceConfig[g.importance] ?? importanceConfig.MEDIUM}`}>{g.importance}</span>
-                                {g.gap > 0 && <span className="text-[10px] text-amber-600">needs +{g.gap}</span>}
                               </div>
+                              <span className="text-xs text-[var(--muted)]">
+                                {levelName(g.current)} <span className="text-slate-400">→</span> {levelName(g.required)}
+                                {g.gap > 0
+                                  ? <span className="ml-1 font-medium text-amber-600">· needs +{g.gap} level{g.gap === 1 ? "" : "s"}</span>
+                                  : <span className="ml-1 font-medium text-emerald-600">· on target ✓</span>}
+                              </span>
                             </div>
-                            <div className="shrink-0 text-right">
-                              <p className="mb-1 text-[10px] text-[var(--muted)]">{g.current}/{g.required}</p>
-                              <GapBar current={g.current} required={g.required} />
-                            </div>
+                            <GapBar current={g.current} required={g.required} />
                           </li>
                         ))}
                       </ul>

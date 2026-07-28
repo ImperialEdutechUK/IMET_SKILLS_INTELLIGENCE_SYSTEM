@@ -4,6 +4,7 @@ import { verifyToken } from "@/lib/verifyToken";
 import { getCpdTargetHours } from "@/lib/cpd-target";
 import { cpdRiskStatus } from "@/lib/cpd-risk";
 import { parseCpd } from "@/lib/cpd-activity";
+import { deriveProgress } from "@/lib/enrollment-progress";
 
 // Read-only per-employee view for a manager. Authorization is department-scoped:
 // a manager can only open an employee who is in the manager's own department.
@@ -48,13 +49,31 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     .sort((a, b) => b.gap - a.gap);
 
   const enr = emp.enrollments;
-  const mapCourse = (e: (typeof enr)[number]) => ({
-    id: e.id,
-    title: e.course.title,
-    category: e.course.category?.name ?? "General",
-    progress: e.progress,
-    cpdHours: e.course.cpdHours,
-  });
+  const mapCourse = (e: (typeof enr)[number]) => {
+    // Recomputed rather than read from the stored column so the manager sees the same
+    // hours-derived figure the employee does, even before the backfill has run.
+    const derived = deriveProgress({
+      hoursLogged: e.hoursLogged,
+      status: e.status,
+      durationHours: e.course.durationHours,
+      cpdHours: e.course.cpdHours,
+      targetHoursOverride: e.targetHoursOverride,
+    });
+    return {
+      id: e.id,
+      title: e.course.title,
+      category: e.course.category?.name ?? "General",
+      progress: derived.progress,
+      progressKnown: derived.progressKnown,
+      hoursLogged: Math.round(e.hoursLogged * 10) / 10,
+      targetHours: derived.targetHours,
+      // Lets a manager spot a course claimed as started but untouched for weeks.
+      daysSinceActivity: e.lastActivityAt
+        ? Math.floor((Date.now() - e.lastActivityAt.getTime()) / 86_400_000)
+        : null,
+      cpdHours: e.course.cpdHours,
+    };
+  };
   const courses = {
     inProgress: enr.filter((e) => e.status === "in_progress").map(mapCourse),
     completed: enr.filter((e) => e.status === "completed").map(mapCourse),

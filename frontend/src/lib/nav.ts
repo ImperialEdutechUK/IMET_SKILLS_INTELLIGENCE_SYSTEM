@@ -26,7 +26,6 @@ export const navConfig: Record<Role, NavSection[]> = {
         { label: "Dashboard", href: "/manager/dashboard", icon: LayoutDashboard },
         { label: "Team Learning", href: "/manager/team-learning", icon: BookOpen },
         { label: "Skills", href: "/manager/team-skills", icon: Target },
-        { label: "Skill Gaps", href: "/manager/gaps", icon: BarChart3 },
         { label: "Leaderboard", href: "/manager/leaderboard", icon: Trophy },
         { label: "Reports", href: "/manager/reports", icon: ScrollText },
       ],
@@ -106,7 +105,6 @@ export function departmentNav(departmentId: string): NavSection[] {
         { label: "Overview", href: base, icon: LayoutDashboard },
         { label: "Skills", href: `${base}/team-skills`, icon: Target },
         { label: "Learning", href: `${base}/team-learning`, icon: BookOpen },
-        { label: "Skill Gaps", href: `${base}/gaps`, icon: BarChart3 },
       ],
     },
   ];

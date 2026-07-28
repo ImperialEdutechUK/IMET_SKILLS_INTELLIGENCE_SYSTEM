@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { verifyToken } from "@/lib/verifyToken";
 import { applyEnrollmentCompletion } from "@/lib/enrollment-complete";
+import { deriveProgress } from "@/lib/enrollment-progress";
 
 // Enrol the signed-in employee into a course.
 //  • Catalog course: pass { courseId } — reads the Course catalog, never writes it.
@@ -9,8 +10,8 @@ import { applyEnrollmentCompletion } from "@/lib/enrollment-complete";
 //    catalogue: pass { manual:true, title, externalUrl, provider, ... }. We create a
 //    SEGREGATED course row (source:internal, externalSource:"manual-self",
 //    approved:false) so it can be tracked/completed like any course but never enters
-//    recommendations (the engine filters approved:true) and the 22,965 scraped
-//    courses are never touched. status may be "completed" to log an already-done course.
+//    recommendations (the engine filters approved:true) and the scraped catalogue
+//    is never touched. status may be "completed" to log an already-done course.
 export async function POST(req: Request) {
   const authUser = verifyToken(req);
   if (!authUser) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
@@ -71,14 +72,35 @@ export async function POST(req: Request) {
       where: { userId_courseId: { userId: authUser.id, courseId: course.id } },
     });
     if (!enrollment) {
+      const nextStatus = wantCompleted ? "completed" : wantInProgress ? "in_progress" : "not_started";
+      // A course reported as already finished counts its full CPD hours as time spent;
+      // there is no session history to draw on for something done before enrolling.
+      const hoursLogged = wantCompleted ? (course.cpdHours > 0 ? course.cpdHours : 1) : 0;
+      const now = new Date();
       enrollment = await prisma.enrollment.create({
         data: {
           userId: authUser.id,
           courseId: course.id,
-          status: wantCompleted ? "completed" : wantInProgress ? "in_progress" : "not_started",
-          progress: wantCompleted ? 100 : wantInProgress ? 1 : 0,
-          startedAt: wantInProgress || wantCompleted ? new Date() : null,
-          completedAt: wantCompleted ? new Date() : null,
+          status: nextStatus,
+          progress: deriveProgress({
+            hoursLogged,
+            status: nextStatus,
+            durationHours: durationHours ?? null,
+            cpdHours: course.cpdHours,
+          }).progress,
+          hoursLogged,
+          lastActivityAt: now,
+          startedAt: wantInProgress || wantCompleted ? now : null,
+          completedAt: wantCompleted ? now : null,
+          events: {
+            create: [
+              { type: "enrolled", note: "Added a self-reported course", createdAt: now },
+              ...(wantInProgress ? [{ type: "started" as const, note: "Started the course", createdAt: now }] : []),
+              ...(wantCompleted
+                ? [{ type: "completed" as const, note: "Logged as already completed", createdAt: now }]
+                : []),
+            ],
+          },
         },
       });
     }
@@ -110,7 +132,13 @@ export async function POST(req: Request) {
   }
 
   const enrollment = await prisma.enrollment.create({
-    data: { userId: authUser.id, courseId, status: "not_started", progress: 0 },
+    data: {
+      userId: authUser.id,
+      courseId,
+      status: "not_started",
+      progress: 0,
+      events: { create: { type: "enrolled", note: "Enrolled from the catalogue" } },
+    },
   });
   return NextResponse.json({ ok: true, enrollmentId: enrollment.id });
 }

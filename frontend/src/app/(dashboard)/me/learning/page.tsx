@@ -2,17 +2,28 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { BookOpen, Clock, CheckCircle2, PlayCircle, Plus, ExternalLink, X } from "lucide-react";
+import { BookOpen, Clock, CheckCircle2, PlayCircle, Plus, ExternalLink, X, History } from "lucide-react";
 import Stat3D from "@/components/dashboard/Stat3D";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
 import { getToken } from "@/lib/authClient";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
+interface EnrollmentEvent {
+  id: string; type: string; hours: number | null; note: string | null; at: string;
+}
 interface Course {
   id: string; courseId: string; title: string; description: string; level: string;
   durationHours: number | null; category: string; provider: string | null; cpdHours: number;
   progress: number; status: string; externalUrl: string | null;
+  // Progress is derived server-side from hoursLogged vs targetHours — it is not
+  // something the learner can set. progressKnown is false when the course publishes
+  // no duration, in which case we show hours logged instead of a percentage.
+  progressKnown: boolean; targetHours: number | null; hoursLogged: number;
+  // What the scraped catalogue claims, vs the learner's own correction to it.
+  catalogueHours: number | null; targetHoursOverride: number | null;
+  lastActivityAt: string | null; daysSinceActivity: number | null;
+  events: EnrollmentEvent[];
   createdAt: string; completedAt: string | null; certificateId: string | null;
 }
 interface LearningData {
@@ -35,6 +46,9 @@ export default function MyLearningPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [logOpen, setLogOpen] = useState<Record<string, boolean>>({});
   const [logVal, setLogVal] = useState<Record<string, string>>({});
+  const [err, setErr] = useState<Record<string, string>>({});
+  const [trailOpen, setTrailOpen] = useState<Record<string, boolean>>({});
+  const [detail, setDetail] = useState<Course | null>(null);
 
   const load = useCallback(async () => {
     const r = await fetch(`${API}/api/me/learning`, { headers: { Authorization: `Bearer ${getToken()}` } });
@@ -62,21 +76,35 @@ export default function MyLearningPage() {
 
   const patch = async (id: string, body: Record<string, unknown>) => {
     setBusy((s) => ({ ...s, [id]: true }));
+    setErr((s) => ({ ...s, [id]: "" }));
+    let ok = false;
     try {
       const r = await fetch(`${API}/api/me/enrollments/${id}`, {
         method: "PATCH",
         headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
+      ok = r.ok;
       if (r.ok) await load();
-    } catch { /* ignore */ }
+      else {
+        const j = await r.json().catch(() => null);
+        setErr((s) => ({ ...s, [id]: j?.error ?? "Could not save that." }));
+      }
+    } catch {
+      setErr((s) => ({ ...s, [id]: "Could not reach the server." }));
+    }
     setBusy((s) => ({ ...s, [id]: false }));
+    return ok;
   };
 
   const logHours = async (id: string) => {
     const n = Number(logVal[id]);
-    if (!n || n <= 0) return;
-    await patch(id, { addHours: n });
+    if (!n || n <= 0) {
+      setErr((s) => ({ ...s, [id]: "Enter how many hours you spent." }));
+      return;
+    }
+    const ok = await patch(id, { addHours: n });
+    if (!ok) return;
     setLogVal((s) => ({ ...s, [id]: "" }));
     setLogOpen((s) => ({ ...s, [id]: false }));
   };
@@ -91,7 +119,7 @@ export default function MyLearningPage() {
           <Icon3D icon={BookOpen} tone={TONES.blue} />
           <div>
             <h1 className="text-2xl font-bold text-[var(--ink)]">My Learning</h1>
-            <p className="mt-1 text-sm text-[var(--muted)]">Track your courses and progress.</p>
+            <p className="mt-1 text-sm text-[var(--muted)]">Log the hours you spend — progress is calculated from them.</p>
           </div>
         </div>
         <button onClick={() => setShowAdd(true)} className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-dark)]">
@@ -126,37 +154,89 @@ export default function MyLearningPage() {
       {tab === "in_progress" && (
         <Section title="In Progress Courses" empty={data.inProgress.length === 0} emptyText="No courses in progress. Start one from the Not Started tab or enrol from your dashboard.">
           {data.inProgress.map((c) => (
-            <div key={c.id} className="flex flex-col gap-4 border-b border-[var(--border)] p-5 last:border-0 md:flex-row md:items-center">
-              <CourseIcon />
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-[var(--ink)]">{c.title}</p>
-                {c.description && <p className="mt-0.5 line-clamp-1 text-xs text-[var(--muted)]">{c.description}</p>}
-                <p className="mt-1 text-[11px] text-[var(--muted)]">{c.level}{c.durationHours ? ` · ${c.durationHours}h` : ""} · {c.category}</p>
+            <div key={c.id} className="border-b border-[var(--border)] p-5 last:border-0">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center">
+                <CourseIcon />
+                <div className="min-w-0 flex-1">
+                  <button onClick={() => setDetail(c)} className="text-left">
+                    <p className="text-sm font-semibold text-[var(--ink)] hover:text-[var(--brand)] hover:underline">{c.title}</p>
+                  </button>
+                  {c.description && <p className="mt-0.5 line-clamp-1 text-xs text-[var(--muted)]">{c.description}</p>}
+                  <p className="mt-1 text-[11px] text-[var(--muted)]">
+                    {c.level}{c.targetHours ? ` · ${c.targetHours}h` : ""} · {c.category}
+                    {c.targetHoursOverride !== null && <span className="text-[var(--brand)]"> · adjusted by you</span>}
+                  </p>
+                </div>
+
+                {/* Read-only: progress is computed from the hours logged below. */}
+                <div className="w-full md:w-56">
+                  <div className="mb-1 flex items-baseline justify-between text-xs">
+                    {c.progressKnown ? (
+                      <>
+                        <span className="font-semibold text-[var(--brand)]">{c.progress}%</span>
+                        <span className="text-[var(--muted)]">{c.hoursLogged}h of {c.targetHours}h</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-semibold text-[var(--brand)]">{c.hoursLogged}h</span>
+                        <span className="text-[var(--muted)]">logged</span>
+                      </>
+                    )}
+                  </div>
+                  {c.progressKnown && (
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100" role="progressbar"
+                      aria-valuenow={c.progress} aria-valuemin={0} aria-valuemax={100}
+                      aria-label={`${c.title} progress`}>
+                      <div className="h-full rounded-full bg-[var(--brand)] transition-[width] duration-500" style={{ width: `${c.progress}%` }} />
+                    </div>
+                  )}
+                  <p className="mt-1 text-[11px] text-[var(--muted)]">
+                    {c.hoursLogged === 0
+                      ? "No time logged yet"
+                      : c.daysSinceActivity !== null && c.daysSinceActivity > 21
+                        ? <span className="text-amber-600">Last activity {c.lastActivityAt}</span>
+                        : `Last activity ${c.lastActivityAt}`}
+                  </p>
+                </div>
+
+                <div className="flex shrink-0 flex-wrap items-center gap-2">
+                  {logOpen[c.id] ? (
+                    <>
+                      <input type="number" min={0} max={24} step={0.5} value={logVal[c.id] ?? ""} autoFocus
+                        onChange={(e) => setLogVal((s) => ({ ...s, [c.id]: e.target.value }))}
+                        onKeyDown={(e) => { if (e.key === "Enter") logHours(c.id); }}
+                        placeholder="hrs"
+                        className="w-16 rounded-lg border border-[var(--border)] px-2 py-1.5 text-xs outline-none focus:border-[var(--brand)]" />
+                      <button onClick={() => logHours(c.id)} disabled={busy[c.id]} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-xs font-medium text-white hover:bg-[var(--brand-dark)] disabled:opacity-60">Add</button>
+                      <button onClick={() => { setLogOpen((s) => ({ ...s, [c.id]: false })); setErr((s) => ({ ...s, [c.id]: "" })); }} className="rounded-lg border border-[var(--border)] px-2 py-1.5 text-xs font-medium text-[var(--muted)] hover:bg-slate-50">✕</button>
+                    </>
+                  ) : (
+                    <button onClick={() => setLogOpen((s) => ({ ...s, [c.id]: true }))} className="inline-flex items-center gap-1 rounded-lg bg-[var(--brand)] px-3 py-1.5 text-xs font-medium text-white hover:bg-[var(--brand-dark)]"><Clock className="h-3.5 w-3.5" /> Log Hours</button>
+                  )}
+                  {c.externalUrl && <a href={c.externalUrl} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--ink)] hover:bg-slate-50">Continue</a>}
+                  <button onClick={() => patch(c.id, { status: "completed" })} disabled={busy[c.id]} className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--ink)] hover:bg-slate-50 disabled:opacity-60">Mark Complete</button>
+                </div>
               </div>
-              <div className="w-full md:w-56">
-                <div className="mb-1 flex items-center justify-between text-xs"><span className="font-semibold text-[var(--brand)]">{c.progress}%</span><span className="text-[var(--muted)]">progress</span></div>
-                <input type="range" min={0} max={100} defaultValue={c.progress} disabled={busy[c.id]}
-                  onMouseUp={(e) => patch(c.id, { progress: Number((e.target as HTMLInputElement).value) })}
-                  onTouchEnd={(e) => patch(c.id, { progress: Number((e.target as HTMLInputElement).value) })}
-                  className="w-full accent-[var(--brand)]" />
-              </div>
-              <div className="flex shrink-0 flex-wrap items-center gap-2">
-                {logOpen[c.id] ? (
-                  <>
-                    <input type="number" min={0} step={0.5} value={logVal[c.id] ?? ""} autoFocus
-                      onChange={(e) => setLogVal((s) => ({ ...s, [c.id]: e.target.value }))}
-                      onKeyDown={(e) => { if (e.key === "Enter") logHours(c.id); }}
-                      placeholder="hrs"
-                      className="w-16 rounded-lg border border-[var(--border)] px-2 py-1.5 text-xs outline-none focus:border-[var(--brand)]" />
-                    <button onClick={() => logHours(c.id)} disabled={busy[c.id]} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-xs font-medium text-white hover:bg-[var(--brand-dark)] disabled:opacity-60">Add</button>
-                    <button onClick={() => setLogOpen((s) => ({ ...s, [c.id]: false }))} className="rounded-lg border border-[var(--border)] px-2 py-1.5 text-xs font-medium text-[var(--muted)] hover:bg-slate-50">✕</button>
-                  </>
-                ) : (
-                  <button onClick={() => setLogOpen((s) => ({ ...s, [c.id]: true }))} className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--ink)] hover:bg-slate-50"><Clock className="h-3.5 w-3.5" /> Log Hours</button>
-                )}
-                {c.externalUrl && <a href={c.externalUrl} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--ink)] hover:bg-slate-50">Continue</a>}
-                <button onClick={() => patch(c.id, { progress: 100 })} disabled={busy[c.id]} className="rounded-lg bg-[var(--brand)] px-3 py-1.5 text-xs font-medium text-white hover:bg-[var(--brand-dark)] disabled:opacity-60">Mark Complete</button>
-              </div>
+
+              {err[c.id] && <p className="mt-2 text-xs text-rose-600">{err[c.id]}</p>}
+
+              {c.events.length > 0 && (
+                <div className="mt-3">
+                  <button onClick={() => setTrailOpen((s) => ({ ...s, [c.id]: !s[c.id] }))}
+                    className="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--muted)] hover:text-[var(--ink)]">
+                    <History className="h-3 w-3" /> Activity{trailOpen[c.id] ? "" : ` (${c.events.length})`}
+                  </button>
+                  {trailOpen[c.id] && (
+                    <ul className="mt-2 space-y-1 border-l-2 border-[var(--border)] pl-3">
+                      {c.events.map((ev) => (
+                        <li key={ev.id} className="text-[11px] text-[var(--muted)]">
+                          <span className="text-[var(--ink)]">{ev.note ?? ev.type.replace("_", " ")}</span> · {ev.at}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </Section>
@@ -168,8 +248,13 @@ export default function MyLearningPage() {
             <div key={c.id} className="flex flex-col gap-3 border-b border-[var(--border)] p-5 last:border-0 md:flex-row md:items-center">
               <CourseIcon />
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-[var(--ink)]">{c.title}</p>
-                <p className="mt-0.5 text-[11px] text-[var(--muted)]">{c.level}{c.durationHours ? ` · ${c.durationHours}h` : ""} · {c.category} · enrolled {c.createdAt}</p>
+                <button onClick={() => setDetail(c)} className="text-left">
+                  <p className="text-sm font-semibold text-[var(--ink)] hover:text-[var(--brand)] hover:underline">{c.title}</p>
+                </button>
+                <p className="mt-0.5 text-[11px] text-[var(--muted)]">
+                  {c.level}{c.targetHours ? ` · ${c.targetHours}h` : ""} · {c.category} · enrolled {c.createdAt}
+                  {c.targetHoursOverride !== null && <span className="text-[var(--brand)]"> · adjusted by you</span>}
+                </p>
               </div>
               <div className="flex shrink-0 gap-2">
                 {c.externalUrl && <a href={c.externalUrl} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--ink)] hover:bg-slate-50">Preview</a>}
@@ -187,7 +272,7 @@ export default function MyLearningPage() {
               <Icon3D icon={CheckCircle2} tone={TONES.emerald} size="sm" />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-[var(--ink)]">{c.title}</p>
-                <p className="mt-0.5 text-[11px] text-[var(--muted)]">{c.level} · {c.category}{c.completedAt ? ` · completed ${c.completedAt}` : ""}</p>
+                <p className="mt-0.5 text-[11px] text-[var(--muted)]">{c.level} · {c.category}{c.completedAt ? ` · completed ${c.completedAt}` : ""}{c.hoursLogged > 0 ? ` · ${c.hoursLogged}h logged` : ""}</p>
               </div>
               <span className="shrink-0 rounded-full bg-[var(--brand-tint)] px-2.5 py-1 text-xs font-medium text-[var(--brand-dark)]">+{c.cpdHours} CPD</span>
               {c.certificateId && <Link href="/me/certificates" className="shrink-0 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--ink)] hover:bg-slate-50">View Certificate</Link>}
@@ -196,7 +281,117 @@ export default function MyLearningPage() {
         </Section>
       )}
 
+      {detail && (
+        <CourseDetailModal
+          course={detail}
+          onClose={() => setDetail(null)}
+          onSaved={async () => { setDetail(null); await load(); }}
+        />
+      )}
+
       {showAdd && <AddCourseModal onClose={() => setShowAdd(false)} onSaved={() => { setShowAdd(false); setLoading(true); load(); }} />}
+    </div>
+  );
+}
+
+// Read-only course details, with ONE editable field: the total hours.
+//
+// Catalogue durations come from the source's own free-text estimate of study time
+// (Coursera's "workload"), which often overstates the real course. This lets a
+// learner correct the denominator their progress is measured against. The edit is
+// stored on their enrollment — the shared course catalogue is never modified, so
+// nobody else's progress or recommendations shift because of it.
+function CourseDetailModal({ course, onClose, onSaved }: { course: Course; onClose: () => void; onSaved: () => void }) {
+  const [hours, setHours] = useState(course.targetHours != null ? String(course.targetHours) : "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const save = async (value: number | null) => {
+    setSaving(true); setError("");
+    try {
+      const r = await fetch(`${API}/api/me/enrollments/${course.id}`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ targetHours: value }),
+      });
+      if (r.ok) { onSaved(); return; }
+      const d = await r.json().catch(() => ({}));
+      setError(d.error || "Could not save the course length.");
+    } catch {
+      setError("Could not save the course length.");
+    }
+    setSaving(false);
+  };
+
+  const submit = () => {
+    const n = Number(hours);
+    if (!n || n <= 0) { setError("Enter the total hours for this course."); return; }
+    save(n);
+  };
+
+  const Row = ({ label, value }: { label: string; value: string }) => (
+    <div className="flex justify-between gap-4 py-1.5">
+      <span className="text-xs text-[var(--muted)]">{label}</span>
+      <span className="text-right text-xs font-medium text-[var(--ink)]">{value}</span>
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onClose}>
+      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-3 flex items-start justify-between gap-4">
+          <h2 className="text-lg font-bold leading-snug text-[var(--ink)]">{course.title}</h2>
+          <button onClick={onClose} className="shrink-0 text-[var(--muted)] hover:text-[var(--ink)]"><X className="h-5 w-5" /></button>
+        </div>
+
+        {course.description && (
+          <p className="mb-4 line-clamp-4 text-xs leading-relaxed text-[var(--muted)]">{course.description}</p>
+        )}
+
+        <div className="mb-4 divide-y divide-[var(--border)] rounded-lg border border-[var(--border)] px-3 py-1">
+          <Row label="Provider" value={course.provider ?? "—"} />
+          <Row label="Level" value={course.level} />
+          <Row label="Category" value={course.category} />
+          <Row label="CPD on completion" value={`${course.cpdHours}h`} />
+          <Row label="Time you've logged" value={`${course.hoursLogged}h`} />
+        </div>
+
+        <label className="mb-1 block text-xs font-medium text-[var(--ink)]">Total hours to complete</label>
+        <p className="mb-2 text-[11px] text-[var(--muted)]">
+          Your progress bar is this many hours divided into the time you log. Only you see this change.
+        </p>
+        <div className="flex items-center gap-2">
+          <input type="number" min={0.5} step={0.5} value={hours} autoFocus
+            onChange={(e) => setHours(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+            className="w-24 rounded-lg border border-[var(--border)] px-3 py-2 text-sm outline-none focus:border-[var(--brand)]" />
+          <span className="text-xs text-[var(--muted)]">hours</span>
+          <button onClick={submit} disabled={saving}
+            className="ml-auto rounded-lg bg-[var(--brand)] px-4 py-2 text-xs font-medium text-white hover:bg-[var(--brand-dark)] disabled:opacity-60">
+            {saving ? "Saving…" : "Save"}
+          </button>
+        </div>
+
+        {course.catalogueHours !== null && (
+          <p className="mt-2 text-[11px] text-[var(--muted)]">
+            {course.provider ?? "The catalogue"} says {course.catalogueHours}h.
+            {course.targetHoursOverride !== null && (
+              <button onClick={() => save(null)} disabled={saving} className="ml-1 font-medium text-[var(--brand)] hover:underline disabled:opacity-60">
+                Reset to {course.catalogueHours}h
+              </button>
+            )}
+          </p>
+        )}
+
+        {error && <p className="mt-2 text-xs text-rose-600">{error}</p>}
+
+        {course.externalUrl && (
+          <a href={course.externalUrl} target="_blank" rel="noopener noreferrer"
+            className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-[var(--brand)] hover:underline">
+            Open the course <ExternalLink className="h-3 w-3" />
+          </a>
+        )}
+      </div>
     </div>
   );
 }

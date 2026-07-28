@@ -1,6 +1,6 @@
 import Link from "next/link";
-import Image from "next/image";
 import type { LucideIcon } from "lucide-react";
+import HeroScene3D from "@/components/home/HeroScene3D";
 import {
   GraduationCap, Sparkles, Award, BarChart3, Globe, ArrowRight, ShieldCheck,
   Trophy, Zap, Users, BookOpen,
@@ -57,15 +57,8 @@ export default function LandingPage() {
           </Link>
         </div>
 
-        <div className="relative overflow-hidden rounded-3xl">
-          <Image
-            src="/hero.png"
-            alt="Employee learning with AI-powered recommendations"
-            width={1210}
-            height={1088}
-            priority
-            className="h-auto w-full scale-[1.03]"
-          />
+        <div className="relative">
+          <HeroScene3D animate speed={1} tilt={20} />
         </div>
       </section>
 

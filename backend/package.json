@@ -10,6 +10,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "db:push": "prisma db push",
+    "backfill:progress": "tsx --env-file=.env scripts/backfill-enrollment-progress.ts",
     "db:seed": "prisma db seed",
     "sync:coursera": "tsx --env-file=.env scripts/coursera-sync.ts",
     "sync:linkedin": "tsx --env-file=.env scripts/linkedin-learning-sync.ts",

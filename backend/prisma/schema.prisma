@@ -247,7 +247,18 @@ model CourseSkill {
 model Enrollment {
   id           String           @id @default(cuid())
   status       EnrollmentStatus @default(not_started)
+  // DERIVED — never set directly by a client. Recomputed from hoursLogged vs the
+  // course duration on every write (see lib/enrollment-progress.ts). Kept as a
+  // stored column so manager/admin/report queries can read it without a join.
   progress     Int              @default(0)  // 0–100
+  hoursLogged  Float            @default(0)  // self-reported time on this course
+  // The learner's own correction to the course length, used as the progress
+  // denominator when set. Catalogue durations are scraped estimates of total study
+  // time and often overstate the real course; this lets one learner fix their own
+  // view WITHOUT editing the shared Course row (which also feeds recommendation
+  // scoring for everyone). Null = trust the catalogue.
+  targetHoursOverride Float?
+  lastActivityAt DateTime?                   // last time the learner logged/started/completed
   startedAt    DateTime?
   completedAt  DateTime?
   createdAt    DateTime         @default(now())
@@ -259,8 +270,34 @@ model Enrollment {
   course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   cpdRecord CpdRecord?
+  events    EnrollmentEvent[]
 
   @@unique([userId, courseId])
+}
+
+enum EnrollmentEventType {
+  enrolled
+  started
+  hours_logged
+  completed
+  reopened
+  target_adjusted
+}
+
+// Append-only activity trail for an enrollment. Rows are only ever INSERTed — never
+// updated or deleted — so self-reported progress is at least timestamped and
+// auditable: a manager can see when hours were claimed, not just the final number.
+model EnrollmentEvent {
+  id        String              @id @default(cuid())
+  type      EnrollmentEventType
+  hours     Float?              // hours added, for hours_logged
+  note      String?             // short human-readable detail
+  createdAt DateTime            @default(now())
+
+  enrollmentId String
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  @@index([enrollmentId, createdAt])
 }
 
 model LearningPath {

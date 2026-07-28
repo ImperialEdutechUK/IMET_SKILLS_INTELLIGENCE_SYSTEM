@@ -13,7 +13,12 @@ const API = process.env.NEXT_PUBLIC_API_URL;
 const LEVELS = ["None", "Basic", "Intermediate", "Advanced", "Expert"];
 
 interface Skill { name: string; current: number; target: number; gap: number }
-interface Course { id: string; title: string; category: string; progress: number; cpdHours: number }
+interface Course {
+  id: string; title: string; category: string; progress: number; cpdHours: number;
+  // Progress is derived server-side from hours logged vs the course duration.
+  progressKnown: boolean; hoursLogged: number; targetHours: number | null;
+  daysSinceActivity: number | null;
+}
 interface Activity { id: string; title: string; type: string; hours: number; date: string }
 interface EmpData {
   id: string; fullName: string; email: string; position: string; department: string;
@@ -180,10 +185,19 @@ function CourseList({ title, courses, showProgress }: { title: string; courses: 
             <li key={c.id} className="flex items-center gap-3 px-5 py-3">
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-[var(--ink)]" title={c.title}>{c.title}</p>
-                <p className="text-xs text-[var(--muted)]">{c.category}</p>
+                <p className="text-xs text-[var(--muted)]">
+                  {c.category}
+                  {showProgress && ` · ${c.hoursLogged}h${c.targetHours ? ` of ${c.targetHours}h` : ""} logged`}
+                  {/* Stale = claimed as underway but no hours logged for 3+ weeks. */}
+                  {showProgress && c.daysSinceActivity !== null && c.daysSinceActivity > 21 && (
+                    <span className="text-amber-600"> · idle {c.daysSinceActivity}d</span>
+                  )}
+                </p>
               </div>
               {showProgress ? (
-                <span className="shrink-0 text-xs font-semibold text-[var(--brand)]">{c.progress}%</span>
+                <span className="shrink-0 text-xs font-semibold text-[var(--brand)]">
+                  {c.progressKnown ? `${c.progress}%` : `${c.hoursLogged}h`}
+                </span>
               ) : (
                 <span className="shrink-0 rounded-full bg-[var(--brand-tint)] px-2 py-0.5 text-[11px] font-medium text-[var(--brand-dark)]">+{c.cpdHours} CPD</span>
               )}

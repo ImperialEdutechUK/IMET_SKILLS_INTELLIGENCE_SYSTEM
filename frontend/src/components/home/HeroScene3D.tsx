@@ -69,15 +69,16 @@ export default function HeroScene3D({
           </div>
         </div>
 
-        {/* Three achievement hexes bobbing at different depths */}
+        {/* Three achievement hexes — badge, certificate, trophy — bobbing at
+            different depths */}
         <AchHex className="hero3d-ach hero3d-ach--1" color="#5b8def" depth={70}>
-          <Star />
+          <Medal />
         </AchHex>
         <AchHex className="hero3d-ach hero3d-ach--2" color="#e0a005" depth={-46}>
-          <Bolt />
+          <Certificate />
         </AchHex>
         <AchHex className="hero3d-ach hero3d-ach--3" color="#45a37c" depth={24}>
-          <Check />
+          <Trophy />
         </AchHex>
       </div>
     </div>
@@ -93,14 +94,34 @@ function AchHex({ className, color, depth, children }: { className: string; colo
   );
 }
 
-function Star() {
+// Flat white vector achievement marks — a medal badge, a certificate, a trophy.
+function Medal() {
   return (
-    <svg viewBox="0 0 24 24" fill="#fff"><path d="M12 2.5l2.9 5.9 6.5.95-4.7 4.6 1.1 6.5L12 17.9 6.1 21l1.1-6.5-4.7-4.6 6.5-.95z" /></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8.21 13.89 7 22l5-3 5 3-1.21-8.11" />
+      <circle cx="12" cy="8" r="6" />
+    </svg>
   );
 }
-function Bolt() {
-  return <svg viewBox="0 0 24 24" fill="#fff"><path d="M13 2L4 14h6l-1 8 9-12h-6z" /></svg>;
+function Certificate() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M15 12h-5" />
+      <path d="M15 8h-5" />
+      <path d="M19 17V5a2 2 0 0 0-2-2H4" />
+      <path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3" />
+    </svg>
+  );
 }
-function Check() {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12l5 5L20 6" /></svg>;
+function Trophy() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+      <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+      <path d="M4 22h16" />
+      <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+      <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+      <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+    </svg>
+  );
 }

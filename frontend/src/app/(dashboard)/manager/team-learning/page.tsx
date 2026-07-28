@@ -1,13 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
-import { BookOpen, CheckCircle, BarChart3, Users, Search, Download } from "lucide-react";
+import { BookOpen, CheckCircle, BarChart3, Users, Search, Download, ChevronDown } from "lucide-react";
 import Stat3D from "@/components/dashboard/Stat3D";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
 import BackToReports from "@/components/dashboard/BackToReports";
 import { getToken } from "@/lib/authClient";
 
+// Self-assessed levels, 0-based — the same scale as My Skills.
+const LEVELS = ["Not Started", "Beginner", "Intermediate", "Advanced", "Expert"];
+const levelName = (n: number) => LEVELS[n] ?? `Level ${n}`;
+
+interface Gap { skill: string; current: number; target: number; gap: number }
 interface Member {
   id: string;
   fullName: string;
@@ -16,6 +21,8 @@ interface Member {
   coursesCompleted: number;
   coursesInProgress: number;
   cpdProgress: number;
+  skillsTracked: number;
+  skillGaps: Gap[];
   lastActive: string;
 }
 interface Data {
@@ -32,6 +39,12 @@ export default function TeamLearningPage() {
   const [data, setData] = useState<Data | null>(null);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [openGaps, setOpenGaps] = useState<string | null>(null);
+
+  // Deep link from Skills: /manager/team-learning?member=<id> opens that person's gaps.
+  useEffect(() => {
+    setOpenGaps(new URLSearchParams(window.location.search).get("member"));
+  }, []);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -51,10 +64,12 @@ export default function TeamLearningPage() {
 
   const exportCsv = () => {
     if (!data) return;
-    const headers = ["Name", "Position", "Department", "Overall Progress", "Courses In Progress", "Completed Courses", "Last Active"];
+    const headers = ["Name", "Position", "Department", "Overall Progress", "Courses In Progress", "Completed Courses", "Skill Gaps", "Last Active"];
     const escape = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
     const rows = members.map((m) => [
-      m.fullName, m.position, m.department, `${m.cpdProgress}%`, m.coursesInProgress, m.coursesCompleted, m.lastActive,
+      m.fullName, m.position, m.department, `${m.cpdProgress}%`, m.coursesInProgress, m.coursesCompleted,
+      m.skillGaps.map((g) => `${g.skill}: ${levelName(g.current)} → ${levelName(g.target)}`).join("; "),
+      m.lastActive,
     ].map(escape).join(","));
     const csv = [headers.map(escape).join(","), ...rows].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -117,12 +132,16 @@ export default function TeamLearningPage() {
                       <th className="px-5 py-3 w-48">Overall Progress</th>
                       <th className="px-5 py-3">Courses In Progress</th>
                       <th className="px-5 py-3">Completed Courses</th>
+                      <th className="px-5 py-3">Skill Gaps</th>
                       <th className="px-5 py-3">Last Active</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--border)]">
-                    {members.map((m) => (
-                      <tr key={m.id} className="transition-colors hover:bg-slate-50">
+                    {members.map((m) => {
+                    const isOpen = openGaps === m.id;
+                    return (
+                    <React.Fragment key={m.id}>
+                      <tr className="transition-colors hover:bg-slate-50">
                         <td className="px-5 py-3.5">
                           <Link href={`/manager/employees/${m.id}`} className="flex items-center gap-3">
                             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--brand-tint)] text-xs font-semibold text-[var(--brand-dark)]">{m.fullName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase()}</span>
@@ -141,9 +160,40 @@ export default function TeamLearningPage() {
                         </td>
                         <td className="px-5 py-3.5 text-[var(--ink)]">{m.coursesInProgress}</td>
                         <td className="px-5 py-3.5 text-[var(--ink)]">{m.coursesCompleted}</td>
+                        <td className="px-5 py-3.5">
+                          {m.skillsTracked === 0 ? (
+                            <span className="text-xs text-[var(--muted)]">No skills added</span>
+                          ) : m.skillGaps.length === 0 ? (
+                            <span className="text-xs font-medium text-emerald-700">On target</span>
+                          ) : (
+                            <button onClick={() => setOpenGaps(isOpen ? null : m.id)}
+                              className="inline-flex items-center gap-1 text-xs font-medium text-[var(--brand)] hover:underline">
+                              {m.skillGaps.length} {m.skillGaps.length === 1 ? "gap" : "gaps"}
+                              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                            </button>
+                          )}
+                        </td>
                         <td className="px-5 py-3.5 text-[var(--muted)]">{m.lastActive}</td>
                       </tr>
-                    ))}
+                      {isOpen && m.skillGaps.length > 0 && (
+                        <tr className="bg-slate-50/70">
+                          <td colSpan={7} className="px-5 py-3">
+                            <p className="mb-2 text-xs font-medium text-[var(--muted)]">{m.fullName}&apos;s skill gaps — current level vs. the target they set</p>
+                            <ul className="space-y-1.5">
+                              {m.skillGaps.map((g) => (
+                                <li key={g.skill} className="flex flex-wrap items-baseline gap-x-2 text-xs">
+                                  <span className="font-medium text-[var(--ink)]">{g.skill}</span>
+                                  <span className="text-[var(--muted)]">{levelName(g.current)} <span className="text-slate-400">→</span> {levelName(g.target)}</span>
+                                  <span className="font-medium text-amber-600">+{g.gap} level{g.gap === 1 ? "" : "s"} to go</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                    );
+                    })}
                   </tbody>
                 </table>
               </div>

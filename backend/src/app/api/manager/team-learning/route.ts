@@ -13,7 +13,12 @@ export async function GET(req: Request) {
   const departmentId = authUser.departmentId;
   const users = await prisma.user.findMany({
     where: { role: "employee", ...(departmentId ? { departmentId } : {}) },
-    include: { enrollments: true, cpdRecords: true, department: true },
+    include: {
+      enrollments: true,
+      cpdRecords: true,
+      department: true,
+      userSkills: { include: { skill: true } },
+    },
     orderBy: { fullName: "asc" },
   });
 
@@ -24,6 +29,19 @@ export async function GET(req: Request) {
       if (!targetCache.has(key)) targetCache.set(key, await getCpdTargetHours(key));
       const target = targetCache.get(key)!;
       const cpdHours = u.cpdRecords.reduce((s, r) => s + r.hours, 0);
+
+      // Gaps are self-assessed only: the target the employee set for a skill
+      // minus where they are now. No role profile is involved.
+      const skillGaps = u.userSkills
+        .filter((us) => us.targetLevel > us.currentLevel)
+        .map((us) => ({
+          skill: us.skill.name,
+          current: us.currentLevel,
+          target: us.targetLevel,
+          gap: us.targetLevel - us.currentLevel,
+        }))
+        .sort((a, b) => b.gap - a.gap || a.skill.localeCompare(b.skill));
+
       return {
         id: u.id,
         fullName: u.fullName,
@@ -32,6 +50,8 @@ export async function GET(req: Request) {
         coursesCompleted: u.enrollments.filter((e) => e.status === "completed").length,
         coursesInProgress: u.enrollments.filter((e) => e.status === "in_progress").length,
         cpdProgress: Math.min(100, Math.round((cpdHours / target) * 100)),
+        skillsTracked: u.userSkills.length,
+        skillGaps,
         lastActive: u.updatedAt.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
       };
     })

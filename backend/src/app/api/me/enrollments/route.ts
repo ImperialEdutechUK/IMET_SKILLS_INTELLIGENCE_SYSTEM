@@ -9,8 +9,8 @@ import { applyEnrollmentCompletion } from "@/lib/enrollment-complete";
 //    catalogue: pass { manual:true, title, externalUrl, provider, ... }. We create a
 //    SEGREGATED course row (source:internal, externalSource:"manual-self",
 //    approved:false) so it can be tracked/completed like any course but never enters
-//    recommendations (the engine filters approved:true) and the 22,965 scraped
-//    courses are never touched. status may be "completed" to log an already-done course.
+//    recommendations (the engine filters approved:true) and the scraped catalogue
+//    is never touched. status may be "completed" to log an already-done course.
 export async function POST(req: Request) {
   const authUser = verifyToken(req);
   if (!authUser) return NextResponse.json({ error: "Not signed in." }, { status: 401 });

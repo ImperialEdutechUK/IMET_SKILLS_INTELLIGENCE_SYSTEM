@@ -147,7 +147,7 @@ export default function TeamSkillsPage() {
                           <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-medium ${prioBadge[m.priority] ?? "bg-slate-100 text-slate-600"}`}>{m.priority}</span>
                         </td>
                         <td className="px-5 py-4 text-right">
-                          <Link href="/manager/gaps" className="inline-flex items-center gap-1 text-sm font-medium text-[var(--brand)] hover:underline">
+                          <Link href={`/manager/team-learning?member=${m.id}`} className="inline-flex items-center gap-1 text-sm font-medium text-[var(--brand)] hover:underline">
                             View gaps <ArrowUpRight className="h-3.5 w-3.5" />
                           </Link>
                         </td>

@@ -5,7 +5,9 @@ Read `PROJECT_HANDOFF.md` for full detail. This file is the quick reference + ha
 ## What it is
 Full-stack skills-intelligence app for iMET. Tracks employee skills, computes gaps vs role requirements, recommends courses from a scraped catalog. Built by two developers sharing one DB: **you** (frontend/dashboards, branch `yenushka-features`) and **Nandika** (AI recommendation engine + scrapers, merged via PRs).
 
-Gap formula: `Gap = RoleProfile required level − UserSkill current level`. Courses matched from **22,965 scraped courses**.
+Gap formula: `Gap = RoleProfile required level − UserSkill current level`. Courses matched from the **scraped catalogue** (~27.6k courses as of 2026-07-28 — Coursera + LinkedIn Learning + edX; it GROWS with every `npm run sync:*`).
+
+⚠️ **Never quote a course count from this file as fact.** It goes stale after every sync. The source of truth is the DB: `SELECT count(*) FROM "Course";` (or `prisma.course.count()`). Verify before using a count in a migration check, test assertion, or report.
 
 ## Stack
 - Monorepo: `/Users/kalindibandara/Downloads/learnsmart-ai/`
@@ -15,7 +17,7 @@ Gap formula: `Gap = RoleProfile required level − UserSkill current level`. Cou
 
 ## HARD RULES (never break)
 1. **Only push to `yenushka-features`. NEVER `main`.**
-2. **NEVER touch the 22,965 scraped courses** (no delete/bulk-edit/overwrite). Real production data.
+2. **NEVER touch the scraped course catalogue** (no delete/bulk-edit/overwrite). Real production data. Applies to the whole `Course` table regardless of its current row count.
 3. **NEVER run destructive DB ops** (`migrate reset`, `db push` altering columns, bulk deletes) without explicit OK. `db pull` + `generate` are safe.
 4. **NEVER commit secrets.** Keys/passwords only in `.env` (gitignored). The pasted OpenRouter key must be revoked.
 5. **Backend & frontend in SEPARATE terminals.** Commands in the `npm run dev` tab kill the server. Empty curl + `JSONDecodeError` = backend down → `lsof -ti:3001 | xargs kill -9` then `npm run dev`.
@@ -24,7 +26,7 @@ Gap formula: `Gap = RoleProfile required level − UserSkill current level`. Cou
 
 ## Schema notes
 - Schema is **Nandika's version** — relations are **camelCase** (`requirements`, `roleProfile`, `skill`, `department`), not PascalCase.
-- Key models: RoleProfile, RoleSkillRequirement, SkillGap (engine output), SkillAlias, CpdTarget (annual `hoursPerYear`, default 40), CpdRecord, Course (the 22,965), CourseSkill, Notification (exists, no CPD alerts yet).
+- Key models: RoleProfile, RoleSkillRequirement, SkillGap (engine output), SkillAlias, CpdTarget (annual `hoursPerYear`, default 40), CpdRecord, Course (the scraped catalogue), CourseSkill, Notification (exists, no CPD alerts yet).
 - `User.position` (nullable String) is the ONLY link to `RoleProfile.title` (no FK).
 
 ## Demo logins (plaintext for testing)

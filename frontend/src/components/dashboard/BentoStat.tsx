@@ -19,7 +19,7 @@ const TONES: Record<BentoTone, { bg: string; fg: string; solid?: boolean }> = {
 };
 
 export default function BentoStat({
-  icon: Icon, tone = "green", label, value, sub, href, className = "",
+  icon: Icon, tone = "green", label, value, sub, href, className = "", index = 0,
 }: {
   icon: LucideIcon;
   tone?: BentoTone;
@@ -28,11 +28,12 @@ export default function BentoStat({
   sub?: string;
   href?: string;
   className?: string;
+  index?: number;   // staggers the gentle icon bob so tiles don't move in lockstep
 }) {
   const t = TONES[tone];
   const inner = (
     <>
-      <span className={`grid h-11 w-11 place-items-center rounded-xl ${t.solid ? "bg-white/20" : "bg-white/70"}`}>
+      <span className={`gam-bob grid h-11 w-11 place-items-center rounded-xl transition-transform duration-300 group-hover:scale-110 ${t.solid ? "bg-white/20" : "bg-white/70"}`} style={{ animationDelay: `${(index % 4) * 0.4}s` }}>
         <Icon className="h-5.5 w-5.5" style={{ width: 22, height: 22, color: t.fg }} />
       </span>
       <div className="mt-3">
@@ -42,9 +43,9 @@ export default function BentoStat({
       </div>
     </>
   );
-  const cls = `flex h-full flex-col rounded-2xl p-5 ${className}`;
+  const cls = `group flex h-full flex-col rounded-2xl p-5 transition hover:-translate-y-0.5 hover:shadow-md ${className}`;
   return href ? (
-    <Link href={href} className={`${cls} transition hover:-translate-y-0.5 hover:shadow-md`} style={{ background: t.bg }}>{inner}</Link>
+    <Link href={href} className={cls} style={{ background: t.bg }}>{inner}</Link>
   ) : (
     <div className={cls} style={{ background: t.bg }}>{inner}</div>
   );

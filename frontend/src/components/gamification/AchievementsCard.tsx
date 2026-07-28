@@ -12,7 +12,7 @@ export default function AchievementsCard(input: GamInput) {
     <Link
       href="/me/certificates"
       className="group relative mb-6 block overflow-hidden rounded-2xl p-5 text-white transition hover:-translate-y-0.5 hover:shadow-lg"
-      style={{ background: "linear-gradient(135deg, #2e7d5b 0%, #123f2b 100%)" }}
+      style={{ background: "linear-gradient(135deg, #45a37c 0%, #216b4c 100%)" }}
     >
       <div className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
       <div className="relative flex flex-wrap items-center gap-4">

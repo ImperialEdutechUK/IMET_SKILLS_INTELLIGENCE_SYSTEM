@@ -18,16 +18,18 @@ export const TONES: Record<string, Icon3DTone> = {
 export default function Icon3D({
   icon: Icon,
   size = "md",
+  live = false,
 }: {
   icon: LucideIcon;
   tone?: Icon3DTone;
   size?: "sm" | "md" | "lg";
+  live?: boolean;   // gentle float — for hero/header badges that should feel alive
 }) {
   const dim = size === "lg" ? "h-16 w-16" : size === "sm" ? "h-10 w-10" : "h-12 w-12";
   const icn = size === "lg" ? "h-8 w-8" : size === "sm" ? "h-5 w-5" : "h-6 w-6";
   const radius = size === "lg" ? "rounded-2xl" : "rounded-xl";
   return (
-    <span className={`grid ${dim} shrink-0 place-items-center ${radius} bg-[var(--brand-tint)] text-[var(--brand-dark)]`}>
+    <span className={`grid ${dim} shrink-0 place-items-center ${radius} bg-[var(--brand-tint)] text-[var(--brand-dark)] ${live ? "gam-float" : ""}`}>
       <Icon className={icn} strokeWidth={2} />
     </span>
   );

@@ -88,12 +88,9 @@ export default function ManagerDashboardPage() {
         </Link>
       </div>
 
-      {/* Your own learning game — visible right here on the team dashboard too. */}
-      <MyAchievementsCard />
-
-      {/* At-a-glance health — the one thing a manager should read first */}
+      {/* At-a-glance health — THE hero: the one thing a manager should read first */}
       <div className="mb-6 flex flex-wrap items-center gap-4 rounded-2xl border border-[var(--border)] bg-white p-5">
-        <Icon3D icon={health.icon} tone={health.tone} size="lg" />
+        <Icon3D icon={health.icon} tone={health.tone} size="lg" live />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <span className="text-xl font-bold text-[var(--ink)]">{health.word}</span>
@@ -108,16 +105,18 @@ export default function ManagerDashboardPage() {
         )}
       </div>
 
-      {/* 3D stat tiles — clickable */}
-      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <BentoStat href="/manager/team-learning" icon={Users} tone="greenSolid" label="Active learners" value={`${stats.activeLearners} of ${stats.teamMembers}`} sub="Enrolled in a course" />
-        <BentoStat href="/manager/team-learning" icon={BookOpen} tone="blue" label="Courses in progress" value={stats.coursesInProgress} sub={`${stats.coursesCompleted} completed`} />
-        <BentoStat href="/manager/team-cpd" icon={Award} tone="teal" label="CPD hours logged" value={`${stats.cpdHoursTotal} of ${stats.teamTarget}h`} sub="Annual team target" />
-        <BentoStat href="/manager/team-skills" icon={TrendingUp} tone="amber" label="Avg skill level" value={`${stats.avgSkillLevel}%`} sub="Across the team" />
+      {/* Key numbers — clickable, live tiles */}
+      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Key numbers</p>
+      <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <BentoStat index={0} href="/manager/team-learning" icon={Users} tone="greenSolid" label="Active learners" value={`${stats.activeLearners} of ${stats.teamMembers}`} sub="Enrolled in a course" />
+        <BentoStat index={1} href="/manager/team-learning" icon={BookOpen} tone="blue" label="Courses in progress" value={stats.coursesInProgress} sub={`${stats.coursesCompleted} completed`} />
+        <BentoStat index={2} href="/manager/team-cpd" icon={Award} tone="teal" label="CPD hours logged" value={`${stats.cpdHoursTotal} of ${stats.teamTarget}h`} sub="Annual team target" />
+        <BentoStat index={3} href="/manager/team-skills" icon={TrendingUp} tone="amber" label="Avg skill level" value={`${stats.avgSkillLevel}%`} sub="Across the team" />
       </div>
 
       {/* Snapshot: CPD split + who needs attention — always visible, the clear picture */}
-      <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Team snapshot</p>
+      <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
           <div className="mb-3 flex items-center gap-3">
             <Icon3D icon={Award} tone={TONES.amber} size="sm" />
@@ -163,6 +162,7 @@ export default function ManagerDashboardPage() {
       </div>
 
       {/* Detail behind dropdowns — keeps the main view clear, detail one click away */}
+      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">More detail <span className="font-normal normal-case text-[var(--muted)]/70">· tap to expand</span></p>
       <div className="space-y-4">
         <CollapsibleCard title="Team learning hours" subtitle={thisWeek > 0 ? `${thisWeek}h logged this week` : "CPD hours logged over time"} icon={BarChart3} tone={TONES.blue}>
           <div className="mb-4 flex justify-end">
@@ -203,6 +203,10 @@ export default function ManagerDashboardPage() {
           )}
         </CollapsibleCard>
       </div>
+
+      {/* Your own learning game — personal, so it sits below the team picture */}
+      <p className="mb-3 mt-8 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Your progress</p>
+      <MyAchievementsCard />
     </div>
   );
 }

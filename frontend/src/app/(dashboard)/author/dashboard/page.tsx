@@ -16,7 +16,7 @@ const missingConfig: Record<string, { label: string; bg: string }> = {
   skill_tags: { label: "No Skill Tags", bg: "bg-orange-50 text-orange-700 border-orange-200" },
 };
 // Same categorical palette used by the manager department donut.
-const CATEGORY_COLORS = ["#2e7d5b", "#3b82f6", "#8b5cf6", "#f59e0b", "#f43f5e", "#64748b"];
+const CATEGORY_COLORS = ["#3f9d75", "#5b8def", "#8b5cf6", "#f59e0b", "#f43f5e", "#64748b"];
 
 const quickActions = [
   { icon: Plus, label: "Add Course", href: "/author/courses/new" },
@@ -56,18 +56,21 @@ export default function AuthorDashboardPage() {
 
   return (
     <div>
-      <div className="mb-6 rounded-2xl bg-[var(--brand)] px-8 py-7">
-        <h1 className="text-2xl font-bold text-white">Author Dashboard</h1>
-        <p className="mt-1 text-sm text-green-100">Manage your course library and keep it recommendation-ready.</p>
-        <a href="/author/courses/new" className="mt-4 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-[var(--brand)] hover:bg-green-50">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[var(--ink)]">Author Dashboard</h1>
+          <p className="mt-1 text-sm text-[var(--muted)]">Manage your course library and keep it recommendation-ready.</p>
+        </div>
+        <a href="/author/courses/new" className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium text-[var(--ink)] hover:bg-slate-50">
           <Plus className="h-4 w-4" /> Add New Course
         </a>
       </div>
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <BentoStat icon={Library} tone="greenSolid" label="Total Courses" value={data.totalCourses.toLocaleString()} />
-        <BentoStat icon={BookOpen} tone="blue" label="Published" value={data.published.toLocaleString()} />
-        <BentoStat icon={AlertCircle} tone="amber" label="Needs Completion" value={data.needsCompletion.toLocaleString()} sub="action required" />
-        <BentoStat icon={Users} tone="teal" label="Total Enrollments" value={data.totalEnrollments.toLocaleString()} />
+      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Key numbers</p>
+      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <BentoStat index={0} icon={Library} tone="greenSolid" label="Total Courses" value={data.totalCourses.toLocaleString()} />
+        <BentoStat index={1} icon={BookOpen} tone="blue" label="Published" value={data.published.toLocaleString()} />
+        <BentoStat index={2} icon={AlertCircle} tone="amber" label="Needs Completion" value={data.needsCompletion.toLocaleString()} sub="action required" />
+        <BentoStat index={3} icon={Users} tone="teal" label="Total Enrollments" value={data.totalEnrollments.toLocaleString()} />
       </div>
       <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="rounded-2xl border border-[var(--border)] bg-white p-5 lg:col-span-2">
@@ -75,7 +78,7 @@ export default function AuthorDashboardPage() {
             <h3 className="font-semibold text-[var(--ink)]">Content Activity</h3>
             <span className="text-xs text-[var(--muted)]">courses / month</span>
           </div>
-          <LearnAreaChart data={data.contentActivity} xKey="month" dataKeys={[{ key: "added", label: "Added", color: "#2e7d5b" }, { key: "published", label: "Published", color: "#9fe1cb" }]} unit="" height={200} />
+          <LearnAreaChart data={data.contentActivity} xKey="month" dataKeys={[{ key: "added", label: "Added", color: "#3f9d75" }, { key: "published", label: "Published", color: "#9fe1cb" }]} unit="" height={200} />
         </div>
         <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
           <div className="mb-4 flex items-center justify-between">

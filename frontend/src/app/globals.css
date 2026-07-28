@@ -25,6 +25,11 @@ body {
   0%, 100% { transform: translateY(0); }
   50%      { transform: translateY(-6px); }
 }
+/* Gentler, slower bob for the many small tile icons — alive but never busy. */
+@keyframes gam-bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
 @keyframes gam-pop {
   0%   { transform: scale(.82); opacity: 0; }
   60%  { transform: scale(1.04); opacity: 1; }
@@ -50,10 +55,11 @@ body {
   animation-delay: 1s;
 }
 .gam-float      { animation: gam-float 3s ease-in-out infinite; }
+.gam-bob        { animation: gam-bob 4.5s ease-in-out infinite; }
 .gam-pop        { animation: gam-pop .45s cubic-bezier(.2,.8,.3,1.2) both; }
 .gam-fill       { animation: gam-fill 1s ease-out both; }
 .gam-pulse-ring { animation: gam-pulse-ring 2s ease-out infinite; }
 
 @media (prefers-reduced-motion: reduce) {
-  .gam-shine::after, .gam-float, .gam-pop, .gam-fill, .gam-pulse-ring { animation: none; }
+  .gam-shine::after, .gam-float, .gam-bob, .gam-pop, .gam-fill, .gam-pulse-ring { animation: none; }
 }

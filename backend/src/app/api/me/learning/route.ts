@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { verifyToken } from "@/lib/verifyToken";
+import { deriveProgress } from "@/lib/enrollment-progress";
 
 // My Learning: everything the 4 tabs need — In Progress, Not Started, Completed,
 // and Learning Paths — all computed from the employee's real enrollment rows.
@@ -11,7 +12,12 @@ export async function GET(req: Request) {
   const [enrollments, cpdRecords, paths] = await Promise.all([
     prisma.enrollment.findMany({
       where: { userId: authUser.id },
-      include: { course: { include: { category: true } } },
+      include: {
+        course: { include: { category: true } },
+        // Most recent slice of the append-only trail — enough to show the learner
+        // (and, on the manager view, an auditor) how the hours accumulated.
+        events: { orderBy: { createdAt: "desc" }, take: 6 },
+      },
       orderBy: { updatedAt: "desc" },
     }),
     prisma.cpdRecord.findMany({ where: { userId: authUser.id } }),
@@ -21,25 +27,55 @@ export async function GET(req: Request) {
   const certificates = await prisma.certificate.findMany({ where: { userId: authUser.id } });
   const certByTitle = new Map(certificates.map((c) => [c.title, c]));
 
-  const mapCourse = (e: (typeof enrollments)[number]) => ({
-    id: e.id,
-    courseId: e.courseId,
-    title: e.course.title,
-    description: e.course.description ?? "",
-    level: e.course.level ?? "All levels",
-    durationHours: e.course.durationHours ?? null,
-    category: e.course.category?.name ?? "General",
-    provider: e.course.provider ?? null,
-    cpdHours: e.course.cpdHours,
-    progress: e.progress,
-    status: e.status,
-    externalUrl: e.course.externalUrl ?? null,
-    createdAt: e.createdAt.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
-    completedAt: e.completedAt
-      ? e.completedAt.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
-      : null,
-    certificateId: certByTitle.get(e.course.title)?.id ?? null,
-  });
+  const fmtDate = (d: Date) =>
+    d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+
+  const mapCourse = (e: (typeof enrollments)[number]) => {
+    // Recompute rather than trusting the stored column, so a row written before the
+    // derived-progress change still renders correctly even ahead of the backfill.
+    const derived = deriveProgress({
+      hoursLogged: e.hoursLogged,
+      status: e.status,
+      durationHours: e.course.durationHours,
+      cpdHours: e.course.cpdHours,
+      targetHoursOverride: e.targetHoursOverride,
+    });
+    return {
+      id: e.id,
+      courseId: e.courseId,
+      title: e.course.title,
+      description: e.course.description ?? "",
+      level: e.course.level ?? "All levels",
+      durationHours: e.course.durationHours ?? null,
+      category: e.course.category?.name ?? "General",
+      provider: e.course.provider ?? null,
+      cpdHours: e.course.cpdHours,
+      progress: derived.progress,
+      progressKnown: derived.progressKnown,
+      targetHours: derived.targetHours,
+      // What the scraped catalogue claims, kept alongside the learner's correction
+      // so the edit dialog can show both and offer a reset.
+      catalogueHours: e.course.durationHours ?? (e.course.cpdHours > 0 ? e.course.cpdHours : null),
+      targetHoursOverride: e.targetHoursOverride,
+      hoursLogged: Math.round(e.hoursLogged * 10) / 10,
+      status: e.status,
+      externalUrl: e.course.externalUrl ?? null,
+      createdAt: fmtDate(e.createdAt),
+      lastActivityAt: e.lastActivityAt ? fmtDate(e.lastActivityAt) : null,
+      daysSinceActivity: e.lastActivityAt
+        ? Math.floor((Date.now() - e.lastActivityAt.getTime()) / 86_400_000)
+        : null,
+      completedAt: e.completedAt ? fmtDate(e.completedAt) : null,
+      certificateId: certByTitle.get(e.course.title)?.id ?? null,
+      events: e.events.map((ev) => ({
+        id: ev.id,
+        type: ev.type,
+        hours: ev.hours,
+        note: ev.note,
+        at: ev.createdAt.toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
+      })),
+    };
+  };
 
   const inProgress = enrollments.filter((e) => e.status === "in_progress").map(mapCourse);
   const notStarted = enrollments.filter((e) => e.status === "not_started").map(mapCourse);

@@ -73,7 +73,7 @@ export default function LandingPage() {
       <section className="mx-auto max-w-7xl px-6 py-10">
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {/* Big AI tile (2×2) */}
-          <div className="relative col-span-2 flex flex-col justify-between overflow-hidden rounded-3xl p-6 text-white lg:row-span-2" style={{ background: "linear-gradient(135deg,#2e7d5b,#123f2b)" }}>
+          <div className="relative col-span-2 flex flex-col justify-between overflow-hidden rounded-3xl p-6 text-white lg:row-span-2" style={{ background: "linear-gradient(135deg,#45a37c,#216b4c)" }}>
             <div className="pointer-events-none absolute -right-10 -top-12 h-44 w-44 rounded-full bg-white/10 blur-2xl" />
             <span className="grid h-12 w-12 place-items-center rounded-2xl bg-white/15"><Sparkles className="h-6 w-6" /></span>
             <div className="relative mt-6">
@@ -86,7 +86,7 @@ export default function LandingPage() {
           <Feature icon={BarChart3} tone="teal" title="Track Progress" desc="Circular progress, skill gaps and clear dashboards." />
 
           {/* Gamified wide tile */}
-          <div className="relative col-span-2 flex items-center gap-4 overflow-hidden rounded-3xl p-6 text-white" style={{ background: "linear-gradient(135deg,#2563eb,#1e3a8a)" }}>
+          <div className="relative col-span-2 flex items-center gap-4 overflow-hidden rounded-3xl p-6 text-white" style={{ background: "linear-gradient(135deg,#5b8def,#3563d6)" }}>
             <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white/15"><Trophy className="h-6 w-6" /></span>
             <div>
               <h3 className="text-lg font-extrabold">Gamified learning</h3>

@@ -16,7 +16,7 @@ export default function AchievementsBento(input: GamInput) {
   return (
     <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
       {/* HERO — big tile (2×2) */}
-      <div className="relative col-span-2 flex flex-col justify-between gap-5 overflow-hidden rounded-3xl p-6 text-white lg:row-span-2" style={{ background: "linear-gradient(135deg, #2e7d5b 0%, #123f2b 100%)" }}>
+      <div className="relative col-span-2 flex flex-col justify-between gap-5 overflow-hidden rounded-3xl p-6 text-white lg:row-span-2" style={{ background: "linear-gradient(135deg, #45a37c 0%, #216b4c 100%)" }}>
         <div className="pointer-events-none absolute -right-10 -top-12 h-44 w-44 rounded-full bg-white/10 blur-2xl" />
         <div className="pointer-events-none absolute -bottom-14 left-1/3 h-40 w-40 rounded-full bg-lime-300/10 blur-2xl" />
         <div className="relative flex items-center gap-4">

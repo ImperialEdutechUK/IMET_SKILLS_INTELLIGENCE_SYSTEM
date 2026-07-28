@@ -5,14 +5,17 @@ import type { LucideIcon } from "lucide-react";
 // and blue shades. The shared building block for the bento dashboards.
 export type BentoTone = "greenSolid" | "blueSolid" | "green" | "blue" | "teal" | "amber" | "violet";
 
+// Softer, lighter palette — professional and easy on the eye, still colourful and
+// gamified. The two "solid" tones are gentle gradients (not dark blocks) with a
+// tinted-ink label so nothing shouts; the rest are pastel tints.
 const TONES: Record<BentoTone, { bg: string; fg: string; solid?: boolean }> = {
-  greenSolid: { bg: "linear-gradient(135deg,#2e7d5b,#1c5038)", fg: "#ffffff", solid: true },
-  blueSolid:  { bg: "linear-gradient(135deg,#2563eb,#1e3a8a)", fg: "#ffffff", solid: true },
-  green:      { bg: "#e8f1ed", fg: "#215c43" },
-  blue:       { bg: "#e3eefb", fg: "#1d4ed8" },
-  teal:       { bg: "#d7efe8", fg: "#0f766e" },
-  amber:      { bg: "#fbefd6", fg: "#b45309" },
-  violet:     { bg: "#ece9fb", fg: "#6d28d9" },
+  greenSolid: { bg: "linear-gradient(135deg,#5cb891,#3f9d75)", fg: "#ffffff", solid: true },
+  blueSolid:  { bg: "linear-gradient(135deg,#6f9ef4,#4f7fe6)", fg: "#ffffff", solid: true },
+  green:      { bg: "#eaf4ee", fg: "#2b6b4e" },
+  blue:       { bg: "#e8f0fd", fg: "#2456c8" },
+  teal:       { bg: "#e0f2ec", fg: "#14806f" },
+  amber:      { bg: "#fbf1de", fg: "#b06a12" },
+  violet:     { bg: "#f0edfc", fg: "#6d3fd6" },
 };
 
 export default function BentoStat({

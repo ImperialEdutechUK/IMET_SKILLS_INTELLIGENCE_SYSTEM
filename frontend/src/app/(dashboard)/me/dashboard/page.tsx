@@ -102,7 +102,7 @@ export default function EmployeeDashboardPage() {
           the annual CPD target (with pace), the biggest skill gap, and courses finished. */}
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {/* CPD — the labelled ring is the only place the hours numeral appears. */}
-        <Link href="/me/cpd" className="block rounded-2xl border border-[var(--border)] p-5 transition hover:-translate-y-0.5 hover:shadow-md" style={{ background: "#e8f1ed" }}>
+        <Link href="/me/cpd" className="block rounded-2xl border border-[var(--border)] p-5 transition hover:-translate-y-0.5 hover:shadow-md" style={{ background: "#eaf4ee" }}>
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-sm text-[var(--muted)]">CPD Progress</p>
@@ -117,7 +117,7 @@ export default function EmployeeDashboardPage() {
 
         {/* Priority skill gap — the product's core answer to "what am I missing?" */}
         <StatCard icon={Target} tone={data.gapCount > 0 ? TONES.amber : TONES.emerald} label="Priority Skill Gap"
-          bg="#e3eefb"
+          bg="#e8f0fd"
           href="/me/skills"
           linkText={data.gapCount > 0 ? "View skill gaps" : "View skills"}
           headline={data.topGap ? data.topGap.skill : "No gaps to close"}
@@ -129,7 +129,7 @@ export default function EmployeeDashboardPage() {
 
         {/* Momentum — completed is the number people actually care about. */}
         <StatCard icon={Award} tone={TONES.violet} label="Courses Completed"
-          bg="#ece9fb"
+          bg="#f0edfc"
           href="/me/learning"
           linkText={data.completedCount > 0 ? "View my learning" : "Browse courses"}
           headline={data.completedCount > 0 ? String(data.completedCount) : "None yet"}

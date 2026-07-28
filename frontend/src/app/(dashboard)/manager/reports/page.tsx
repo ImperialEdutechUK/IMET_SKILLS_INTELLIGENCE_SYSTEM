@@ -6,7 +6,16 @@ import { Users, BookOpen, Award, Clock, TrendingUp, Download, ArrowRight, ArrowL
 import Stat3D from "@/components/dashboard/Stat3D";
 import Icon3D, { TONES, type Icon3DTone } from "@/components/dashboard/Icon3D";
 import LearnAreaChart from "@/components/charts/LearnAreaChart";
+import LearnDonutChart from "@/components/charts/LearnDonutChart";
+import ProgressRing from "@/components/cpd/ProgressRing";
 import { getToken } from "@/lib/authClient";
+
+type InsightTab = "progress" | "trend" | "breakdown";
+const INSIGHT_TABS: { key: InsightTab; label: string; icon: typeof BarChart3 }[] = [
+  { key: "progress", label: "Progress", icon: Target },
+  { key: "trend", label: "Trend", icon: TrendingUp },
+  { key: "breakdown", label: "Breakdown", icon: BarChart3 },
+];
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -27,6 +36,7 @@ const REPORT_CARDS: { title: string; desc: string; href: string; icon: typeof Gr
 export default function ManagerReportsPage() {
   const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<InsightTab>("progress");
 
   const load = useCallback(() => {
     setLoading(true);
@@ -107,21 +117,59 @@ export default function ManagerReportsPage() {
             <Stat3D icon={TrendingUp} tone={TONES.violet} label="Average Progress" value={`${data.stats.avgProgress}%`} />
           </div>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <div className="rounded-2xl border border-[var(--border)] bg-white p-5 lg:col-span-2">
-              <div className="mb-4 flex items-center gap-3"><Icon3D icon={BarChart3} tone={TONES.blue} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Learning Progress Trend <span className="text-xs font-normal text-[var(--muted)]">· last 8 weeks</span></h3></div>
-              <LearnAreaChart data={data.trend} xKey="label" dataKeys={[{ key: "avgProgress", label: "progress %", color: "#2e7d5b" }, { key: "cpdHours", label: "CPD hours", color: "#3b82f6" }]} height={220} />
+          {/* One engaging view at a time — tap a tab to switch. Keeps the page
+              uncluttered instead of stacking every chart on screen at once. */}
+          <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <Icon3D icon={BarChart3} tone={TONES.blue} size="sm" />
+                <div>
+                  <h3 className="font-semibold text-[var(--ink)]">Team insights</h3>
+                  <p className="text-xs text-[var(--muted)]">{INSIGHT_TABS.find((t) => t.key === tab)?.label} view · tap to switch</p>
+                </div>
+              </div>
+              <div className="inline-flex rounded-xl bg-[var(--brand-tint)] p-1">
+                {INSIGHT_TABS.map((t) => {
+                  const Icon = t.icon;
+                  const active = tab === t.key;
+                  return (
+                    <button key={t.key} onClick={() => setTab(t.key)}
+                      className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition ${active ? "bg-white text-[var(--brand-dark)] shadow-sm" : "text-[var(--brand-dark)]/70 hover:text-[var(--brand-dark)]"}`}>
+                      <Icon className="h-4 w-4" /> {t.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
-              <div className="mb-4 flex items-center gap-3"><Icon3D icon={CheckCircle2} tone={TONES.emerald} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Progress Summary</h3></div>
-              <ProgressRow label="Learning Progress" pct={data.progress.learningProgress} color="bg-[var(--brand)]" />
-              <div className="mt-4"><ProgressRow label="CPD Progress" pct={data.progress.cpdProgress} color="bg-blue-500" /></div>
-              <div className="mt-4"><ProgressRow label="Completion Rate" pct={data.progress.completionRate} color="bg-amber-500" /></div>
-              {data.recentReports.length === 0 && (
-                <p className="mt-5 text-xs text-[var(--muted)]">Generated reports will be listed here.</p>
-              )}
-            </div>
+            {tab === "progress" ? (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <RingStat label="Learning progress" pct={data.progress.learningProgress} color="#2e7d5b" bg="#eaf4ee" />
+                <RingStat label="CPD progress" pct={data.progress.cpdProgress} color="#2f7fe0" bg="#e8f0fd" />
+                <RingStat label="Completion rate" pct={data.progress.completionRate} color="#d9880f" bg="#fbf1de" />
+              </div>
+            ) : tab === "trend" ? (
+              <>
+                <LearnAreaChart data={data.trend} xKey="label" dataKeys={[{ key: "avgProgress", label: "progress %", color: "#3f9d75" }, { key: "cpdHours", label: "CPD hours", color: "#5b8def" }]} height={240} />
+                <p className="mt-2 text-center text-xs text-[var(--muted)]">Average learning progress and CPD hours · last 8 weeks</p>
+              </>
+            ) : (
+              <div className="flex flex-col items-center gap-4 py-2 sm:flex-row sm:justify-center sm:gap-10">
+                <LearnDonutChart
+                  data={[
+                    { name: "Completed", value: data.stats.coursesCompleted, color: "#3f9d75" },
+                    { name: "In progress", value: data.stats.coursesInProgress, color: "#5b8def" },
+                  ]}
+                  label={`${data.stats.coursesCompleted + data.stats.coursesInProgress}`}
+                  sublabel="courses"
+                  height={220}
+                />
+                <div className="space-y-3">
+                  <LegendRow color="#3f9d75" label="Completed" value={data.stats.coursesCompleted} />
+                  <LegendRow color="#5b8def" label="In progress" value={data.stats.coursesInProgress} />
+                </div>
+              </div>
+            )}
           </div>
         </>
       )}
@@ -129,11 +177,22 @@ export default function ManagerReportsPage() {
   );
 }
 
-function ProgressRow({ label, pct, color }: { label: string; pct: number; color: string }) {
+// A gamified progress ring in a soft tinted tile — animated, tappable feel.
+function RingStat({ label, pct, color, bg }: { label: string; pct: number; color: string; bg: string }) {
   return (
-    <div>
-      <div className="mb-1 flex items-center justify-between text-sm"><span className="font-medium text-[var(--ink)]">{label}</span><span className="text-[var(--muted)]">{pct}%</span></div>
-      <div className="h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${color}`} style={{ width: `${Math.min(100, pct)}%` }} /></div>
+    <div className="flex flex-col items-center gap-3 rounded-2xl p-5 text-center transition hover:-translate-y-0.5 hover:shadow-md" style={{ background: bg }}>
+      <ProgressRing percentage={pct} size={120} strokeWidth={11} color={color} trackColor="#ffffff" />
+      <p className="text-sm font-semibold text-[var(--ink)]">{label}</p>
+    </div>
+  );
+}
+
+function LegendRow({ color, label, value }: { color: string; label: string; value: number }) {
+  return (
+    <div className="flex items-center gap-2.5 text-sm">
+      <span className="h-3 w-3 rounded-full" style={{ background: color }} />
+      <span className="font-medium text-[var(--ink)]">{label}</span>
+      <span className="ml-auto font-bold text-[var(--ink)]">{value}</span>
     </div>
   );
 }

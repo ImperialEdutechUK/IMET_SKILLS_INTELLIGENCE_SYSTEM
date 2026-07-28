@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { GraduationCap, Mail, Lock, User, Briefcase, Eye, EyeOff, ArrowRight, CheckCircle, AlertCircle } from "lucide-react";
+import AuthShell from "@/components/auth/AuthShell";
+import { Mail, Lock, User, Briefcase, Eye, EyeOff, ArrowRight, CheckCircle, AlertCircle } from "lucide-react";
 
 interface Dept {
   id: string;
@@ -61,9 +62,12 @@ export default function RegisterPage() {
 
   if (done) {
     return (
-      <main className="grid min-h-screen place-items-center bg-[var(--page)] px-6">
-        <div className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-white p-8 text-center shadow-sm">
-          <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[var(--brand-tint)] text-[var(--brand-dark)]">
+      <AuthShell
+        title={<>You&apos;re<br /><span className="text-[var(--brand)]">on the roster!</span></>}
+        subtitle="One quick approval and your learning game begins — XP, badges and AI-picked courses await."
+      >
+        <div className="w-full max-w-md rounded-3xl border border-[var(--border)] bg-white p-8 text-center shadow-sm">
+          <span className="gam-float mx-auto grid h-14 w-14 place-items-center rounded-2xl text-white shadow-sm" style={{ background: "linear-gradient(135deg,#5cb891,#3f9d75)" }}>
             <CheckCircle className="h-6 w-6" />
           </span>
           <h1 className="mt-4 text-2xl font-bold text-[var(--ink)]">Registration Submitted</h1>
@@ -72,38 +76,24 @@ export default function RegisterPage() {
           </p>
           <button
             onClick={() => router.push("/login")}
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--brand)] py-3 text-sm font-medium text-white hover:bg-[var(--brand-dark)]"
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--brand)] py-3 text-sm font-medium text-white hover:bg-[var(--brand-dark)]"
           >
             <ArrowRight className="h-4 w-4" /> Go to Login
           </button>
         </div>
-      </main>
+      </AuthShell>
     );
   }
 
   return (
-    <main className="grid min-h-screen bg-[var(--page)] lg:grid-cols-2">
-      <div className="hidden flex-col justify-center bg-[var(--brand-tint)] px-12 lg:flex">
-        <div className="flex items-center gap-2">
-          <span className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--brand)] text-white">
-            <GraduationCap className="h-5 w-5" />
-          </span>
-          <div>
-            <p className="text-sm font-semibold text-[var(--ink)]">LearnSmart <span className="text-[var(--brand)]">AI</span></p>
-            <p className="text-[11px] text-[var(--muted)]">Empower. Learn. Grow.</p>
-          </div>
-        </div>
-        <div className="mt-16 max-w-md">
-          <h2 className="text-3xl font-bold text-[var(--ink)]">Create Your<br /><span className="text-[var(--brand)]">Account</span></h2>
-          <div className="mt-5 h-1 w-16 rounded-full bg-[var(--brand)]" />
-          <p className="mt-6 text-sm text-[var(--muted)]">Register your details, then sign in once an administrator approves your account.</p>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-center px-6 py-12">
-        <div className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-white p-8 shadow-sm">
+    <AuthShell
+      title={<>Create Your<br /><span className="text-[var(--brand)]">Account</span></>}
+      subtitle="Register your details, then sign in once an administrator approves your account."
+    >
+      <div className="w-full max-w-md">
+        <div className="rounded-3xl border border-[var(--border)] bg-white p-8 shadow-sm">
           <div className="text-center">
-            <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[var(--brand-tint)] text-[var(--brand-dark)]">
+            <span className="gam-float mx-auto grid h-14 w-14 place-items-center rounded-2xl text-white shadow-sm" style={{ background: "linear-gradient(135deg,#5cb891,#3f9d75)" }}>
               <User className="h-6 w-6" />
             </span>
             <h1 className="mt-4 text-2xl font-bold text-[var(--ink)]">Create Account</h1>
@@ -179,7 +169,7 @@ export default function RegisterPage() {
           </form>
         </div>
       </div>
-    </main>
+    </AuthShell>
   );
 }
 

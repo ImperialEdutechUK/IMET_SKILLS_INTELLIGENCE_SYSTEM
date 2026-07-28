@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { saveAuth, dashboardPathFor } from "@/lib/authClient";
+import AuthShell from "@/components/auth/AuthShell";
 import {
   GraduationCap,
   Mail,
@@ -12,9 +13,6 @@ import {
   EyeOff,
   ArrowRight,
   ArrowLeft,
-  BookOpen,
-  BarChart3,
-  Sparkles,
   AlertCircle,
 } from "lucide-react";
 
@@ -51,50 +49,13 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="grid min-h-screen bg-[var(--page)] lg:grid-cols-2">
-      {/* Left: brand panel */}
-      <div className="relative hidden flex-col justify-center overflow-hidden bg-[var(--brand-tint)] px-12 lg:flex">
-        <div className="flex items-center gap-2">
-          <span className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--brand)] text-white">
-            <GraduationCap className="h-5 w-5" />
-          </span>
-          <div className="leading-tight">
-            <p className="text-sm font-semibold text-[var(--ink)]">
-              LearnSmart <span className="text-[var(--brand)]">AI</span>
-            </p>
-            <p className="text-[11px] text-[var(--muted)]">Empower. Learn. Grow.</p>
-          </div>
-        </div>
-
-        <div className="mt-16 max-w-md">
-          <h2 className="text-3xl font-bold leading-tight text-[var(--ink)]">
-            Welcome Back!
-            <br />
-            <span className="text-[var(--brand)]">Let&apos;s continue your</span>
-            <br />
-            learning journey
-          </h2>
-          <div className="mt-5 h-1 w-16 rounded-full bg-[var(--brand)]" />
-          <p className="mt-6 text-sm text-[var(--muted)]">
-            Sign in to access your dashboard and continue learning smarter.
-          </p>
-
-          <div className="mt-10 flex gap-4">
-            {[BookOpen, BarChart3, Sparkles].map((Icon, i) => (
-              <span
-                key={i}
-                className="grid h-12 w-12 place-items-center rounded-xl bg-white text-[var(--brand-dark)] shadow-sm"
-              >
-                <Icon className="h-5 w-5" />
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-
+    <AuthShell
+      title={<>Welcome Back!<br /><span className="text-[var(--brand)]">Let&apos;s continue your</span><br />learning journey</>}
+      subtitle="Sign in to access your dashboard, pick up your XP and keep climbing the leaderboard."
+    >
       {/* Right: sign-in card */}
-      <div className="flex items-center justify-center px-6 py-12">
-        <div className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-white p-8 shadow-sm">
+      <div className="w-full max-w-md">
+        <div className="rounded-3xl border border-[var(--border)] bg-white p-8 shadow-sm">
           <Link
             href="/"
             className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--muted)] hover:text-[var(--ink)]"
@@ -102,7 +63,7 @@ export default function LoginPage() {
             <ArrowLeft className="h-4 w-4" /> Back to Home
           </Link>
           <div className="text-center">
-            <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[var(--brand-tint)] text-[var(--brand-dark)]">
+            <span className="gam-float mx-auto grid h-14 w-14 place-items-center rounded-2xl text-white shadow-sm" style={{ background: "linear-gradient(135deg,#5cb891,#3f9d75)" }}>
               <GraduationCap className="h-6 w-6" />
             </span>
             <h1 className="mt-4 text-2xl font-bold text-[var(--ink)]">
@@ -192,6 +153,6 @@ export default function LoginPage() {
           </p>
         </div>
       </div>
-    </main>
+    </AuthShell>
   );
 }

@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { GraduationCap, KeyRound, ArrowLeft, CheckCircle2 } from "lucide-react";
+import AuthShell from "@/components/auth/AuthShell";
+import { KeyRound, ArrowLeft, CheckCircle2 } from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
@@ -50,27 +51,13 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <main className="grid min-h-screen bg-[var(--page)] lg:grid-cols-2">
-      <div className="hidden flex-col justify-center bg-[var(--brand-tint)] px-12 lg:flex">
-        <div className="flex items-center gap-2">
-          <span className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--brand)] text-white">
-            <GraduationCap className="h-5 w-5" />
-          </span>
-          <div>
-            <p className="text-sm font-semibold text-[var(--ink)]">LearnSmart <span className="text-[var(--brand)]">AI</span></p>
-            <p className="text-[11px] text-[var(--muted)]">Empower. Learn. Grow.</p>
-          </div>
-        </div>
-        <div className="mt-16 max-w-md">
-          <h2 className="text-3xl font-bold text-[var(--ink)]">Forgot your<br /><span className="text-[var(--brand)]">password?</span><br />No problem.</h2>
-          <div className="mt-5 h-1 w-16 rounded-full bg-[var(--brand)]" />
-          <p className="mt-6 text-sm text-[var(--muted)]">Enter your username and choose a new password — you&apos;ll be back in your dashboard in seconds.</p>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-center px-6 py-12">
-        <div className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-white p-8 shadow-sm">
-          <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-[var(--brand-tint)] text-[var(--brand-dark)]">
+    <AuthShell
+      title={<>Forgot your<br /><span className="text-[var(--brand)]">password?</span><br />No problem.</>}
+      subtitle="Enter your username and choose a new password — you'll be back to your XP and badges in seconds."
+    >
+      <div className="w-full max-w-md">
+        <div className="rounded-3xl border border-[var(--border)] bg-white p-8 shadow-sm">
+          <span className="gam-float mx-auto grid h-14 w-14 place-items-center rounded-2xl text-white shadow-sm" style={{ background: "linear-gradient(135deg,#5cb891,#3f9d75)" }}>
             <KeyRound className="h-6 w-6" />
           </span>
 
@@ -133,6 +120,6 @@ export default function ForgotPasswordPage() {
           )}
         </div>
       </div>
-    </main>
+    </AuthShell>
   );
 }

@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 
 const stats = [
-  { icon: BookOpen, value: "22,965", label: "Courses in the catalogue" },
+  { icon: BookOpen, value: "27,000+", label: "Courses in the catalogue" },
   { icon: Users, value: "100+", label: "Employees learning" },
   { icon: Award, value: "8", label: "Departments tracked" },
   { icon: Globe, value: "24/7", label: "Learn anytime, anywhere" },
@@ -71,7 +71,7 @@ export default function LandingPage() {
             <span className="gam-float grid h-12 w-12 place-items-center rounded-2xl bg-white/15"><Sparkles className="h-6 w-6" /></span>
             <div className="relative mt-6">
               <h3 className="text-2xl font-extrabold">AI-Recommended Courses</h3>
-              <p className="mt-2 max-w-sm text-sm text-white/85">Matched to each person&apos;s skill gaps and role from a catalogue of 22,965 real courses — no guesswork.</p>
+              <p className="mt-2 max-w-sm text-sm text-white/85">Matched to each person&apos;s skill gaps and role from a catalogue of 27,000+ real courses — no guesswork.</p>
             </div>
           </div>
 

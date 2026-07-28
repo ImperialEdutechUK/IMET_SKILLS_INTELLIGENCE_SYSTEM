@@ -6,7 +6,8 @@ import { Users, BookOpen, Award, TrendingUp, Download, ChevronRight, ShieldCheck
 import LearnAreaChart from "@/components/charts/LearnAreaChart";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
-import BentoStat from "@/components/dashboard/BentoStat";
+import HeroRing from "@/components/dashboard/HeroRing";
+import StatTile from "@/components/dashboard/StatTile";
 import Dropdown from "@/components/dashboard/Dropdown";
 import CollapsibleCard from "@/components/dashboard/CollapsibleCard";
 import MyAchievementsCard from "@/components/gamification/MyAchievementsCard";
@@ -75,6 +76,10 @@ export default function ManagerDashboardPage() {
         ? { tone: TONES.amber, icon: AlertTriangle, word: "Mostly on track", line: `${behind} of ${stats.teamMembers} ${behind === 1 ? "person needs" : "people need"} a nudge to stay on pace.` }
         : { tone: TONES.emerald, icon: ShieldCheck, word: "On track", line: `All ${stats.teamMembers} team members are on pace with their CPD. 🎉` };
 
+  // Ring colour + soft wash mirror the health verdict.
+  const ringColor = stats.teamMembers === 0 ? "#94a3b8" : stats.atRisk > 0 ? "#e11d48" : stats.attention > 0 ? "#f59e0b" : "var(--brand)";
+  const healthAccent = stats.teamMembers === 0 ? "#f1f5f9" : stats.atRisk > 0 ? "#fef1f2" : stats.attention > 0 ? "#fef7ec" : "#eef7f2";
+
   return (
     <div>
       {/* Header */}
@@ -88,30 +93,35 @@ export default function ManagerDashboardPage() {
         </Link>
       </div>
 
-      {/* At-a-glance health — THE hero: the one thing a manager should read first */}
-      <div className="mb-6 flex flex-wrap items-center gap-4 rounded-2xl border border-[var(--border)] bg-white p-5">
-        <Icon3D icon={health.icon} tone={health.tone} size="lg" live />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="text-xl font-bold text-[var(--ink)]">{health.word}</span>
-            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-[var(--muted)]">{onTrack}/{stats.teamMembers} on track</span>
-          </div>
-          <p className="mt-1 text-sm text-[var(--muted)]">{remindMsg ? <span className="text-[var(--brand-dark)]">{remindMsg}</span> : health.line}</p>
-        </div>
+      {/* At-a-glance health — THE hero: the one ring a manager should read first */}
+      <HeroRing
+        percent={stats.teamMembers ? Math.round((onTrack / stats.teamMembers) * 100) : 0}
+        ringColor={ringColor}
+        ringLabel={`${onTrack}/${stats.teamMembers}`}
+        ringSublabel="on track"
+        accent={healthAccent}
+        title={health.word}
+        subtitle={remindMsg || health.line}
+        metrics={[
+          { label: "CPD completion", value: `${stats.cpdCompletion}%`, color: "#16a34a" },
+          { label: "Active learners", value: `${stats.activeLearners}/${stats.teamMembers}`, color: "#0284c7" },
+          { label: "Avg skill", value: `${stats.avgSkillLevel}%`, color: "#7c3aed" },
+        ]}
+      >
         {behind > 0 && !remindMsg && (
-          <button onClick={sendReminders} disabled={reminding} className="shrink-0 rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--brand-dark)] disabled:opacity-60">
+          <button onClick={sendReminders} disabled={reminding} className="rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--brand-dark)] disabled:opacity-60">
             {reminding ? "Sending…" : `Send reminders to all ${behind}`}
           </button>
         )}
-      </div>
+      </HeroRing>
 
       {/* Key numbers — clickable, live tiles */}
       <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Key numbers</p>
       <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <BentoStat index={0} href="/manager/team-learning" icon={Users} tone="greenSolid" label="Active learners" value={`${stats.activeLearners} of ${stats.teamMembers}`} sub="Enrolled in a course" />
-        <BentoStat index={1} href="/manager/team-learning" icon={BookOpen} tone="blue" label="Courses in progress" value={stats.coursesInProgress} sub={`${stats.coursesCompleted} completed`} />
-        <BentoStat index={2} href="/manager/team-cpd" icon={Award} tone="teal" label="CPD hours logged" value={`${stats.cpdHoursTotal} of ${stats.teamTarget}h`} sub="Annual team target" />
-        <BentoStat index={3} href="/manager/team-skills" icon={TrendingUp} tone="amber" label="Avg skill level" value={`${stats.avgSkillLevel}%`} sub="Across the team" />
+        <StatTile index={0} href="/manager/team-learning" icon={Users} tone="green" label="Active learners" value={`${stats.activeLearners} of ${stats.teamMembers}`} sub="Enrolled in a course" />
+        <StatTile index={1} href="/manager/team-learning" icon={BookOpen} tone="sky" label="Courses in progress" value={stats.coursesInProgress} sub={`${stats.coursesCompleted} completed`} />
+        <StatTile index={2} href="/manager/team-cpd" icon={Award} tone="teal" label="CPD hours logged" value={`${stats.cpdHoursTotal} of ${stats.teamTarget}h`} sub="Annual team target" />
+        <StatTile index={3} href="/manager/team-skills" icon={TrendingUp} tone="violet" label="Avg skill level" value={`${stats.avgSkillLevel}%`} sub="Across the team" />
       </div>
 
       {/* Snapshot: CPD split + who needs attention — always visible, the clear picture */}

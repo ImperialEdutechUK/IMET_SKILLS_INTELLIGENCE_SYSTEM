@@ -1,8 +1,8 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
-import { Lock, Zap, GraduationCap, BookOpen, Clock, Star, Gift } from "lucide-react";
-import { computeGamification, GOLD_PRIZE, type GamInput, type BadgeTier } from "@/lib/gamification";
+import { Lock, Zap, GraduationCap, BookOpen, Clock, Star } from "lucide-react";
+import { computeGamification, type GamInput, type BadgeTier } from "@/lib/gamification";
 
 // A genuine Bento grid: modular rounded tiles of different sizes packed into one
 // grid so the whole game reads in a glance — big level/XP hero, small green stat
@@ -62,25 +62,6 @@ export default function AchievementsBento(input: GamInput) {
             <span className="text-2xl">🏆</span>
             <p className="text-sm font-bold text-[var(--brand-dark)]">All unlocked!</p>
           </>
-        )}
-      </div>
-
-      {/* REWARD — wide tile */}
-      <div className={`col-span-2 flex items-center gap-4 rounded-2xl p-5 lg:col-span-4 ${g.goldUnlocked ? "gam-shine relative overflow-hidden text-white" : ""}`} style={g.goldUnlocked ? { background: "linear-gradient(135deg, #e0a005 0%, #b45309 100%)" } : { background: "var(--brand-tint)" }}>
-        <span className={`grid h-12 w-12 shrink-0 place-items-center rounded-xl text-2xl ${g.goldUnlocked ? "bg-white/20" : "bg-white"}`}>{g.goldUnlocked ? <Gift className="h-6 w-6" /> : "🎁"}</span>
-        {g.goldUnlocked ? (
-          <div>
-            <p className="font-bold">Reward unlocked — {g.prize}</p>
-            <p className="text-sm text-white/85">You reached Gold with {g.certCount} certificates. Claim it from your L&amp;D team.</p>
-          </div>
-        ) : (
-          <div className="min-w-0 flex-1">
-            <p className="font-semibold text-[var(--ink)]">Reach 🥇 Gold to unlock a reward</p>
-            <p className="text-sm text-[var(--muted)]">{g.toPrize} more certificate{g.toPrize === 1 ? "" : "s"} ({g.prizeAt} total) to claim a {GOLD_PRIZE}.</p>
-            <div className="mt-2 h-2 max-w-xs overflow-hidden rounded-full bg-white">
-              <div className="h-full rounded-full bg-[var(--brand)]" style={{ width: `${Math.min(100, (g.certCount / g.prizeAt) * 100)}%` }} />
-            </div>
-          </div>
         )}
       </div>
 

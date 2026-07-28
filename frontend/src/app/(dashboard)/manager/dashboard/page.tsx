@@ -53,9 +53,9 @@ export default function ManagerDashboardPage() {
       if (!r.ok) {
         setRemindMsg(d?.error ? `Could not send reminders — ${d.error}` : "Could not send reminders. Please try again.");
       } else if (d.employeesNotified > 0) {
-        setRemindMsg(`✅ Sent ${d.employeesNotified} reminder${d.employeesNotified === 1 ? "" : "s"} to team members behind pace.`);
-      } else if (d.atRisk > 0) {
-        setRemindMsg("Everyone behind pace has already been reminded — no new reminders sent.");
+        setRemindMsg(`✅ Reminder sent to ${d.employeesNotified} team member${d.employeesNotified === 1 ? "'s" : "s'"} dashboard${d.employeesNotified === 1 ? "" : "s"}.`);
+      } else if (d.behind > 0) {
+        setRemindMsg("Everyone behind pace already has an unread reminder on their dashboard.");
       } else {
         setRemindMsg("Nobody is behind pace right now — no reminders needed. 🎉");
       }

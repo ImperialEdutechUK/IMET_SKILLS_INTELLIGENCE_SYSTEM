@@ -4,9 +4,10 @@ import { verifyToken } from "@/lib/verifyToken";
 import { getCpdTargetHours } from "@/lib/cpd-target";
 import { cpdRiskStatus } from "@/lib/cpd-risk";
 
-// On-demand CPD alerting. A manager or admin triggers a scan; every employee
-// who is time-aware "at_risk" (see lib/cpd-risk) generates an in-app
-// Notification for the employee AND for their manager (User.managedBy) when set.
+// On-demand learning reminders. A manager or admin triggers a scan; every
+// employee who is behind pace (time-aware "at_risk" OR "attention", see
+// lib/cpd-risk) gets an in-app Notification on their own dashboard, and their
+// manager (User.managedBy) gets a heads-up when set.
 // Idempotent per run: an identical unread notification is not duplicated.
 export async function POST(req: Request) {
   const authUser = verifyToken(req);
@@ -41,39 +42,37 @@ export async function POST(req: Request) {
     return true;
   }
 
-  let atRisk = 0;
+  let behind = 0;
   let employeesNotified = 0;
   let managersNotified = 0;
-  let atRiskWithoutManager = 0;
+  let behindWithoutManager = 0;
 
   for (const e of employees) {
     const targetHours = await target(e.departmentId);
     const cpdHours = e.cpdRecords.reduce((s, r) => s + r.hours, 0);
-    const { cpdProgress, status } = cpdRiskStatus(cpdHours, targetHours);
-    if (status !== "at_risk") continue;
-    atRisk++;
+    const { status } = cpdRiskStatus(cpdHours, targetHours);
+    if (status === null) continue;   // on pace → no reminder needed
+    behind++;
 
     const empBody =
-      `You've logged ${cpdHours} of ${targetHours} CPD hours (${cpdProgress}% of your annual target) ` +
-      `and are behind the pace expected by this point in the year. Book a course to catch up.`;
-    if (await createIfNew(e.id, "Your CPD is behind pace", empBody)) employeesNotified++;
+      "Your manager sent you a reminder to keep up with your learning this year. " +
+      "Pick a course from your recommendations to stay on track.";
+    if (await createIfNew(e.id, "Learning reminder from your manager", empBody)) employeesNotified++;
 
     if (e.managedBy) {
       const deptName = e.department?.name ?? "their department";
-      const mgrBody =
-        `${e.fullName} (${deptName}) has logged ${cpdHours} of ${targetHours} CPD hours ` +
-        `(${cpdProgress}%) and is behind pace on CPD. Consider a check-in.`;
-      if (await createIfNew(e.managedBy, "Team member behind on CPD", mgrBody)) managersNotified++;
+      const mgrBody = `${e.fullName} (${deptName}) is behind pace on their learning. Consider a check-in.`;
+      if (await createIfNew(e.managedBy, "Team member needs a nudge", mgrBody)) managersNotified++;
     } else {
-      atRiskWithoutManager++;
+      behindWithoutManager++;
     }
   }
 
   return NextResponse.json({
     scanned: employees.length,
-    atRisk,
+    behind,
     employeesNotified,
     managersNotified,
-    atRiskWithoutManager,
+    behindWithoutManager,
   });
 }

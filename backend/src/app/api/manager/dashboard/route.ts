@@ -58,8 +58,8 @@ export async function GET(req: Request) {
       skillSum += m.userSkills.reduce((s, us) => s + us.currentLevel, 0) / m.userSkills.length;
       skillCount++;
     }
-    if (status === "at_risk") { atRisk++; attentionList.push({ id: m.id, fullName: m.fullName, reason: `CPD behind target (${cpdProgress}%)`, status: "at_risk" }); }
-    else if (status === "attention") { attention++; attentionList.push({ id: m.id, fullName: m.fullName, reason: `CPD needs attention (${cpdProgress}%)`, status: "attention" }); }
+    if (status === "at_risk") { atRisk++; attentionList.push({ id: m.id, fullName: m.fullName, reason: "Behind pace on their learning", status: "at_risk" }); }
+    else if (status === "attention") { attention++; attentionList.push({ id: m.id, fullName: m.fullName, reason: "Needs a nudge to stay on pace", status: "attention" }); }
     else if (m.enrollments.length === 0) { attentionList.push({ id: m.id, fullName: m.fullName, reason: "No courses started", status: "inactive" }); }
 
     memberRows.push({

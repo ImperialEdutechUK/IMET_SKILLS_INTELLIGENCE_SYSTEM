@@ -58,7 +58,7 @@ export default function LandingPage() {
         </div>
 
         <div className="relative">
-          <HeroScene3D animate speed={1} tilt={20} />
+          <HeroScene3D animate speed={1} tilt={0} />
         </div>
       </section>
 

@@ -47,10 +47,10 @@ export default function HeroScene3D({
             <div
               key={i}
               className="hero3d-hexface"
-              style={{ background: c, transform: `translateZ(${-i * 3}px)` }}
+              style={{ background: c, transform: `translateZ(${-i * 4}px)` }}
             />
           ))}
-          <div className="hero3d-hexface hero3d-medalface" style={{ background: "#3f9d75", transform: "translateZ(3px)" }}>
+          <div className="hero3d-hexface hero3d-medalface" style={{ background: "#3f9d75", transform: "translateZ(4px)" }}>
             {/* Looping CPD progress arc */}
             <svg viewBox="0 0 100 100" className="hero3d-arc">
               <circle cx="50" cy="50" r="41" fill="none" stroke="rgba(255,255,255,.22)" strokeWidth="5" />

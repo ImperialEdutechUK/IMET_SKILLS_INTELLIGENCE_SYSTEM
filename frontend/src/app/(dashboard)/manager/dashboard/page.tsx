@@ -38,6 +38,7 @@ export default function ManagerDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [reminding, setReminding] = useState(false);
   const [remindMsg, setRemindMsg] = useState("");
+  const [showAtRisk, setShowAtRisk] = useState(false);
   const [trendWeeks, setTrendWeeks] = useState(8);
 
   const load = () => fetch(`${API}/api/manager/dashboard`, { headers: { Authorization: `Bearer ${getToken()}` } })
@@ -48,10 +49,17 @@ export default function ManagerDashboardPage() {
     setReminding(true); setRemindMsg("");
     try {
       const r = await fetch(`${API}/api/cpd/notify`, { method: "POST", headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" }, body: "{}" });
-      const d = await r.json();
-      if (r.ok) setRemindMsg(`Reminders sent to ${d.employeesNotified} employee(s).`);
-      else setRemindMsg("Could not send reminders.");
-    } catch { setRemindMsg("Could not send reminders."); }
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        setRemindMsg(d?.error ? `Could not send reminders — ${d.error}` : "Could not send reminders. Please try again.");
+      } else if (d.employeesNotified > 0) {
+        setRemindMsg(`✅ Sent ${d.employeesNotified} reminder${d.employeesNotified === 1 ? "" : "s"} to team members behind pace.`);
+      } else if (d.atRisk > 0) {
+        setRemindMsg("Everyone behind pace has already been reminded — no new reminders sent.");
+      } else {
+        setRemindMsg("Nobody is behind pace right now — no reminders needed. 🎉");
+      }
+    } catch { setRemindMsg("Could not send reminders — the server didn't respond. Please try again."); }
     setReminding(false);
   }
 
@@ -108,26 +116,21 @@ export default function ManagerDashboardPage() {
           { label: "Avg skill", value: `${stats.avgSkillLevel}%`, color: "#7c3aed" },
         ]}
       >
-        {behind > 0 && !remindMsg && (
-          <button onClick={sendReminders} disabled={reminding} className="rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--brand-dark)] disabled:opacity-60">
-            {reminding ? "Sending…" : `Send reminders to all ${behind}`}
-          </button>
+        {behind > 0 && (
+          <>
+            <button onClick={sendReminders} disabled={reminding} className="rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--brand-dark)] disabled:opacity-60">
+              {reminding ? "Sending…" : remindMsg ? "Send again" : `Send reminders to all ${behind}`}
+            </button>
+            <button onClick={() => setShowAtRisk((v) => !v)} className="rounded-lg border border-[var(--border)] bg-white px-4 py-2 text-sm font-semibold text-[var(--ink)] hover:bg-slate-50">
+              {showAtRisk ? "Hide at-risk" : `View at-risk (${behind})`}
+            </button>
+          </>
         )}
       </HeroRing>
 
-      {/* Key numbers — clickable, live tiles */}
-      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Key numbers</p>
-      <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatTile index={0} href="/manager/team-learning" icon={Users} tone="green" label="Active learners" value={`${stats.activeLearners} of ${stats.teamMembers}`} sub="Enrolled in a course" />
-        <StatTile index={1} href="/manager/team-learning" icon={BookOpen} tone="sky" label="Courses in progress" value={stats.coursesInProgress} sub={`${stats.coursesCompleted} completed`} />
-        <StatTile index={2} href="/manager/team-learning" icon={Award} tone="teal" label="Courses completed" value={stats.coursesCompleted} sub="Across the team" />
-        <StatTile index={3} href="/manager/team-skills" icon={TrendingUp} tone="violet" label="Avg skill level" value={`${stats.avgSkillLevel}%`} sub="Across the team" />
-      </div>
-
-      {/* Snapshot: who needs attention — always visible, the clear picture */}
-      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Team snapshot</p>
-      <div className="mb-8 grid grid-cols-1 gap-6">
-        <div className="rounded-2xl border border-[var(--border)] bg-white">
+      {/* At-risk list — hidden by default, revealed by the "View at-risk" button. */}
+      {showAtRisk && behind > 0 && (
+        <div className="mb-8 overflow-hidden rounded-2xl border border-[var(--border)] bg-white">
           <div className="flex items-center gap-3 border-b border-[var(--border)] p-5">
             <Icon3D icon={AlertTriangle} tone={TONES.rose} size="sm" />
             <div className="min-w-0 flex-1">
@@ -155,6 +158,15 @@ export default function ManagerDashboardPage() {
             </ul>
           )}
         </div>
+      )}
+
+      {/* Key numbers — clickable, live tiles */}
+      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Key numbers</p>
+      <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatTile index={0} href="/manager/team-learning" icon={Users} tone="green" label="Active learners" value={`${stats.activeLearners} of ${stats.teamMembers}`} sub="Enrolled in a course" />
+        <StatTile index={1} href="/manager/team-learning" icon={BookOpen} tone="sky" label="Courses in progress" value={stats.coursesInProgress} sub={`${stats.coursesCompleted} completed`} />
+        <StatTile index={2} href="/manager/team-learning" icon={Award} tone="teal" label="Courses completed" value={stats.coursesCompleted} sub="Across the team" />
+        <StatTile index={3} href="/manager/team-skills" icon={TrendingUp} tone="violet" label="Avg skill level" value={`${stats.avgSkillLevel}%`} sub="Across the team" />
       </div>
 
       {/* Detail behind dropdowns — keeps the main view clear, detail one click away */}

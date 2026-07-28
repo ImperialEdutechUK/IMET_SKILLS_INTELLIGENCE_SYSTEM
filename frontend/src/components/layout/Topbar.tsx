@@ -1,5 +1,5 @@
 "use client";
-import { Search, Settings } from "lucide-react";
+import { Search } from "lucide-react";
 import Avatar from "@/components/ui/Avatar";
 import NotificationBell from "@/components/layout/NotificationBell";
 import GamificationPill from "@/components/gamification/GamificationPill";
@@ -23,9 +23,6 @@ export default function Topbar({ user }: { user: SessionUser }) {
       <div className="flex items-center gap-3">
         {showGame && <GamificationPill />}
         <NotificationBell />
-        <button className="grid h-9 w-9 place-items-center rounded-lg border border-[var(--border)] text-[var(--muted)] hover:bg-slate-50">
-          <Settings className="h-4 w-4" />
-        </button>
         <Avatar name={user.fullName} size={36} />
       </div>
     </header>

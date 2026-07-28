@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Trophy, Zap, ChevronRight, GraduationCap, BookOpen, Clock } from "lucide-react";
+import { Trophy, Zap, ChevronRight, GraduationCap, BookOpen } from "lucide-react";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
 import { getToken } from "@/lib/authClient";
 
@@ -43,7 +43,7 @@ export default function LeaderboardPage() {
         <Icon3D icon={Trophy} tone={TONES.amber} />
         <div>
           <h1 className="text-2xl font-bold text-[var(--ink)]">Team Leaderboard</h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">Who&apos;s earning the most XP — certificates, completed courses and CPD all count.</p>
+          <p className="mt-1 text-sm text-[var(--muted)]">Who&apos;s earning the most XP — certificates and completed courses all count.</p>
         </div>
       </div>
 
@@ -98,7 +98,6 @@ export default function LeaderboardPage() {
                     <div className="hidden items-center gap-3 text-xs text-[var(--muted)] sm:flex">
                       <span className="inline-flex items-center gap-1"><GraduationCap className="h-3.5 w-3.5" />{m.certCount}</span>
                       <span className="inline-flex items-center gap-1"><BookOpen className="h-3.5 w-3.5" />{m.coursesCompleted}</span>
-                      <span className="inline-flex items-center gap-1"><Clock className="h-3.5 w-3.5" />{m.cpdHours}h</span>
                     </div>
                     <span className="flex items-center justify-end gap-2">
                       <span className="inline-flex items-center gap-1 text-sm font-bold text-[var(--brand)]"><Zap className="h-3.5 w-3.5 fill-current" />{m.xp}</span>

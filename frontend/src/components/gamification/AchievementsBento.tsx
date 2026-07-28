@@ -1,7 +1,7 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
-import { Lock, Zap, GraduationCap, BookOpen, Clock, Star } from "lucide-react";
+import { Lock, Zap, GraduationCap, BookOpen, Star } from "lucide-react";
 import { computeGamification, type GamInput, type BadgeTier } from "@/lib/gamification";
 
 // A genuine Bento grid: modular rounded tiles of different sizes packed into one
@@ -46,7 +46,6 @@ export default function AchievementsBento(input: GamInput) {
       {/* Small green stat tiles */}
       <StatTile icon={GraduationCap} bg="#e8f1ed" value={g.certCount} label="Certificates" />
       <StatTile icon={BookOpen} bg="#dcebe3" value={g.coursesCompleted} label="Courses done" />
-      <StatTile icon={Clock} bg="#d3e8dd" value={g.cpdHours} label="CPD hours" />
 
       {/* Next-badge tile */}
       <div className="flex flex-col justify-center gap-1 rounded-2xl p-4" style={{ background: "#c7e0d3" }}>

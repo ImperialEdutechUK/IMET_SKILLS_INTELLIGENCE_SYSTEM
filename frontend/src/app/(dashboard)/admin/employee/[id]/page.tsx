@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Award, BookOpen, Target } from "lucide-react";
+import { ArrowLeft, BookOpen, Target } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import { getToken } from "@/lib/authClient";
 
@@ -60,10 +60,6 @@ export default function AdminEmployeeDetailPage() {
   if (loading) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
   if (!data) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load this employee.</p></div>;
 
-  const cpdBadge = data.cpd.status === "at_risk" ? { t: "At Risk", c: "bg-red-50 text-red-700" }
-    : data.cpd.status === "attention" ? { t: "Attention", c: "bg-amber-50 text-amber-700" }
-    : { t: "On Track", c: "bg-[var(--brand-tint)] text-[var(--brand-dark)]" };
-
   return (
     <div>
       <Link href="/admin/users" className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--muted)] hover:text-[var(--ink)]">
@@ -77,10 +73,9 @@ export default function AdminEmployeeDetailPage() {
         </div>
       </div>
 
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <StatCard icon={BookOpen} label="Courses Completed" value={data.counts.completed} />
         <StatCard icon={BookOpen} label="Courses In Progress" value={data.counts.inProgress} />
-        <StatCard icon={Award} label="CPD Progress" value={`${data.cpd.pct}%`} sub={`${data.cpd.hours} / ${data.cpd.target} hrs`} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -88,7 +83,6 @@ export default function AdminEmployeeDetailPage() {
         <div className="rounded-2xl border border-[var(--border)] bg-white">
           <div className="flex items-center justify-between border-b border-[var(--border)] p-5">
             <h3 className="font-semibold text-[var(--ink)]">Courses</h3>
-            <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${cpdBadge.c}`}>CPD {cpdBadge.t}</span>
           </div>
           {data.courses.length === 0 ? (
             <p className="p-5 text-sm text-[var(--muted)]">No enrolled courses.</p>

@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Target, Award, BookOpen, ScrollText, TrendingUp, Activity } from "lucide-react";
-import ProgressRing from "@/components/cpd/ProgressRing";
+import { ArrowLeft, Target, BookOpen, ScrollText, TrendingUp, Activity } from "lucide-react";
 import Icon3D, { TONES, type Icon3DTone } from "@/components/dashboard/Icon3D";
 import type { LucideIcon } from "lucide-react";
 import { getToken } from "@/lib/authClient";
@@ -77,9 +76,8 @@ export default function EmployeeDetailPage() {
       </div>
 
       {/* Stat tiles */}
-      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-3">
         <Tile icon={TrendingUp} tone={TONES.emerald} label="Avg Skill Level" value={`${data.avgSkillPercent}%`} sub={`${data.gapsCount} gap${data.gapsCount === 1 ? "" : "s"} to close`} />
-        <Tile icon={Award} tone={TONES.amber} label="CPD Progress" value={`${data.cpd.progress}%`} sub={`${data.cpd.hours} / ${data.cpd.target} hrs`} />
         <Tile icon={BookOpen} tone={TONES.blue} label="Courses" value={data.courseCounts.completed} sub={`${data.courseCounts.inProgress} in progress`} />
         <Tile icon={ScrollText} tone={TONES.violet} label="Certificates" value={data.certificates} sub="Earned" />
       </div>
@@ -109,22 +107,12 @@ export default function EmployeeDetailPage() {
           )}
         </div>
 
-        {/* CPD ring + recent activity */}
+        {/* Recent activity */}
         <div className="space-y-6">
-          <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
-            <div className="mb-4 flex items-center gap-3"><Icon3D icon={Award} tone={TONES.amber} size="sm" /><h3 className="font-semibold text-[var(--ink)]">CPD Progress</h3></div>
-            <div className="flex items-center gap-4">
-              <ProgressRing percentage={data.cpd.progress} size={84} strokeWidth={8} />
-              <div>
-                <p className="text-lg font-bold text-[var(--ink)]">{data.cpd.hours} <span className="text-sm font-medium text-[var(--muted)]">/ {data.cpd.target} hrs</span></p>
-                <p className="text-xs text-[var(--muted)]">{Math.max(0, Math.round((data.cpd.target - data.cpd.hours) * 10) / 10)} hrs to go</p>
-              </div>
-            </div>
-          </div>
           <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
             <div className="mb-3 flex items-center gap-3"><Icon3D icon={Activity} tone={TONES.violet} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Recent Activity</h3></div>
             {data.recentActivities.length === 0 ? (
-              <p className="text-sm text-[var(--muted)]">No CPD activity yet.</p>
+              <p className="text-sm text-[var(--muted)]">No activity yet.</p>
             ) : (
               <ul className="space-y-2.5">
                 {data.recentActivities.map((a) => (

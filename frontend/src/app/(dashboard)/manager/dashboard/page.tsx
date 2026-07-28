@@ -71,10 +71,10 @@ export default function ManagerDashboardPage() {
   const health = stats.teamMembers === 0
     ? { tone: TONES.slate, icon: ShieldCheck, word: "No team yet", line: `No employees in ${data.departmentName} yet.` }
     : stats.atRisk > 0
-      ? { tone: TONES.rose, icon: AlertTriangle, word: "Needs attention", line: `${behind} of ${stats.teamMembers} ${behind === 1 ? "person is" : "people are"} behind on CPD — a reminder now gives them time to catch up.` }
+      ? { tone: TONES.rose, icon: AlertTriangle, word: "Needs attention", line: `${behind} of ${stats.teamMembers} ${behind === 1 ? "person is" : "people are"} behind on their learning — a reminder now gives them time to catch up.` }
       : stats.attention > 0
         ? { tone: TONES.amber, icon: AlertTriangle, word: "Mostly on track", line: `${behind} of ${stats.teamMembers} ${behind === 1 ? "person needs" : "people need"} a nudge to stay on pace.` }
-        : { tone: TONES.emerald, icon: ShieldCheck, word: "On track", line: `All ${stats.teamMembers} team members are on pace with their CPD. 🎉` };
+        : { tone: TONES.emerald, icon: ShieldCheck, word: "On track", line: `All ${stats.teamMembers} team members are on pace with their learning. 🎉` };
 
   // Ring colour + soft wash mirror the health verdict.
   const ringColor = stats.teamMembers === 0 ? "#94a3b8" : stats.atRisk > 0 ? "#e11d48" : stats.attention > 0 ? "#f59e0b" : "var(--brand)";
@@ -103,8 +103,8 @@ export default function ManagerDashboardPage() {
         title={health.word}
         subtitle={remindMsg || health.line}
         metrics={[
-          { label: "CPD completion", value: `${stats.cpdCompletion}%`, color: "#16a34a" },
           { label: "Active learners", value: `${stats.activeLearners}/${stats.teamMembers}`, color: "#0284c7" },
+          { label: "Courses done", value: String(stats.coursesCompleted), color: "#16a34a" },
           { label: "Avg skill", value: `${stats.avgSkillLevel}%`, color: "#7c3aed" },
         ]}
       >
@@ -120,28 +120,14 @@ export default function ManagerDashboardPage() {
       <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatTile index={0} href="/manager/team-learning" icon={Users} tone="green" label="Active learners" value={`${stats.activeLearners} of ${stats.teamMembers}`} sub="Enrolled in a course" />
         <StatTile index={1} href="/manager/team-learning" icon={BookOpen} tone="sky" label="Courses in progress" value={stats.coursesInProgress} sub={`${stats.coursesCompleted} completed`} />
-        <StatTile index={2} href="/manager/team-cpd" icon={Award} tone="teal" label="CPD hours logged" value={`${stats.cpdHoursTotal} of ${stats.teamTarget}h`} sub="Annual team target" />
+        <StatTile index={2} href="/manager/team-learning" icon={Award} tone="teal" label="Courses completed" value={stats.coursesCompleted} sub="Across the team" />
         <StatTile index={3} href="/manager/team-skills" icon={TrendingUp} tone="violet" label="Avg skill level" value={`${stats.avgSkillLevel}%`} sub="Across the team" />
       </div>
 
-      {/* Snapshot: CPD split + who needs attention — always visible, the clear picture */}
+      {/* Snapshot: who needs attention — always visible, the clear picture */}
       <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Team snapshot</p>
-      <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
-          <div className="mb-3 flex items-center gap-3">
-            <Icon3D icon={Award} tone={TONES.amber} size="sm" />
-            <div>
-              <h3 className="font-semibold text-[var(--ink)]">CPD status</h3>
-              <p className="text-xs text-[var(--muted)]">How the team is pacing against target</p>
-            </div>
-          </div>
-          {stats.teamMembers === 0 ? (
-            <p className="text-sm text-[var(--muted)]">No team members yet.</p>
-          ) : (
-            <LearnDonutChart data={data.cpdStatusBreakdown} label={`${onTrack}`} sublabel="on track" height={180} />
-          )}
-        </div>
-        <div className="rounded-2xl border border-[var(--border)] bg-white lg:col-span-2">
+      <div className="mb-8 grid grid-cols-1 gap-6">
+        <div className="rounded-2xl border border-[var(--border)] bg-white">
           <div className="flex items-center gap-3 border-b border-[var(--border)] p-5">
             <Icon3D icon={AlertTriangle} tone={TONES.rose} size="sm" />
             <div className="min-w-0 flex-1">
@@ -174,7 +160,7 @@ export default function ManagerDashboardPage() {
       {/* Detail behind dropdowns — keeps the main view clear, detail one click away */}
       <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">More detail <span className="font-normal normal-case text-[var(--muted)]/70">· tap to expand</span></p>
       <div className="space-y-4">
-        <CollapsibleCard title="Team learning hours" subtitle={thisWeek > 0 ? `${thisWeek}h logged this week` : "CPD hours logged over time"} icon={BarChart3} tone={TONES.blue}>
+        <CollapsibleCard title="Team learning hours" subtitle={thisWeek > 0 ? `${thisWeek}h logged this week` : "Learning hours logged over time"} icon={BarChart3} tone={TONES.blue}>
           <div className="mb-4 flex justify-end">
             <Dropdown
               value={String(trendWeeks)}
@@ -193,9 +179,9 @@ export default function ManagerDashboardPage() {
           )}
         </CollapsibleCard>
 
-        <CollapsibleCard title="Recent team activity" subtitle="Enrolments, completions and CPD logged" icon={Activity} tone={TONES.violet}>
+        <CollapsibleCard title="Recent team activity" subtitle="Enrolments and course completions" icon={Activity} tone={TONES.violet}>
           {data.recentActivity.length === 0 ? (
-            <p className="text-sm text-[var(--muted)]">No team activity yet. It appears here as employees enrol, complete courses and log CPD.</p>
+            <p className="text-sm text-[var(--muted)]">No team activity yet. It appears here as employees enrol and complete courses.</p>
           ) : (
             <ul className="space-y-3">
               {data.recentActivity.map((item) => (

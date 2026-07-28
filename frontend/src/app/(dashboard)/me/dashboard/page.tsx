@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { BookOpen, Target, Award, Sparkles, Bell, Check, Clock, Trophy } from "lucide-react";
+import { BookOpen, Target, Award, Sparkles, Bell, Check, ScrollText, Trophy } from "lucide-react";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
 import HeroRing from "@/components/dashboard/HeroRing";
 import StatTile from "@/components/dashboard/StatTile";
@@ -11,16 +11,13 @@ import { getToken } from "@/lib/authClient";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
-type CpdStatus = "complete" | "ahead" | "on_track" | "slightly_behind" | "behind";
-
 interface Rec {
   id: string; courseId: string; title: string; source: string; category: string;
   matchLabel: string; reason: string; cpd_hours: number; rating: number | null; externalUrl: string;
 }
 interface DashboardData {
   fullName: string;
-  cpdHours: number; cpdPercent: number; cpdTarget: number;
-  cpdExpected: number; cpdDelta: number; cpdDaysLeft: number; cpdStatus: CpdStatus;
+  cpdHours: number;   // retained: an internal input to XP, not shown as CPD
   completedCount: number; inProgressCount: number; notStartedCount: number;
   gapCount: number;
   topGap: { skill: string; currentLabel: string; requiredLabel: string } | null;
@@ -28,15 +25,6 @@ interface DashboardData {
   inProgress: { id: string; title: string; progress: number; status: string; externalUrl: string | null }[];
   topRecs: Rec[];
 }
-
-// Pace, not raw percentage — an annual target read as a flat % is time-blind.
-const PACE: Record<CpdStatus, { text: (d: number) => string; ring: string; chip: string; chipText: string }> = {
-  complete:        { text: () => "Annual target met", ring: "var(--brand)", chip: "bg-[var(--brand-tint)]", chipText: "text-[var(--brand-dark)]" },
-  ahead:           { text: (d) => `${d} hrs ahead of pace`, ring: "var(--brand)", chip: "bg-[var(--brand-tint)]", chipText: "text-[var(--brand-dark)]" },
-  on_track:        { text: () => "On track for the year", ring: "var(--brand)", chip: "bg-[var(--brand-tint)]", chipText: "text-[var(--brand-dark)]" },
-  slightly_behind: { text: (d) => `${d} hrs behind pace`, ring: "#f59e0b", chip: "bg-amber-50", chipText: "text-amber-700" },
-  behind:          { text: (d) => `${d} hrs behind pace`, ring: "#e11d48", chip: "bg-rose-50", chipText: "text-rose-700" },
-};
 
 export default function EmployeeDashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
@@ -74,8 +62,6 @@ export default function EmployeeDashboardPage() {
   if (loading) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
   if (!data) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Account not found. Please sign in again.</p></div>;
 
-  const pace = PACE[data.cpdStatus] ?? PACE.on_track;
-  const paceText = pace.text(Math.abs(data.cpdDelta));
   const g = computeGamification({ certificates: certCount, coursesCompleted: data.completedCount, cpdHours: data.cpdHours });
 
   return (
@@ -91,7 +77,7 @@ export default function EmployeeDashboardPage() {
         </div>
       )}
 
-      {/* HERO — one clear ring: your level, XP and pace at a glance. */}
+      {/* HERO — one clear ring: your level and XP at a glance. */}
       <HeroRing
         percent={g.levelPct}
         ringColor="var(--brand)"
@@ -100,12 +86,11 @@ export default function EmployeeDashboardPage() {
         title={`Welcome back, ${data.fullName.split(" ")[0]} 👋`}
         subtitle={`${g.title} · ${g.xp} XP · ${g.toNext > 0 && g.next ? `${g.toNext} to ${g.next.emoji} ${g.next.label}` : "all badges earned 🏆"}`}
         metrics={[
-          { label: "CPD progress", value: `${data.cpdPercent}%`, color: pace.ring },
+          { label: "Certificates", value: String(certCount), color: "#16a34a" },
           { label: "Completed", value: String(data.completedCount), color: "#7c3aed" },
           { label: "Skill gaps", value: String(data.gapCount), color: data.gapCount > 0 ? "#d97706" : "#16a34a" },
         ]}
       >
-        <span className={`inline-flex items-center rounded-full px-3 py-1.5 text-xs font-semibold ${pace.chip} ${pace.chipText}`}>{paceText}</span>
         <Link href="/me/certificates" className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--brand)] px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-[var(--brand-dark)]">
           <Trophy className="h-3.5 w-3.5" /> Achievements
         </Link>
@@ -113,8 +98,8 @@ export default function EmployeeDashboardPage() {
 
       {/* WHERE AM I? — four vivid tiles, one fact each. */}
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatTile index={0} tone="green" icon={Clock} href="/me/cpd" label="CPD hours logged"
-          value={data.cpdHours} sub={`of ${data.cpdTarget} hrs · ${data.cpdDaysLeft} days left`} />
+        <StatTile index={0} tone="green" icon={ScrollText} href="/me/certificates" label="Certificates earned"
+          value={certCount} sub={g.next ? `${g.toNext} to ${g.next.emoji} ${g.next.label}` : "all badges earned 🏆"} />
         <StatTile index={1} tone="sky" icon={BookOpen} href="/me/learning" label="In progress"
           value={data.inProgressCount} sub={data.notStartedCount > 0 ? `${data.notStartedCount} not started` : "keep the streak going"} />
         <StatTile index={2} tone="violet" icon={Award} href="/me/learning" label="Courses completed"

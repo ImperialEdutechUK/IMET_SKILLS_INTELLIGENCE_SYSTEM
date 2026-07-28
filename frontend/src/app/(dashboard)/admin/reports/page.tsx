@@ -8,9 +8,8 @@ export default function AdminReportsPage() {
   return (
     <div>
       <div className="mb-6"><h1 className="text-2xl font-bold text-[var(--ink)]">Reports & Analytics</h1><p className="mt-1 text-sm text-[var(--muted)]">Organisation-wide learning analytics.</p></div>
-      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
         <StatCard icon={BarChart3} label="Total Employees" value="1,248" delta="8.5% up" deltaPositive />
-        <StatCard icon={BarChart3} label="CPD Rate" value="78%" delta="9.1% up" deltaPositive />
         <StatCard icon={BarChart3} label="Completions" value={542} delta="This month" deltaPositive />
         <StatCard icon={BarChart3} label="Certificates" value={542} delta="7.2% up" deltaPositive />
       </div>

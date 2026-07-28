@@ -51,10 +51,10 @@ export default function TeamLearningPage() {
 
   const exportCsv = () => {
     if (!data) return;
-    const headers = ["Name", "Position", "Department", "Overall Progress", "Courses In Progress", "Completed Courses", "Last Active"];
+    const headers = ["Name", "Position", "Department", "Courses In Progress", "Completed Courses", "Last Active"];
     const escape = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
     const rows = members.map((m) => [
-      m.fullName, m.position, m.department, `${m.cpdProgress}%`, m.coursesInProgress, m.coursesCompleted, m.lastActive,
+      m.fullName, m.position, m.department, m.coursesInProgress, m.coursesCompleted, m.lastActive,
     ].map(escape).join(","));
     const csv = [headers.map(escape).join(","), ...rows].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -114,7 +114,6 @@ export default function TeamLearningPage() {
                     <tr className="border-b border-[var(--border)] text-left text-xs font-medium text-[var(--muted)]">
                       <th className="px-5 py-3">Team Member</th>
                       <th className="px-5 py-3">Department</th>
-                      <th className="px-5 py-3 w-48">Overall Progress</th>
                       <th className="px-5 py-3">Courses In Progress</th>
                       <th className="px-5 py-3">Completed Courses</th>
                       <th className="px-5 py-3">Last Active</th>
@@ -133,12 +132,6 @@ export default function TeamLearningPage() {
                           </Link>
                         </td>
                         <td className="px-5 py-3.5 text-[var(--muted)]">{m.department}</td>
-                        <td className="px-5 py-3.5">
-                          <div className="flex items-center gap-2">
-                            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-[var(--brand)]" style={{ width: `${m.cpdProgress}%` }} /></div>
-                            <span className="w-9 shrink-0 text-right text-xs font-medium text-[var(--ink)]">{m.cpdProgress}%</span>
-                          </div>
-                        </td>
                         <td className="px-5 py-3.5 text-[var(--ink)]">{m.coursesInProgress}</td>
                         <td className="px-5 py-3.5 text-[var(--ink)]">{m.coursesCompleted}</td>
                         <td className="px-5 py-3.5 text-[var(--muted)]">{m.lastActive}</td>

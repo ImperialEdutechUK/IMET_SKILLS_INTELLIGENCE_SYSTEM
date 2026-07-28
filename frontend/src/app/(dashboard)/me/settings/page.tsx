@@ -87,7 +87,7 @@ export default function SettingsPage() {
         <div className="rounded-2xl border border-[var(--border)] bg-white p-6">
           <div className="mb-4 flex items-center gap-2"><Bell className="h-4 w-4 text-[var(--brand)]" /><h3 className="font-semibold text-[var(--ink)]">Notifications</h3></div>
           <p className="mb-3 text-xs text-[var(--muted)]">Notification preferences are not yet configurable.</p>
-          {["Course updates", "CPD reminders", "New recommendations", "Team activity"].map((n) => (
+          {["Course updates", "New recommendations", "Team activity"].map((n) => (
             <div key={n} className="flex items-center justify-between py-2 border-b border-[var(--border)] last:border-0">
               <span className="text-sm text-[var(--muted)]">{n}</span>
               <div className="relative h-6 w-11 rounded-full bg-slate-200"><span className="absolute left-1 top-1 h-4 w-4 rounded-full bg-white" /></div>

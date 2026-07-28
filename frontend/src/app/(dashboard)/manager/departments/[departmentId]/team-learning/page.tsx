@@ -35,10 +35,6 @@ export default function DeptTeamLearningPage() {
                   <p className="text-sm font-medium text-[var(--ink)]">{m.fullName}</p>
                   <p className="text-xs text-[var(--muted)]">{m.department} · {m.coursesCompleted} courses</p>
                 </div>
-                <div className="w-32">
-                  <div className="mb-1 flex justify-between text-xs"><span className="text-[var(--muted)]">CPD</span><span className="font-medium">{m.cpdProgress}%</span></div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-[var(--brand)]" style={{width:`${m.cpdProgress}%`}} /></div>
-                </div>
               </li>
             ))}
           </ul>

@@ -62,7 +62,7 @@ function BrandPanel({ title, subtitle }: { title: ReactNode; subtitle: string })
           <Tile icon={Zap} tint="#e8f0fd" fg="#2456c8" value="Earn XP" label="Every course levels you up" />
           <Tile icon={Trophy} tint="#fbf1de" fg="#b06a12" value="Badges" label="Bronze → Platinum" />
           <Tile icon={BookOpen} tint="#e0f2ec" fg="#14806f" value="22,965" label="Real courses" />
-          <Tile icon={Award} tint="#f0edfc" fg="#6d3fd6" value="CPD" label="Hit your annual goal" />
+          <Tile icon={Award} tint="#f0edfc" fg="#6d3fd6" value="Certs" label="Earn certificates" />
         </div>
 
         <p className="mt-8 inline-flex items-center gap-2 text-xs font-medium text-[var(--muted)]">

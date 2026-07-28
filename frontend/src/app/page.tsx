@@ -46,7 +46,7 @@ export default function LandingPage() {
           </h1>
           <div className="mt-5 h-1 w-16 rounded-full bg-[var(--brand)]" />
           <p className="mt-6 max-w-md text-base text-[var(--muted)] sm:text-lg">
-            Enhance skills, achieve CPD goals, earn badges and discover personalized
+            Enhance skills, close gaps, earn badges and discover personalized
             learning with AI-powered course recommendations.
           </p>
           <Link
@@ -75,7 +75,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <Feature icon={Award} tone="blue" title="CPD Tracking & Certificates" desc="Log hours, hit annual targets, collect certificates." />
+          <Feature icon={Award} tone="blue" title="Certificates & Achievements" desc="Collect certificates, earn badges and climb your level." />
           <Feature icon={BarChart3} tone="teal" title="Track Progress" desc="Circular progress, skill gaps and clear dashboards." />
 
           {/* Gamified wide tile */}

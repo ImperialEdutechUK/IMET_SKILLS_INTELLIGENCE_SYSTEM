@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Users, BookOpen, Award, Clock, TrendingUp, Download, ArrowRight, ArrowLeft, GraduationCap, Target, CheckCircle2, ScrollText, BarChart3 } from "lucide-react";
+import { Users, BookOpen, Award, TrendingUp, Download, ArrowRight, ArrowLeft, GraduationCap, Target, CheckCircle2, ScrollText, BarChart3 } from "lucide-react";
 import Stat3D from "@/components/dashboard/Stat3D";
 import Icon3D, { TONES, type Icon3DTone } from "@/components/dashboard/Icon3D";
 import LearnAreaChart from "@/components/charts/LearnAreaChart";
@@ -29,7 +29,6 @@ interface ReportData {
 const REPORT_CARDS: { title: string; desc: string; href: string; icon: typeof GraduationCap; tone: Icon3DTone }[] = [
   { title: "Team Learning Report", desc: "Course enrolments, completions and progress across your team.", href: "/manager/team-learning?from=reports", icon: GraduationCap, tone: TONES.blue },
   { title: "Team Skills Report", desc: "Skill levels and gaps measured against role requirements.", href: "/manager/team-skills?from=reports", icon: Target, tone: TONES.emerald },
-  { title: "Team CPD Report", desc: "CPD hours logged versus annual targets, with at-risk flags.", href: "/manager/team-cpd?from=reports", icon: Clock, tone: TONES.amber },
   { title: "Completion Rate Report", desc: "How much of your team's learning is finished versus in progress.", href: "/manager/reports", icon: CheckCircle2, tone: TONES.violet },
 ];
 
@@ -57,11 +56,10 @@ export default function ManagerReportsPage() {
       `Total Members,${data.stats.totalMembers}`,
       `Courses In Progress,${data.stats.coursesInProgress}`,
       `Completed Courses,${data.stats.coursesCompleted}`,
-      `Total CPD Hours,${data.stats.totalCpdHours}`,
       `Average Progress,${data.stats.avgProgress}%`,
       "",
-      "Week,Progress %,CPD Hours",
-      ...data.trend.map((t) => `${t.label},${t.avgProgress},${t.cpdHours}`),
+      "Week,Progress %",
+      ...data.trend.map((t) => `${t.label},${t.avgProgress}`),
     ];
     const blob = new Blob([lines.join("\n")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -90,7 +88,7 @@ export default function ManagerReportsPage() {
         </div>
       </div>
 
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {REPORT_CARDS.map((c) => (
           <Link key={c.title} href={c.href} className="group flex h-full flex-col rounded-2xl border border-[var(--border)] bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-md">
             <Icon3D icon={c.icon} tone={c.tone} />
@@ -109,11 +107,10 @@ export default function ManagerReportsPage() {
         <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load reports.</p></div>
       ) : (
         <>
-          <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+          <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
             <Stat3D icon={Users} tone={TONES.indigo} label="Total Members" value={data.stats.totalMembers} />
             <Stat3D icon={BookOpen} tone={TONES.blue} label="Courses In Progress" value={data.stats.coursesInProgress} />
             <Stat3D icon={Award} tone={TONES.emerald} label="Completed Courses" value={data.stats.coursesCompleted} />
-            <Stat3D icon={Clock} tone={TONES.amber} label="CPD Hours" value={data.stats.totalCpdHours} />
             <Stat3D icon={TrendingUp} tone={TONES.violet} label="Average Progress" value={`${data.stats.avgProgress}%`} />
           </div>
 
@@ -143,15 +140,14 @@ export default function ManagerReportsPage() {
             </div>
 
             {tab === "progress" ? (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <RingStat label="Learning progress" pct={data.progress.learningProgress} color="#2e7d5b" bg="#eaf4ee" />
-                <RingStat label="CPD progress" pct={data.progress.cpdProgress} color="#2f7fe0" bg="#e8f0fd" />
                 <RingStat label="Completion rate" pct={data.progress.completionRate} color="#d9880f" bg="#fbf1de" />
               </div>
             ) : tab === "trend" ? (
               <>
-                <LearnAreaChart data={data.trend} xKey="label" dataKeys={[{ key: "avgProgress", label: "progress %", color: "#3f9d75" }, { key: "cpdHours", label: "CPD hours", color: "#5b8def" }]} height={240} />
-                <p className="mt-2 text-center text-xs text-[var(--muted)]">Average learning progress and CPD hours · last 8 weeks</p>
+                <LearnAreaChart data={data.trend} xKey="label" dataKeys={[{ key: "avgProgress", label: "progress %", color: "#3f9d75" }]} height={240} />
+                <p className="mt-2 text-center text-xs text-[var(--muted)]">Average learning progress · last 8 weeks</p>
               </>
             ) : (
               <div className="flex flex-col items-center gap-4 py-2 sm:flex-row sm:justify-center sm:gap-10">

@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { Clock, BookOpen, Award, Flame, Download, ArrowRight } from "lucide-react";
+import { BookOpen, Award, Download } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import LearnAreaChart from "@/components/charts/LearnAreaChart";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
@@ -35,11 +34,9 @@ export default function MyReportsPage() {
       "LearnSmart AI — My Report",
       "",
       "Metric,Value",
-      `Total CPD Hours (this week),${data.stats.totalCpdHours}`,
       `Learning Activities (this week),${data.stats.learningActivities}`,
       `Courses Completed (this week),${data.stats.coursesCompleted}`,
       `Skills Improving,${data.stats.skillsImproved}`,
-      `CPD Streak (weeks),${data.stats.cpdStreak}`,
       "",
       "Recent Activity,Type,Hours,Completed On",
       ...data.recent.map((r) => `"${r.title}",${r.type},${r.hours},${r.date}`),
@@ -61,7 +58,7 @@ export default function MyReportsPage() {
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[var(--ink)]">My Reports</h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">Track your learning progress, CPD activities and growth over time.</p>
+          <p className="mt-1 text-sm text-[var(--muted)]">Track your learning progress and growth over time.</p>
         </div>
         <button onClick={exportCsv} className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--ink)] hover:bg-slate-50">
           <Download className="h-4 w-4" /> Export Report
@@ -70,16 +67,14 @@ export default function MyReportsPage() {
 
       {/* Reports is about trends: every card is a this-week figure with a vs-last-week
           delta. Current-status numbers (skills, totals) live on their home pages. */}
-      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard icon={Clock} label="CPD Hours (this week)" value={data.stats.totalCpdHours} sub={delta(data.stats.cpdDelta, "h")} />
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <StatCard icon={BookOpen} label="Learning Activities (this week)" value={data.stats.learningActivities} sub={delta(data.stats.activitiesDelta)} />
         <StatCard icon={Award} label="Courses Completed (this week)" value={data.stats.coursesCompleted} sub={delta(data.stats.completedDelta)} />
-        <StatCard icon={Flame} iconBg="bg-amber-50" label="CPD Streak" value={`${data.stats.cpdStreak} wk`} sub="Keep it up!" />
       </div>
 
       <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
-          <h3 className="mb-4 font-semibold text-[var(--ink)]">CPD Hours Over Time <span className="text-xs font-normal text-[var(--muted)]">· last 8 weeks</span></h3>
+          <h3 className="mb-4 font-semibold text-[var(--ink)]">Learning Hours Over Time <span className="text-xs font-normal text-[var(--muted)]">· last 8 weeks</span></h3>
           <LearnAreaChart data={data.overTime} xKey="label" dataKeys={[{ key: "hours", label: "hours", color: "#2e7d5b" }]} unit="h" height={220} />
           {data.overTime.reduce((s, w) => s + w.hours, 0) > 0 && data.overTime.filter((w) => w.hours > 0).length <= 1 && (
             <p className="mt-2 text-xs text-[var(--muted)]">Early days — the empty weeks are history, not missing data. Keep logging and the trend will fill in.</p>
@@ -89,7 +84,7 @@ export default function MyReportsPage() {
           <h3 className="mb-4 font-semibold text-[var(--ink)]">Hours by Activity Type</h3>
           {/* A donut only earns its place with 2+ categories; a single 100% slice says nothing. */}
           {data.hoursByType.length === 0 ? (
-            <p className="text-sm text-[var(--muted)]">No CPD activity recorded yet.</p>
+            <p className="text-sm text-[var(--muted)]">No learning hours recorded yet.</p>
           ) : data.hoursByType.length === 1 ? (
             <p className="text-sm text-[var(--ink)]">All <span className="font-semibold">{data.hoursByType[0].value}h</span> so far in <span className="font-semibold">{data.hoursByType[0].name}</span>. More types will chart here as you diversify.</p>
           ) : (
@@ -103,7 +98,6 @@ export default function MyReportsPage() {
         <div className="rounded-2xl border border-[var(--border)] bg-white">
           <div className="flex items-center justify-between border-b border-[var(--border)] p-5">
             <h3 className="font-semibold text-[var(--ink)]">Recent Activity</h3>
-            <Link href="/me/cpd" className="inline-flex items-center gap-1 text-xs font-medium text-[var(--brand)] hover:text-[var(--brand-dark)]">Full feed on My CPD <ArrowRight className="h-3 w-3" /></Link>
           </div>
           {data.recent.length === 0 ? (
             <p className="p-5 text-sm text-[var(--muted)]">No recent activities.</p>
@@ -121,10 +115,9 @@ export default function MyReportsPage() {
         </div>
         <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
           <h3 className="mb-4 font-semibold text-[var(--ink)]">Progress Summary</h3>
-          <ProgressRow label="CPD Hours Goal" pct={data.progress.cpdGoal} color="bg-[var(--brand)]" />
-          <div className="mt-4"><ProgressRow label="Course Completion" pct={data.progress.courseCompletion} color="bg-purple-500" /></div>
+          <ProgressRow label="Course Completion" pct={data.progress.courseCompletion} color="bg-purple-500" />
           <div className="mt-4"><ProgressRow label="Skill Improvement" pct={data.progress.skillImprovement} color="bg-amber-500" /></div>
-          <p className="mt-5 text-xs text-[var(--muted)]">Reports are updated in real-time, based on your CPD activities and learning records.</p>
+          <p className="mt-5 text-xs text-[var(--muted)]">Reports are updated in real-time, based on your learning records.</p>
         </div>
       </div>
     </div>

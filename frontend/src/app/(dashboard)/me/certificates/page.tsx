@@ -80,9 +80,8 @@ export default function MyCertificatesPage() {
               </div>
               <h3 className="mt-4 font-semibold text-[var(--ink)]">{cert.title}</h3>
               <p className="mt-1 text-sm text-[var(--muted)]">{cert.issuer}</p>
-              <div className="mt-3 flex items-center justify-between">
+              <div className="mt-3">
                 <span className="text-xs text-[var(--muted)]">{cert.issuedDate}</span>
-                <span className="rounded-full bg-[var(--brand-tint)] px-2.5 py-1 text-xs font-medium text-[var(--brand-dark)]">{cert.cpdHours} CPD hrs</span>
               </div>
               {cert.fileUrl && (
                 <a href={cert.fileUrl} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex items-center justify-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-2 text-xs font-medium text-[var(--ink)] hover:bg-slate-50">
@@ -115,9 +114,7 @@ function AddCertificateModal({ onClose, onSaved }: { onClose: () => void; onSave
   const [fileUrl, setFileUrl] = useState("");
   const [fileData, setFileData] = useState("");   // uploaded PDF/image as a data URL
   const [fileName, setFileName] = useState("");
-  const [cpdHours, setCpdHours] = useState("");
   const [issuedDate, setIssuedDate] = useState("");
-  const [addCpd, setAddCpd] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -133,7 +130,10 @@ function AddCertificateModal({ onClose, onSaved }: { onClose: () => void; onSave
   };
 
   const submit = async () => {
+    // Both proofs are compulsory: the uploaded certificate PDF/image AND its link.
     if (!title.trim()) { setError("Course name is required."); return; }
+    if (!fileData) { setError("Upload the certificate PDF or image — it's required."); return; }
+    if (!fileUrl.trim()) { setError("Paste the certificate link (URL) — it's required."); return; }
     setSaving(true); setError("");
     try {
       const r = await fetch(`${API}/api/me/certificates`, {
@@ -142,11 +142,9 @@ function AddCertificateModal({ onClose, onSaved }: { onClose: () => void; onSave
         body: JSON.stringify({
           title: title.trim(),
           issuer: issuer.trim() || undefined,
-          // An uploaded file (PDF/image) takes precedence over a pasted link.
-          fileUrl: fileData || fileUrl.trim() || undefined,
-          cpdHours: cpdHours ? Number(cpdHours) : undefined,
+          // The uploaded file is the viewable certificate (opened by "View Certificate").
+          fileUrl: fileData,
           issuedDate: issuedDate || undefined,
-          addCpd,
         }),
       });
       if (r.ok) { onSaved(); return; }
@@ -174,7 +172,7 @@ function AddCertificateModal({ onClose, onSaved }: { onClose: () => void; onSave
             <input value={issuer} onChange={(e) => setIssuer(e.target.value)} placeholder="e.g. Amazon, Coursera, LinkedIn"
               className="w-full rounded-lg border border-[var(--border)] px-3 py-2 text-sm outline-none focus:border-[var(--brand)]" />
           </Field>
-          <Field label="Upload certificate (PDF or image)">
+          <Field label="Upload certificate (PDF or image)" required>
             {fileName ? (
               <div className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-slate-50 px-3 py-2">
                 <span className="flex min-w-0 items-center gap-2 text-sm text-[var(--ink)]">
@@ -191,24 +189,15 @@ function AddCertificateModal({ onClose, onSaved }: { onClose: () => void; onSave
               </label>
             )}
           </Field>
-          <Field label="…or paste a certificate link (URL)">
-            <input value={fileUrl} onChange={(e) => setFileUrl(e.target.value)} placeholder="https://…" disabled={!!fileName}
-              className="w-full rounded-lg border border-[var(--border)] px-3 py-2 text-sm outline-none focus:border-[var(--brand)] disabled:bg-slate-50 disabled:text-[var(--muted)]" />
+          <Field label="Certificate link (URL)" required>
+            <input value={fileUrl} onChange={(e) => setFileUrl(e.target.value)} placeholder="https://…"
+              className="w-full rounded-lg border border-[var(--border)] px-3 py-2 text-sm outline-none focus:border-[var(--brand)]" />
           </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="CPD hours">
-              <input value={cpdHours} onChange={(e) => setCpdHours(e.target.value)} type="number" min={0} step={0.5} placeholder="e.g. 8"
-                className="w-full rounded-lg border border-[var(--border)] px-3 py-2 text-sm outline-none focus:border-[var(--brand)]" />
-            </Field>
-            <Field label="Date completed">
-              <input value={issuedDate} onChange={(e) => setIssuedDate(e.target.value)} type="date"
-                className="w-full rounded-lg border border-[var(--border)] px-3 py-2 text-sm outline-none focus:border-[var(--brand)]" />
-            </Field>
-          </div>
-          <label className="flex items-center gap-2 text-sm text-[var(--ink)]">
-            <input type="checkbox" checked={addCpd} onChange={(e) => setAddCpd(e.target.checked)} className="accent-[var(--brand)]" />
-            Count these hours towards my CPD
-          </label>
+          <Field label="Date completed">
+            <input value={issuedDate} onChange={(e) => setIssuedDate(e.target.value)} type="date"
+              className="w-full rounded-lg border border-[var(--border)] px-3 py-2 text-sm outline-none focus:border-[var(--brand)]" />
+          </Field>
+          <p className="text-xs text-[var(--muted)]">Both the certificate file and its link are required.</p>
           {error && <p className="text-sm text-red-600">{error}</p>}
         </div>
         <div className="mt-6 flex justify-end gap-2">

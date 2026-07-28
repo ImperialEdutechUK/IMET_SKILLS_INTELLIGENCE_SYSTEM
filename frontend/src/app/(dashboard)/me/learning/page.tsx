@@ -205,7 +205,6 @@ function AddCourseModal({ onClose, onSaved }: { onClose: () => void; onSaved: ()
   const [title, setTitle] = useState("");
   const [externalUrl, setExternalUrl] = useState("");
   const [provider, setProvider] = useState("");
-  const [cpdHours, setCpdHours] = useState("");
   const [status, setStatus] = useState<"in_progress" | "completed">("in_progress");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -222,7 +221,6 @@ function AddCourseModal({ onClose, onSaved }: { onClose: () => void; onSaved: ()
           title: title.trim(),
           externalUrl: externalUrl.trim() || undefined,
           provider: provider.trim() || undefined,
-          cpdHours: cpdHours ? Number(cpdHours) : undefined,
           status,
         }),
       });
@@ -242,7 +240,7 @@ function AddCourseModal({ onClose, onSaved }: { onClose: () => void; onSaved: ()
           <h2 className="text-lg font-bold text-[var(--ink)]">Add a Course</h2>
           <button onClick={onClose} className="text-[var(--muted)] hover:text-[var(--ink)]"><X className="h-5 w-5" /></button>
         </div>
-        <p className="mb-4 text-xs text-[var(--muted)]">For a course you&apos;re doing (or did) outside the recommended list. It&apos;s tracked here and counts towards your CPD.</p>
+        <p className="mb-4 text-xs text-[var(--muted)]">For a course you&apos;re doing (or did) outside the recommended list. It&apos;s tracked here in your learning.</p>
         <div className="space-y-4">
           <ModalField label="Course name" required>
             <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Advanced React Patterns"
@@ -260,10 +258,6 @@ function AddCourseModal({ onClose, onSaved }: { onClose: () => void; onSaved: ()
               <input value={provider} onChange={(e) => setProvider(e.target.value)} placeholder="e.g. Udemy"
                 className="w-full rounded-lg border border-[var(--border)] px-3 py-2 text-sm outline-none focus:border-[var(--brand)]" />
             </ModalField>
-            <ModalField label="CPD hours">
-              <input value={cpdHours} onChange={(e) => setCpdHours(e.target.value)} type="number" min={0} step={0.5} placeholder="e.g. 5"
-                className="w-full rounded-lg border border-[var(--border)] px-3 py-2 text-sm outline-none focus:border-[var(--brand)]" />
-            </ModalField>
           </div>
           <ModalField label="Status">
             <div className="flex gap-2">
@@ -275,7 +269,7 @@ function AddCourseModal({ onClose, onSaved }: { onClose: () => void; onSaved: ()
               ))}
             </div>
           </ModalField>
-          {status === "completed" && <p className="text-xs text-[var(--muted)]">Marking it completed logs your CPD hours and issues a certificate automatically.</p>}
+          {status === "completed" && <p className="text-xs text-[var(--muted)]">Marking it completed issues a certificate automatically.</p>}
           {error && <p className="text-sm text-red-600">{error}</p>}
         </div>
         <div className="mt-6 flex justify-end gap-2">

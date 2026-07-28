@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, BookOpen, Target, Award, ScrollText, Sparkles,
+  LayoutDashboard, BookOpen, Target, ScrollText, Sparkles,
   BarChart3, Users, UserCog, UserCheck, Library, ClipboardCheck, Tags, Settings, Trophy,
 } from "lucide-react";
 import type { NavSection, Role } from "@/types";
@@ -11,7 +11,6 @@ export const navConfig: Record<Role, NavSection[]> = {
         { label: "Dashboard", href: "/me/dashboard", icon: LayoutDashboard },
         { label: "My Learning", href: "/me/learning", icon: BookOpen },
         { label: "My Skills", href: "/me/skills", icon: Target },
-        { label: "My CPD", href: "/me/cpd", icon: Award },
         { label: "Certificates", href: "/me/certificates", icon: ScrollText },
         { label: "AI Recommendations", href: "/me/recommendations", icon: Sparkles },
         { label: "Reports", href: "/me/reports", icon: BarChart3 },
@@ -27,7 +26,6 @@ export const navConfig: Record<Role, NavSection[]> = {
         { label: "Dashboard", href: "/manager/dashboard", icon: LayoutDashboard },
         { label: "Team Learning", href: "/manager/team-learning", icon: BookOpen },
         { label: "Skills", href: "/manager/team-skills", icon: Target },
-        { label: "CPD", href: "/manager/team-cpd", icon: Award },
         { label: "Skill Gaps", href: "/manager/gaps", icon: BarChart3 },
         { label: "Leaderboard", href: "/manager/leaderboard", icon: Trophy },
         { label: "Reports", href: "/manager/reports", icon: ScrollText },
@@ -39,7 +37,6 @@ export const navConfig: Record<Role, NavSection[]> = {
       items: [
         { label: "My Learning", href: "/me/learning", icon: BookOpen },
         { label: "My Skills", href: "/me/skills", icon: Target },
-        { label: "My CPD", href: "/me/cpd", icon: Award },
         { label: "My Certificates", href: "/me/certificates", icon: ScrollText },
         { label: "AI Recommendations", href: "/me/recommendations", icon: Sparkles },
         { label: "Settings", href: "/me/settings", icon: Settings },
@@ -72,7 +69,6 @@ export const navConfig: Record<Role, NavSection[]> = {
       title: "Personal",
       items: [
         { label: "My Learning", href: "/me/learning", icon: BookOpen },
-        { label: "My CPD", href: "/me/cpd", icon: Award },
         { label: "Settings", href: "/me/settings", icon: Settings },
       ],
     },
@@ -109,7 +105,6 @@ export function departmentNav(departmentId: string): NavSection[] {
       items: [
         { label: "Overview", href: base, icon: LayoutDashboard },
         { label: "Skills", href: `${base}/team-skills`, icon: Target },
-        { label: "CPD", href: `${base}/team-cpd`, icon: Award },
         { label: "Learning", href: `${base}/team-learning`, icon: BookOpen },
         { label: "Skill Gaps", href: `${base}/gaps`, icon: BarChart3 },
       ],

@@ -357,7 +357,13 @@ model Certificate {
   issuer      String
   cpdHours    Float
   issuedDate  String
+  // The certificate the learner uploaded, as a data URL (PDF or image). This is
+  // the artefact "View Certificate" opens — it is the proof of completion.
   fileUrl     String?
+  // The issuer's own verification link (e.g. coursera.org/verify/…). Kept separate
+  // from fileUrl so a certificate carries BOTH the document and a checkable source;
+  // nullable because certificates issued before this field existed have neither.
+  certificateUrl String?
   status      CertificateStatus @default(pending)
   createdAt   DateTime          @default(now())
 

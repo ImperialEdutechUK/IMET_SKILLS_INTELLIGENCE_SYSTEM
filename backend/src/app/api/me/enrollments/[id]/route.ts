@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { verifyToken } from "@/lib/verifyToken";
-import { applyEnrollmentCompletion } from "@/lib/enrollment-complete";
+import {
+  issueCompletionCertificate,
+  logCompletionCpd,
+  type CompletionProof,
+} from "@/lib/enrollment-complete";
+import { parseCertificateProof } from "@/lib/certificate-proof";
 import { packCpd } from "@/lib/cpd-activity";
 import { deriveProgress, MAX_HOURS_PER_ENTRY, MAX_TARGET_HOURS } from "@/lib/enrollment-progress";
 
@@ -16,8 +21,12 @@ import { deriveProgress, MAX_HOURS_PER_ENTRY, MAX_TARGET_HOURS } from "@/lib/enr
 // story: hours remain self-reported (no external provider exposes a completion API),
 // but they are now timestamped, unit-bearing and append-only instead of a drag.
 //
-// Completing a course auto-creates a CPD record and certificate. Only touches
-// user-owned rows; never writes to the Course catalog.
+// Completing a course REQUIRES proof: the uploaded certificate (PDF/image) plus the
+// issuer's verification link, sent as `certificate`. Without valid proof the request
+// is rejected and the enrollment is left exactly as it was — same status, same hours,
+// same progress bar — so an abandoned or cancelled upload can never silently promote a
+// course to "completed". A valid one auto-creates the CPD record and the certificate.
+// Only touches user-owned rows; never writes to the Course catalog.
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const authUser = verifyToken(req);
   if (!authUser) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
@@ -29,7 +38,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   } catch {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
-  const { progress, status, addHours, targetHours } = body ?? {};
+  const { progress, status, addHours, targetHours, certificate } = body ?? {};
 
   if (progress !== undefined) {
     return NextResponse.json(
@@ -108,6 +117,17 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const justReopened = enrollment.status === "completed" && nextStatus !== "completed";
   const now = new Date();
 
+  // ── Proof gate ─────────────────────────────────────────────────────────────
+  // Nothing has been written yet. Bailing out here is what guarantees the course
+  // stays in its current tab with its current progress when the learner cancels
+  // the upload or sends an incomplete certificate.
+  let proof: CompletionProof | undefined;
+  if (justCompleted) {
+    const parsed = parseCertificateProof(certificate);
+    if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+    proof = parsed.proof;
+  }
+
   // ── Build the append-only activity trail for this request ──────────────────
   const events: { type: "started" | "hours_logged" | "completed" | "reopened" | "target_adjusted"; hours?: number; note?: string }[] = [];
   if (justStarted) events.push({ type: "started", note: "Started the course" });
@@ -135,11 +155,27 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       type: "completed",
       note:
         nextHoursLogged > 0
-          ? `Marked complete after ${nextHoursLogged}h logged`
-          : "Marked complete with no hours logged",
+          ? `Completed after ${nextHoursLogged}h logged · certificate uploaded`
+          : "Completed with no hours logged · certificate uploaded",
     });
   }
   if (justReopened) events.push({ type: "reopened", note: "Reopened the course" });
+
+  // Bank the certificate BEFORE the status flips. If this write fails the request
+  // throws with the enrollment still In Progress — a completed course can never end
+  // up without the evidence that justified it. Retrying is safe (idempotent).
+  if (justCompleted) {
+    await issueCompletionCertificate({
+      userId: authUser.id,
+      courseTitle: enrollment.course.title,
+      provider: enrollment.course.provider ?? null,
+      cpdHours: enrollment.course.cpdHours,
+      // The certificate records the hours the learner actually logged, not the
+      // catalogue's estimate, so its "+Xh CPD" matches their real CPD ledger.
+      creditHours: nextHoursLogged,
+      proof,
+    });
+  }
 
   const updated = await prisma.enrollment.update({
     where: { id },
@@ -188,14 +224,20 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
   }
 
-  // Completion side-effects (idempotent) — course completion earns CPD + a certificate.
+  // The CPD half of completion. Completing a course NEVER credits the catalogue's CPD
+  // figure here — only the hours the learner logged count, so finishing a 10h course
+  // after logging 3h banks 3h, not 13h. In practice the hours block above has already
+  // written that record and this is a no-op; it only creates one for an enrollment
+  // whose logged hours were never turned into CPD, and creditHours 0 means a course
+  // marked complete with no time logged earns no CPD at all.
   if (justCompleted) {
-    await applyEnrollmentCompletion({
+    await logCompletionCpd({
       userId: authUser.id,
       enrollmentId: id,
       courseTitle: enrollment.course.title,
       provider: enrollment.course.provider ?? null,
       cpdHours: enrollment.course.cpdHours,
+      creditHours: nextHoursLogged,
     });
   }
 

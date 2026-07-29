@@ -5,6 +5,7 @@ import Link from "next/link";
 import { BookOpen, Clock, CheckCircle2, PlayCircle, Plus, ExternalLink, X, History } from "lucide-react";
 import Stat3D from "@/components/dashboard/Stat3D";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
+import CertificateProofModal, { CertificateFileField } from "@/components/certificates/CertificateProofModal";
 import { getToken } from "@/lib/authClient";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -49,6 +50,9 @@ export default function MyLearningPage() {
   const [err, setErr] = useState<Record<string, string>>({});
   const [trailOpen, setTrailOpen] = useState<Record<string, boolean>>({});
   const [detail, setDetail] = useState<Course | null>(null);
+  // The course awaiting proof of completion. Closing this without a successful
+  // upload leaves the enrollment untouched — it stays In Progress at the same %.
+  const [completing, setCompleting] = useState<Course | null>(null);
 
   const load = useCallback(async () => {
     const r = await fetch(`${API}/api/me/learning`, { headers: { Authorization: `Bearer ${getToken()}` } });
@@ -214,7 +218,7 @@ export default function MyLearningPage() {
                     <button onClick={() => setLogOpen((s) => ({ ...s, [c.id]: true }))} className="inline-flex items-center gap-1 rounded-lg bg-[var(--brand)] px-3 py-1.5 text-xs font-medium text-white hover:bg-[var(--brand-dark)]"><Clock className="h-3.5 w-3.5" /> Log Hours</button>
                   )}
                   {c.externalUrl && <a href={c.externalUrl} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--ink)] hover:bg-slate-50">Continue</a>}
-                  <button onClick={() => patch(c.id, { status: "completed" })} disabled={busy[c.id]} className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--ink)] hover:bg-slate-50 disabled:opacity-60">Mark Complete</button>
+                  <button onClick={() => { setErr((s) => ({ ...s, [c.id]: "" })); setCompleting(c); }} disabled={busy[c.id]} className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--ink)] hover:bg-slate-50 disabled:opacity-60">Mark Complete</button>
                 </div>
               </div>
 
@@ -274,7 +278,9 @@ export default function MyLearningPage() {
                 <p className="text-sm font-semibold text-[var(--ink)]">{c.title}</p>
                 <p className="mt-0.5 text-[11px] text-[var(--muted)]">{c.level} · {c.category}{c.completedAt ? ` · completed ${c.completedAt}` : ""}{c.hoursLogged > 0 ? ` · ${c.hoursLogged}h logged` : ""}</p>
               </div>
-              <span className="shrink-0 rounded-full bg-[var(--brand-tint)] px-2.5 py-1 text-xs font-medium text-[var(--brand-dark)]">+{c.cpdHours} CPD</span>
+              {/* CPD earned is the time the learner logged, never the catalogue's
+                  estimate — same number the CPD ledger and certificate carry. */}
+              <span className="shrink-0 rounded-full bg-[var(--brand-tint)] px-2.5 py-1 text-xs font-medium text-[var(--brand-dark)]">+{c.hoursLogged} CPD</span>
               {c.certificateId && <Link href="/me/certificates" className="shrink-0 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--ink)] hover:bg-slate-50">View Certificate</Link>}
             </div>
           ))}
@@ -286,6 +292,52 @@ export default function MyLearningPage() {
           course={detail}
           onClose={() => setDetail(null)}
           onSaved={async () => { setDetail(null); await load(); }}
+        />
+      )}
+
+      {completing && (
+        <CertificateProofModal
+          heading="Mark course complete"
+          intro={`Upload the certificate you earned for this course. It only moves to Completed once the proof is saved. ${
+            completing.hoursLogged > 0
+              ? `This counts the ${completing.hoursLogged}h you logged as CPD — nothing to re-enter.`
+              : "You've logged no hours on it, so it earns no CPD. Log your time first if you want it to count."
+          }`}
+          submitLabel="Complete & save certificate"
+          initialTitle={completing.title}
+          titleLocked
+          initialProvider={completing.provider}
+          onClose={() => setCompleting(null)}
+          onSubmit={async (payload) => {
+            // status + certificate go in one request: the backend rejects the whole
+            // thing if the proof is missing or invalid, so a failure here leaves the
+            // course In Progress with its progress bar exactly where it was.
+            try {
+              const r = await fetch(`${API}/api/me/enrollments/${completing.id}`, {
+                method: "PATCH",
+                headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  status: "completed",
+                  certificate: {
+                    fileUrl: payload.fileUrl,
+                    certificateUrl: payload.certificateUrl,
+                    issuer: payload.issuer,
+                    issuedDate: payload.issuedDate || undefined,
+                  },
+                }),
+              });
+              if (r.ok) {
+                setCompleting(null);
+                await load();
+                setTab("completed");
+                return null;
+              }
+              const d = await r.json().catch(() => ({}));
+              return d.error || "Could not mark the course complete.";
+            } catch {
+              return "Could not reach the server.";
+            }
+          }}
         />
       )}
 
@@ -352,8 +404,10 @@ function CourseDetailModal({ course, onClose, onSaved }: { course: Course; onClo
           <Row label="Provider" value={course.provider ?? "—"} />
           <Row label="Level" value={course.level} />
           <Row label="Category" value={course.category} />
-          <Row label="CPD on completion" value={`${course.cpdHours}h`} />
           <Row label="Time you've logged" value={`${course.hoursLogged}h`} />
+          {/* Completing the course banks exactly the hours logged — the catalogue's
+              own CPD figure is never added on top. */}
+          <Row label="CPD on completion" value={`${course.hoursLogged}h — the time you log`} />
         </div>
 
         <label className="mb-1 block text-xs font-medium text-[var(--ink)]">Total hours to complete</label>
@@ -396,6 +450,11 @@ function CourseDetailModal({ course, onClose, onSaved }: { course: Course; onClo
   );
 }
 
+// Adding a course you did outside the recommended list. Choosing "Completed" here
+// skips the whole log-hours-as-you-go loop, so it has to carry the same evidence a
+// completion normally earns: the certificate, its link, and — since there are no
+// logged hours to draw on — the CPD hours typed by hand. Choosing "In Progress"
+// changes nothing: none of those fields appear and none are sent.
 function AddCourseModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
   const [title, setTitle] = useState("");
   const [externalUrl, setExternalUrl] = useState("");
@@ -404,8 +463,22 @@ function AddCourseModal({ onClose, onSaved }: { onClose: () => void; onSaved: ()
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  // Completed-only fields.
+  const [cpdHours, setCpdHours] = useState("");
+  const [fileData, setFileData] = useState("");
+  const [fileName, setFileName] = useState("");
+  const [certificateUrl, setCertificateUrl] = useState("");
+  const [issuedDate, setIssuedDate] = useState(new Date().toISOString().slice(0, 10));
+  const done = status === "completed";
+
   const submit = async () => {
     if (!title.trim()) { setError("Course name is required."); return; }
+    if (done) {
+      const n = Number(cpdHours);
+      if (!n || n <= 0) { setError("Enter the CPD hours for this course."); return; }
+      if (!fileData) { setError("Upload the certificate PDF or image — it's required."); return; }
+      if (!certificateUrl.trim()) { setError("Paste the certificate link (URL) — it's required."); return; }
+    }
     setSaving(true); setError("");
     try {
       const r = await fetch(`${API}/api/me/enrollments`, {
@@ -417,6 +490,19 @@ function AddCourseModal({ onClose, onSaved }: { onClose: () => void; onSaved: ()
           externalUrl: externalUrl.trim() || undefined,
           provider: provider.trim() || undefined,
           status,
+          ...(done
+            ? {
+                cpdHours: Number(cpdHours),
+                certificate: {
+                  fileUrl: fileData,
+                  certificateUrl: certificateUrl.trim(),
+                  // The provider typed above is the certificate's issuer — no point
+                  // asking for the same name twice in one dialog.
+                  issuer: provider.trim() || undefined,
+                  issuedDate: issuedDate || undefined,
+                },
+              }
+            : {}),
         }),
       });
       if (r.ok) { onSaved(); return; }
@@ -429,8 +515,10 @@ function AddCourseModal({ onClose, onSaved }: { onClose: () => void; onSaved: ()
   };
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/40 p-4" onClick={onClose}>
+      {/* The Completed branch adds four fields, so the dialog has to be able to
+          scroll on a short viewport rather than run off the bottom. */}
+      <div className="my-auto w-full max-w-md rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-1 flex items-center justify-between">
           <h2 className="text-lg font-bold text-[var(--ink)]">Add a Course</h2>
           <button onClick={onClose} className="text-[var(--muted)] hover:text-[var(--ink)]"><X className="h-5 w-5" /></button>
@@ -464,7 +552,35 @@ function AddCourseModal({ onClose, onSaved }: { onClose: () => void; onSaved: ()
               ))}
             </div>
           </ModalField>
-          {status === "completed" && <p className="text-xs text-[var(--muted)]">Marking it completed issues a certificate automatically.</p>}
+          {done && (
+            <div className="space-y-4 rounded-xl border border-[var(--border)] bg-slate-50/60 p-4">
+              <p className="text-xs text-[var(--muted)]">
+                A completed course needs its certificate. These hours count towards your CPD and the certificate is saved to your Certificates page.
+              </p>
+              <ModalField label="CPD hours" required>
+                <input type="number" min={0.5} step={0.5} value={cpdHours} onChange={(e) => setCpdHours(e.target.value)}
+                  placeholder="e.g. 6"
+                  className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--brand)]" />
+                <p className="mt-1 text-[11px] text-[var(--muted)]">You can find this on the course page you enrolled in.</p>
+              </ModalField>
+              <ModalField label="Upload certificate (PDF or image)" required>
+                <CertificateFileField
+                  fileName={fileName}
+                  onPicked={(data, name) => { setFileData(data); setFileName(name); }}
+                  onError={setError}
+                />
+              </ModalField>
+              <ModalField label="Certificate link (URL)" required>
+                <input value={certificateUrl} onChange={(e) => setCertificateUrl(e.target.value)} placeholder="https://…"
+                  className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--brand)]" />
+              </ModalField>
+              <ModalField label="Date completed">
+                <input type="date" value={issuedDate} max={new Date().toISOString().slice(0, 10)}
+                  onChange={(e) => setIssuedDate(e.target.value)}
+                  className="w-full rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--brand)]" />
+              </ModalField>
+            </div>
+          )}
           {error && <p className="text-sm text-red-600">{error}</p>}
         </div>
         <div className="mt-6 flex justify-end gap-2">

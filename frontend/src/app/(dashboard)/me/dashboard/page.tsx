@@ -93,7 +93,7 @@ export default function EmployeeDashboardPage() {
           so the page reads as a standard SaaS dashboard rather than a game screen). */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--ink)]">Welcome back, {first} 👋</h1>
+          <h1 className="text-2xl font-bold text-[var(--ink)]">Welcome back, {first}</h1>
           <p className="mt-1 text-sm text-[var(--muted)]">Here&rsquo;s your learning at a glance.</p>
         </div>
         <div

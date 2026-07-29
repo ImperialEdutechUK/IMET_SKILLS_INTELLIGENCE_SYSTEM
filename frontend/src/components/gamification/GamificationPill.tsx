@@ -35,7 +35,7 @@ export default function GamificationPill() {
 
   return (
     <Link
-      href="/me/certificates"
+      href="/me/learning?tab=certificates"
       title={`${g.title} · Level ${g.level} · ${g.xp} XP`}
       className="hidden items-center gap-2 rounded-full border border-[var(--brand)]/20 bg-[var(--brand-tint)] py-1 pl-1.5 pr-3 transition hover:shadow-sm sm:flex"
     >

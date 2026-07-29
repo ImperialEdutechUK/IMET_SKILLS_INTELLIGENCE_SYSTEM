@@ -108,6 +108,22 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     },
     courses,
     certificates: emp.certificates.length,
+    // Completed-course count + CPD hours feed the same gamification/trophy-shelf the
+    // employee sees, so a manager reads identical badges. certificateList is read-only.
+    coursesCompleted: courses.completed.length,
+    cpdHours: Math.round(cpdHours * 10) / 10,
+    certificateList: emp.certificates
+      .slice()
+      .sort((a, b) => (a.issuedDate < b.issuedDate ? 1 : -1))
+      .map((c) => ({
+        id: c.id,
+        title: c.title,
+        issuer: c.issuer,
+        issuedDate: c.issuedDate,
+        fileUrl: c.fileUrl,
+        certificateUrl: c.certificateUrl,
+        status: c.status,
+      })),
     recentActivities,
   });
 }

@@ -7,6 +7,8 @@ import { getCpdTargetHours } from "@/lib/cpd-target";
 const LEVEL_LABEL = ["Not Started", "Beginner", "Intermediate", "Advanced", "Expert"];
 const label = (n: number) => LEVEL_LABEL[Math.max(0, Math.min(4, n))];
 const round1 = (n: number) => Math.round(n * 10) / 10;
+const DAY = 86400000;
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 // The CPD target is ANNUAL (calendar year), so a flat percentage is time-blind:
 // 20% done in February is fine, in November it is not. Pace compares hours logged
@@ -113,6 +115,22 @@ export async function GET(req: Request) {
     externalUrl: enr.course.externalUrl ?? null,
   }));
 
+  // Weekly learning activity for the trend chart — course starts + completions
+  // bucketed into the last 8 weeks (computed from already-loaded enrollments).
+  const now = Date.now();
+  const weeklyActivity: { label: string; started: number; completed: number }[] = [];
+  for (let w = 7; w >= 0; w--) {
+    const start = now - (w + 1) * 7 * DAY;
+    const end = now - w * 7 * DAY;
+    let started = 0, completed = 0;
+    for (const e of user.enrollments) {
+      if (e.startedAt) { const t = new Date(e.startedAt).getTime(); if (t > start && t <= end) started++; }
+      if (e.completedAt) { const t = new Date(e.completedAt).getTime(); if (t > start && t <= end) completed++; }
+    }
+    const d = new Date(start);
+    weeklyActivity.push({ label: `${MONTHS[d.getMonth()]} ${d.getDate()}`, started, completed });
+  }
+
   const cpdHours = round1(user.cpdRecords.reduce((sum, r) => sum + r.hours, 0));
   const cpdTargetHours = await getCpdTargetHours(user.departmentId);
   const cpdPercent = Math.min(100, Math.round((cpdHours / cpdTargetHours) * 100));
@@ -133,6 +151,7 @@ export async function GET(req: Request) {
     notStartedCount: notStarted.length,
     gapCount: gapCount > 0 ? gapCount : selfGaps.length,
     topGap,
+    weeklyActivity,
     notifications: unreadNotifications.map((n) => ({ id: n.id, title: n.title, body: n.body })),
     inProgress: continueList,
     topRecs: topRecs.map((rec) => ({

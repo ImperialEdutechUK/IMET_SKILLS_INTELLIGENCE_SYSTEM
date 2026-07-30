@@ -29,11 +29,14 @@ const levelBadge: Record<string, string> = {
 const prioBadge: Record<string, string> = { High: "bg-red-50 text-red-700", Medium: "bg-amber-50 text-amber-700", Low: "bg-[var(--brand-tint)] text-[var(--brand-dark)]" };
 
 const LEVELS = ["Not Started", "Beginner", "Intermediate", "Advanced", "Expert"];
+const PER_PAGE = 6;
 
 export default function MySkillsPage() {
   const [data, setData] = useState<SkillsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("overview");
+  const [skillsPage, setSkillsPage] = useState(1);
+  const [improvePage, setImprovePage] = useState(1);
 
   // Add-skill form state
   const [showAdd, setShowAdd] = useState(false);
@@ -69,6 +72,15 @@ export default function MySkillsPage() {
 
   if (loading) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
   if (!data) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load your skills.</p></div>;
+
+  // Client-side pagination — clamped so a shrinking list can never leave us on an empty page.
+  const skillsTotalPages = Math.max(1, Math.ceil(data.skills.length / PER_PAGE));
+  const skillsCurrent = Math.min(skillsPage, skillsTotalPages);
+  const visibleSkills = data.skills.slice((skillsCurrent - 1) * PER_PAGE, skillsCurrent * PER_PAGE);
+
+  const improveTotalPages = Math.max(1, Math.ceil(data.toImprove.length / PER_PAGE));
+  const improveCurrent = Math.min(improvePage, improveTotalPages);
+  const visibleImprove = data.toImprove.slice((improveCurrent - 1) * PER_PAGE, improveCurrent * PER_PAGE);
 
   return (
     <div>
@@ -147,7 +159,7 @@ export default function MySkillsPage() {
               <div className="flex items-center gap-3 border-b border-[var(--border)] p-5"><Icon3D icon={TrendingUp} tone={TONES.emerald} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Your Skills</h3></div>
               {data.skills.length === 0 ? <p className="p-5 text-sm text-[var(--muted)]">No skills recorded yet.</p> : (
                 <ul className="divide-y divide-[var(--border)]">
-                  {data.skills.map((s) => (
+                  {visibleSkills.map((s) => (
                     <li key={s.id} className="flex items-center gap-4 px-5 py-3.5">
                       <div className="min-w-0 flex-1"><p className="text-sm font-medium text-[var(--ink)]">{s.name}</p><p className="text-xs text-[var(--muted)]">{s.category}</p></div>
                       <div className="hidden w-40 sm:block"><div className="h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-[var(--brand)]" style={{ width: `${(s.currentLevel / 4) * 100}%` }} /></div></div>
@@ -156,6 +168,7 @@ export default function MySkillsPage() {
                   ))}
                 </ul>
               )}
+              <Pager page={skillsCurrent} totalPages={skillsTotalPages} total={data.skills.length} onChange={setSkillsPage} />
             </div>
             <div className="space-y-6">
               <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
@@ -180,7 +193,7 @@ export default function MySkillsPage() {
             <div className="flex items-center gap-3 border-b border-[var(--border)] p-5"><Icon3D icon={Target} tone={TONES.amber} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Skills to Improve</h3></div>
             {data.toImprove.length === 0 ? <p className="p-5 text-sm text-[var(--muted)]">You&apos;re on target across your skills. Nice work!</p> : (
               <ul className="divide-y divide-[var(--border)]">
-                {data.toImprove.map((s) => (
+                {visibleImprove.map((s) => (
                   <li key={s.name} className="px-5 py-4">
                     <div className="flex items-center gap-3">
                       <div className="min-w-0 flex-1"><p className="text-sm font-medium text-[var(--ink)]">{s.name}</p><p className="text-xs text-[var(--muted)]">{s.category}</p></div>
@@ -196,6 +209,7 @@ export default function MySkillsPage() {
                 ))}
               </ul>
             )}
+            <Pager page={improveCurrent} totalPages={improveTotalPages} total={data.toImprove.length} onChange={setImprovePage} />
           </div>
           <div className="space-y-6">
             <InfoCard title="Why Improve These Skills?" items={[
@@ -216,6 +230,21 @@ export default function MySkillsPage() {
         </div>
       )}
 
+    </div>
+  );
+}
+
+function Pager({ page, totalPages, total, onChange }: { page: number; totalPages: number; total: number; onChange: (p: number) => void }) {
+  if (totalPages <= 1) return null;
+  const from = (page - 1) * PER_PAGE + 1;
+  const to = Math.min(page * PER_PAGE, total);
+  return (
+    <div className="flex items-center justify-between border-t border-[var(--border)] p-4">
+      <button onClick={() => onChange(Math.max(1, page - 1))} disabled={page <= 1}
+        className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-40">Previous</button>
+      <span className="text-sm text-[var(--muted)]">{from}–{to} of {total}</span>
+      <button onClick={() => onChange(Math.min(totalPages, page + 1))} disabled={page >= totalPages}
+        className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-slate-50 disabled:opacity-40">Next</button>
     </div>
   );
 }

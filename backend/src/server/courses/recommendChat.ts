@@ -121,6 +121,14 @@ const NO_SKILLS_NOTE =
   "No skills on record yet — I need at least 3 to find a gap. Add them in the My Skills tab, " +
   "or hit Start over to upload your Skills Matrix or CPD Log.";
 
+// Shown when the employee HAS recorded skills but has reached the target level
+// on every one of them. Nothing is broken — they've closed their gaps — so point
+// them at the lever that reopens one rather than at the "add skills" advice,
+// which would read as if their record were empty.
+const ALL_TARGETS_MET_NOTE =
+  "You've hit your target level on every skill you've recorded — nothing left for me to close. " +
+  "Raise a target in the My Skills tab (or add a new skill) and I'll find your next course.";
+
 // ── AI selection + explanation ────────────────────────────────────────────────
 
 const aiSelectionSchema = z.object({
@@ -214,11 +222,16 @@ export async function generateChatRecommendations(
   if ("note" in gapResult) {
     gaps = await loadSelfAssessedGaps(userId);
     if (gaps.length === 0) {
-      // No role profile AND no recorded skills — there's no gap to target, so we
-      // don't guess with generic picks. Clear any stale stored picks and ask the
-      // employee for the inputs that make real recommendations possible.
+      // No role profile AND nothing left to close — there's no gap to target, so
+      // we don't guess with generic picks. Clear any stale stored picks and ask
+      // the employee for the inputs that make real recommendations possible.
+      //
+      // Two very different reasons land here, and telling an employee who has
+      // just levelled everything up to "add some skills" would be nonsense — so
+      // distinguish "nothing recorded" from "all targets met".
       await prisma.recommendation.deleteMany({ where: { userId, source: "ai" } });
-      return { ...base, note: NO_SKILLS_NOTE };
+      const recorded = await prisma.userSkill.count({ where: { userId } });
+      return { ...base, note: recorded === 0 ? NO_SKILLS_NOTE : ALL_TARGETS_MET_NOTE };
     }
     // Recommend off the self-assessed gaps — no caveat, this is now the normal path.
   } else {

@@ -320,11 +320,18 @@ export async function runGapAnalysis(userId: string): Promise<GapAnalysisResult>
 
 /**
  * Synthesise "improvement gaps" from the employee's own recorded skills, used
- * when there is no role profile to compute real gaps against. Each skill below
- * its target level (or the ceiling) becomes a gap to move one level up.
+ * when there is no role profile to compute real gaps against. Each skill still
+ * short of its target level becomes a gap to close.
  * Shared by `recommend.ts` and `recommendChat.ts` so an employee without a
  * role profile gets the same graceful degradation from either surface,
  * instead of one erroring out while the other quietly recovers.
+ *
+ * The employee's `targetLevel` is authoritative here — it is the goal they set
+ * and can edit in My Skills. A skill at or above its target is ACHIEVED and
+ * produces no gap: recommending more courses for it would ignore the edit they
+ * just made, and would contradict the My Skills tab, which already treats
+ * `current >= target` as "on target". Raising the target puts the skill back in
+ * play; that is the lever the employee has over what gets recommended next.
  */
 export async function loadSelfAssessedGaps(userId: string): Promise<ScoringGap[]> {
   const userSkills = await prisma.userSkill.findMany({ where: { userId }, include: { skill: true } });
@@ -332,7 +339,10 @@ export async function loadSelfAssessedGaps(userId: string): Promise<ScoringGap[]
   for (const us of userSkills) {
     const currentLevel = clampLevel(us.currentLevel);
     if (currentLevel >= MAX_LEVEL) continue; // already at the ceiling — nothing to target
-    const requiredLevel = Math.min(MAX_LEVEL, Math.max(currentLevel + 1, clampLevel(us.targetLevel)));
+    // Floor the target at Basic: a stored 0 means "no goal recorded", not "the
+    // goal is to know nothing", and must not read as permanently achieved.
+    const requiredLevel = Math.min(MAX_LEVEL, Math.max(1, clampLevel(us.targetLevel)));
+    if (currentLevel >= requiredLevel) continue; // achieved — the employee has hit their own goal
     const gapValue = requiredLevel - currentLevel;
     gaps.push({
       skillId: us.skillId,

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { TrendingUp, Star, Target, PlusCircle, CheckCircle2, ArrowUpRight, Plus, X, PieChart } from "lucide-react";
+import { TrendingUp, Star, Target, PlusCircle, CheckCircle2, ArrowUpRight, Plus, X, PieChart, Pencil } from "lucide-react";
 import Stat3D from "@/components/dashboard/Stat3D";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
@@ -11,7 +11,7 @@ import { getToken } from "@/lib/authClient";
 const API = process.env.NEXT_PUBLIC_API_URL;
 
 interface Skill { id: string; name: string; category: string; currentLevel: number; targetLevel: number; currentLabel: string; targetLabel: string }
-interface Improve { name: string; category: string; current: number; target: number; currentLabel: string; targetLabel: string; gap: number; priority: string }
+interface Improve { id: string; name: string; category: string; current: number; target: number; currentLabel: string; targetLabel: string; gap: number; priority: string }
 interface SkillsData {
   overview: { total: number; strengths: number; toImprove: number; newSkills: number };
   skills: Skill[];
@@ -31,6 +31,35 @@ const prioBadge: Record<string, string> = { High: "bg-red-50 text-red-700", Medi
 const LEVELS = ["Not Started", "Beginner", "Intermediate", "Advanced", "Expert"];
 const PER_PAGE = 6;
 
+type Dialog = { mode: "add" } | { mode: "edit"; id: string; name: string };
+
+interface SaveResponse {
+  achieved?: boolean;
+  skill?: { name: string; currentLabel: string; targetLabel: string };
+  refreshed?: { gapsRecomputed: boolean; outstandingGaps: number; recommendationsCleared: number } | null;
+}
+
+/**
+ * Say what the edit actually did downstream. A level change isn't just a label:
+ * it re-runs the gap analysis and drops course picks the employee has outgrown,
+ * so the confirmation reports that rather than a bare "Saved". `refreshed` is
+ * null when the backend couldn't recompute — we don't claim it happened.
+ */
+function editNotice(d: SaveResponse): string {
+  const skillName = d.skill?.name ?? "Skill";
+  // When the target is reached the row disappears from the list the employee is
+  // looking at — say why, so it reads as completion rather than as a glitch.
+  const head = d.achieved
+    ? `${skillName} is now at ${d.skill?.currentLabel} — target reached, so it's moved out of Skills to Improve.`
+    : `${skillName} updated to ${d.skill?.currentLabel} (target ${d.skill?.targetLabel}).`;
+  if (!d.refreshed) return `${head} Your recommendations will pick this up on their next run.`;
+  const cleared = d.refreshed.recommendationsCleared;
+  const tail = cleared > 0
+    ? ` Gaps recalculated, and ${cleared} course pick${cleared === 1 ? "" : "s"} you've outgrown ${cleared === 1 ? "was" : "were"} removed.`
+    : " Gaps recalculated — your next recommendations use the new level.";
+  return head + tail;
+}
+
 export default function MySkillsPage() {
   const [data, setData] = useState<SkillsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -38,14 +67,16 @@ export default function MySkillsPage() {
   const [skillsPage, setSkillsPage] = useState(1);
   const [improvePage, setImprovePage] = useState(1);
 
-  // Add-skill form state
-  const [showAdd, setShowAdd] = useState(false);
+  // Add / edit form state. One dialog serves both: adding a skill and revising
+  // the level on one you already have (the "I've reached my target" flow).
+  const [dialog, setDialog] = useState<Dialog | null>(null);
   const [name, setName] = useState("");
   const [current, setCurrent] = useState(1);
   const [target, setTarget] = useState(3);
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [addErr, setAddErr] = useState("");
+  const [notice, setNotice] = useState("");
 
   const load = useCallback(async () => {
     const r = await fetch(`${API}/api/me/skills`, { headers: { Authorization: `Bearer ${getToken()}` } });
@@ -54,19 +85,39 @@ export default function MySkillsPage() {
   }, []);
   useEffect(() => { load(); }, [load]);
 
-  const addSkill = async () => {
-    if (!name.trim()) { setAddErr("Enter a skill name."); return; }
+  const openAdd = () => {
+    setName(""); setCurrent(1); setTarget(3); setNotes(""); setAddErr("");
+    setDialog({ mode: "add" });
+  };
+  const openEdit = (s: { id: string; name: string; currentLevel: number; targetLevel: number }) => {
+    setName(s.name); setCurrent(s.currentLevel); setTarget(s.targetLevel); setNotes(""); setAddErr("");
+    setDialog({ mode: "edit", id: s.id, name: s.name });
+  };
+
+  const save = async () => {
+    if (!dialog) return;
+    if (dialog.mode === "add" && !name.trim()) { setAddErr("Enter a skill name."); return; }
     setSaving(true); setAddErr("");
     try {
-      const r = await fetch(`${API}/api/me/skills`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), currentLevel: current, targetLevel: target, gapAnalysis: notes.trim() }),
-      });
+      const r = dialog.mode === "add"
+        ? await fetch(`${API}/api/me/skills`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ name: name.trim(), currentLevel: current, targetLevel: target, gapAnalysis: notes.trim() }),
+          })
+        : await fetch(`${API}/api/me/skills/${dialog.id}`, {
+            method: "PATCH",
+            headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ currentLevel: current, targetLevel: target }),
+          });
       const d = await r.json();
-      if (r.ok) { setShowAdd(false); setName(""); setCurrent(1); setTarget(3); setNotes(""); await load(); }
-      else setAddErr(d.error ?? "Could not add skill.");
-    } catch { setAddErr("Could not add skill."); }
+      if (!r.ok) { setAddErr(d.error ?? (dialog.mode === "add" ? "Could not add skill." : "Could not save your changes.")); setSaving(false); return; }
+      setDialog(null);
+      setNotice(dialog.mode === "edit" ? editNotice(d) : "");
+      await load();
+    } catch {
+      setAddErr(dialog.mode === "add" ? "Could not add skill." : "Could not save your changes.");
+    }
     setSaving(false);
   };
 
@@ -92,24 +143,39 @@ export default function MySkillsPage() {
             <p className="mt-1 text-sm text-[var(--muted)]">Track your skills, see your progress and plan what to improve next.</p>
           </div>
         </div>
-        <button onClick={() => setShowAdd(true)} className="inline-flex items-center gap-2 rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-dark)]">
+        <button onClick={openAdd} className="inline-flex items-center gap-2 rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-dark)]">
           <Plus className="h-4 w-4" /> Add Skill
         </button>
       </div>
 
-      {showAdd && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4 backdrop-blur-sm" onClick={() => setShowAdd(false)}>
+      {notice && (
+        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-[var(--brand)]/30 bg-[var(--brand-tint)] p-4">
+          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[var(--brand-dark)]" />
+          <p className="flex-1 text-sm text-[var(--brand-dark)]">{notice}</p>
+          <button onClick={() => setNotice("")} className="text-[var(--brand-dark)]/60 hover:text-[var(--brand-dark)]"><X className="h-4 w-4" /></button>
+        </div>
+      )}
+
+      {dialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4 backdrop-blur-sm" onClick={() => setDialog(null)}>
           <div className="w-full max-w-md rounded-2xl border border-white/60 bg-white/85 p-6 shadow-2xl backdrop-blur-xl" onClick={(e) => e.stopPropagation()}>
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-[var(--ink)]">Add a Skill</h3>
-              <button onClick={() => setShowAdd(false)} className="text-[var(--muted)] hover:text-[var(--ink)]"><X className="h-5 w-5" /></button>
+              <h3 className="text-lg font-semibold text-[var(--ink)]">{dialog.mode === "add" ? "Add a Skill" : `Update ${dialog.name}`}</h3>
+              <button onClick={() => setDialog(null)} className="text-[var(--muted)] hover:text-[var(--ink)]"><X className="h-5 w-5" /></button>
             </div>
             <div className="space-y-4">
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-[var(--ink)]">Skill name</label>
-                <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Prompt Engineering"
-                  className="w-full rounded-lg border border-[var(--border)] px-3 py-2.5 text-sm outline-none focus:border-[var(--brand)]" autoFocus />
-              </div>
+              {dialog.mode === "add" ? (
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-[var(--ink)]">Skill name</label>
+                  <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Prompt Engineering"
+                    className="w-full rounded-lg border border-[var(--border)] px-3 py-2.5 text-sm outline-none focus:border-[var(--brand)]" autoFocus />
+                </div>
+              ) : (
+                <p className="text-sm text-[var(--muted)]">
+                  Moved up a level? Record it here. Your skill gaps are recalculated straight away, so the next
+                  recommendations you get are based on where you are now.
+                </p>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-[var(--ink)]">Current level</label>
@@ -119,20 +185,31 @@ export default function MySkillsPage() {
                 </div>
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-[var(--ink)]">Target level</label>
+                  {/* "Not Started" is not a goal — the backend rejects a target below Beginner. */}
                   <select value={target} onChange={(e) => setTarget(Number(e.target.value))} className="w-full rounded-lg border border-[var(--border)] px-3 py-2.5 text-sm outline-none focus:border-[var(--brand)]">
-                    {LEVELS.map((l, i) => <option key={l} value={i}>{l}</option>)}
+                    {LEVELS.map((l, i) => (i === 0 ? null : <option key={l} value={i}>{l}</option>))}
                   </select>
                 </div>
               </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-[var(--ink)]">Gap Analysis <span className="font-normal text-[var(--muted)]">(optional)</span></label>
-                <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="e.g. Need hands-on fine-tuning project."
-                  className="w-full rounded-lg border border-[var(--border)] px-3 py-2.5 text-sm outline-none focus:border-[var(--brand)]" />
-              </div>
+              {dialog.mode === "edit" && current >= target && (
+                <p className="rounded-lg bg-[var(--brand-tint)] px-3 py-2 text-xs text-[var(--brand-dark)]">
+                  Target reached — this skill drops out of Skills to Improve and stops driving recommendations.
+                  Raise the target to keep going.
+                </p>
+              )}
+              {dialog.mode === "add" && (
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-[var(--ink)]">Gap Analysis <span className="font-normal text-[var(--muted)]">(optional)</span></label>
+                  <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="e.g. Need hands-on fine-tuning project."
+                    className="w-full rounded-lg border border-[var(--border)] px-3 py-2.5 text-sm outline-none focus:border-[var(--brand)]" />
+                </div>
+              )}
               {addErr && <p className="text-sm text-red-600">{addErr}</p>}
               <div className="flex justify-end gap-2 pt-2">
-                <button onClick={() => setShowAdd(false)} className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--ink)] hover:bg-slate-50">Cancel</button>
-                <button onClick={addSkill} disabled={saving} className="rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-dark)] disabled:opacity-60">{saving ? "Adding…" : "Add Skill"}</button>
+                <button onClick={() => setDialog(null)} className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--ink)] hover:bg-slate-50">Cancel</button>
+                <button onClick={save} disabled={saving} className="rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-dark)] disabled:opacity-60">
+                  {saving ? "Saving…" : dialog.mode === "add" ? "Add Skill" : "Save changes"}
+                </button>
               </div>
             </div>
           </div>
@@ -163,6 +240,8 @@ export default function MySkillsPage() {
                     <li key={s.id} className="flex items-center gap-4 px-5 py-3.5">
                       <div className="min-w-0 flex-1"><p className="text-sm font-medium text-[var(--ink)]">{s.name}</p><p className="text-xs text-[var(--muted)]">{s.category}</p></div>
                       <div className="hidden w-40 sm:block"><div className="h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-[var(--brand)]" style={{ width: `${(s.currentLevel / 4) * 100}%` }} /></div></div>
+                      {/* Read-only: levels are revised in Skills to Improve, where the
+                          gap being closed is in view. Overview is the at-a-glance list. */}
                       <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${levelBadge[s.currentLabel] ?? "bg-slate-100 text-slate-600"}`}>{s.currentLabel}</span>
                     </li>
                   ))}
@@ -194,15 +273,20 @@ export default function MySkillsPage() {
             {data.toImprove.length === 0 ? <p className="p-5 text-sm text-[var(--muted)]">You&apos;re on target across your skills. Nice work!</p> : (
               <ul className="divide-y divide-[var(--border)]">
                 {visibleImprove.map((s) => (
-                  <li key={s.name} className="px-5 py-4">
+                  <li key={s.id} className="px-5 py-4">
                     <div className="flex items-center gap-3">
                       <div className="min-w-0 flex-1"><p className="text-sm font-medium text-[var(--ink)]">{s.name}</p><p className="text-xs text-[var(--muted)]">{s.category}</p></div>
                       <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${prioBadge[s.priority] ?? "bg-slate-100 text-slate-600"}`}>{s.priority}</span>
                     </div>
-                    <div className="mt-2 flex items-center gap-3 text-xs text-[var(--muted)]">
+                    <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-[var(--muted)]">
                       <span>Current: <b className="text-[var(--ink)]">{s.currentLabel}</b></span>
                       <ArrowUpRight className="h-3.5 w-3.5" />
                       <span>Target: <b className="text-[var(--brand)]">{s.targetLabel}</b></span>
+                      {/* Closing the gap happens here: record the new level and the engine re-scores. */}
+                      <button onClick={() => openEdit({ id: s.id, name: s.name, currentLevel: s.current, targetLevel: s.target })}
+                        className="ml-auto inline-flex items-center gap-1 rounded-lg border border-[var(--border)] px-2.5 py-1 font-medium text-[var(--ink)] hover:bg-slate-50">
+                        <Pencil className="h-3 w-3" /> Update level
+                      </button>
                     </div>
                     <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-[var(--brand)]" style={{ width: `${(s.current / s.target) * 100}%` }} /></div>
                   </li>

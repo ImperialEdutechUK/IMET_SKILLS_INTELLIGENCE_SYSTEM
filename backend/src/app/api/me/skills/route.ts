@@ -32,7 +32,10 @@ export async function POST(req: Request) {
   if (!resolved) return NextResponse.json({ error: "Could not add that skill." }, { status: 400 });
 
   const cur = clampLevel(currentLevel, 1);
-  const tgt = clampLevel(targetLevel, 3);
+  // Floor the target at Beginner: a target of "Not Started" is not a goal, and
+  // would make the skill permanently "achieved" — silently excluded from gaps
+  // and from every recommendation. See loadSelfAssessedGaps.
+  const tgt = Math.max(1, clampLevel(targetLevel, 3));
 
   const saved = await prisma.userSkill.upsert({
     where: { userId_skillId: { userId: authUser.id, skillId: resolved.skill.id } },
@@ -99,7 +102,9 @@ export async function GET(req: Request) {
     .map((s) => {
       const g = s.targetLevel - s.currentLevel;
       const priority = g >= 2 ? "High" : g === 1 ? "Medium" : "Low";
-      return { name: s.name, category: s.category, current: s.currentLevel, target: s.targetLevel, currentLabel: s.currentLabel, targetLabel: s.targetLabel, gap: g, priority };
+      // `id` is the UserSkill row id — the Skills to Improve list is where an
+      // employee marks a gap closed, so it needs the handle to PATCH.
+      return { id: s.id, name: s.name, category: s.category, current: s.currentLevel, target: s.targetLevel, currentLabel: s.currentLabel, targetLabel: s.targetLabel, gap: g, priority };
     })
     .sort((a, b) => b.gap - a.gap);
 

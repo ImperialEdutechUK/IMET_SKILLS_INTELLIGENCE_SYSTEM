@@ -10,7 +10,7 @@ export default function AchievementsCard(input: GamInput) {
   const g = computeGamification(input);
   return (
     <Link
-      href="/me/certificates"
+      href="/me/learning?tab=certificates"
       className="group relative mb-6 block overflow-hidden rounded-2xl p-5 text-white transition hover:-translate-y-0.5 hover:shadow-lg"
       style={{ background: "linear-gradient(135deg, #45a37c 0%, #216b4c 100%)" }}
     >

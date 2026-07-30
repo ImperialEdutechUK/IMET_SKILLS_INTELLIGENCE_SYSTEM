@@ -11,7 +11,6 @@ export const navConfig: Record<Role, NavSection[]> = {
         { label: "Dashboard", href: "/me/dashboard", icon: LayoutDashboard },
         { label: "My Learning", href: "/me/learning", icon: BookOpen },
         { label: "My Skills", href: "/me/skills", icon: Target },
-        { label: "Certificates", href: "/me/certificates", icon: ScrollText },
         { label: "AI Recommendations", href: "/me/recommendations", icon: Sparkles },
         { label: "Reports", href: "/me/reports", icon: BarChart3 },
         { label: "Settings", href: "/me/settings", icon: Settings },
@@ -36,7 +35,6 @@ export const navConfig: Record<Role, NavSection[]> = {
       items: [
         { label: "My Learning", href: "/me/learning", icon: BookOpen },
         { label: "My Skills", href: "/me/skills", icon: Target },
-        { label: "My Certificates", href: "/me/certificates", icon: ScrollText },
         { label: "AI Recommendations", href: "/me/recommendations", icon: Sparkles },
         { label: "Settings", href: "/me/settings", icon: Settings },
       ],

@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
-import { BookOpen, Clock, CheckCircle2, PlayCircle, Plus, ExternalLink, X, History } from "lucide-react";
+import { BookOpen, Clock, CheckCircle2, PlayCircle, Plus, ExternalLink, X, History, Award, FileText } from "lucide-react";
 import Stat3D from "@/components/dashboard/Stat3D";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
+import AchievementsBento from "@/components/gamification/AchievementsBento";
 import CertificateProofModal, { CertificateFileField } from "@/components/certificates/CertificateProofModal";
 import { getToken } from "@/lib/authClient";
 
@@ -31,12 +31,17 @@ interface LearningData {
   stats: { inProgress: number; completed: number; notStarted: number; certificatesEarned: number; hoursThisMonth: number };
   inProgress: Course[]; notStarted: Course[]; completed: Course[];
 }
+interface Certificate {
+  id: string; title: string; issuer: string; issuedDate: string; cpdHours: number;
+  fileUrl: string | null; certificateUrl: string | null; status: string;
+}
 
-type Tab = "in_progress" | "not_started" | "completed";
+type Tab = "in_progress" | "not_started" | "completed" | "certificates";
 const TABS: { key: Tab; label: string }[] = [
   { key: "not_started", label: "Not Started" },
   { key: "in_progress", label: "In Progress" },
   { key: "completed", label: "Completed" },
+  { key: "certificates", label: "Certificates" },
 ];
 
 export default function MyLearningPage() {
@@ -53,6 +58,11 @@ export default function MyLearningPage() {
   // The course awaiting proof of completion. Closing this without a successful
   // upload leaves the enrollment untouched — it stays In Progress at the same %.
   const [completing, setCompleting] = useState<Course | null>(null);
+  // Certificates + badges live here now (the standalone page was merged in). cpdHours
+  // is pulled from the dashboard so the trophy-shelf XP matches everywhere.
+  const [certificates, setCertificates] = useState<Certificate[]>([]);
+  const [cpdHours, setCpdHours] = useState(0);
+  const didInit = useRef(false);
 
   const load = useCallback(async () => {
     const r = await fetch(`${API}/api/me/learning`, { headers: { Authorization: `Bearer ${getToken()}` } });
@@ -60,11 +70,25 @@ export default function MyLearningPage() {
     setLoading(false);
   }, []);
 
+  const loadCerts = useCallback(async () => {
+    const r = await fetch(`${API}/api/me/certificates`, { headers: { Authorization: `Bearer ${getToken()}` } });
+    if (r.ok) { const d = await r.json(); setCertificates(d.certificates ?? []); }
+  }, []);
+
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    loadCerts();
+    fetch(`${API}/api/me/dashboard`, { headers: { Authorization: `Bearer ${getToken()}` } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d) setCpdHours(d.cpdHours ?? 0); })
+      .catch(() => {});
+    // Open the Certificates tab directly when linked with ?tab=certificates.
+    const t = new URLSearchParams(window.location.search).get("tab");
+    if (t === "certificates") { setTab("certificates"); didInit.current = true; }
+  }, [loadCerts]);
 
   // Land the user on content, not an empty state: once data arrives, select the first
   // non-empty tab (respecting tab order). A manual click wins.
-  const didInit = useRef(false);
   useEffect(() => {
     if (!data || didInit.current) return;
     didInit.current = true;
@@ -72,11 +96,12 @@ export default function MyLearningPage() {
       not_started: data.stats.notStarted,
       in_progress: data.stats.inProgress,
       completed: data.stats.completed,
+      certificates: certificates.length,
     };
     const order: Tab[] = ["not_started", "in_progress", "completed"];
     const firstNonEmpty = order.find((k) => counts[k] > 0);
     if (firstNonEmpty) setTab(firstNonEmpty);
-  }, [data]);
+  }, [data, certificates.length]);
 
   const patch = async (id: string, body: Record<string, unknown>) => {
     setBusy((s) => ({ ...s, [id]: true }));
@@ -123,12 +148,18 @@ export default function MyLearningPage() {
           <Icon3D icon={BookOpen} tone={TONES.blue} />
           <div>
             <h1 className="text-2xl font-bold text-[var(--ink)]">My Learning</h1>
-            <p className="mt-1 text-sm text-[var(--muted)]">Log the hours you spend — progress is calculated from them.</p>
+            <p className="mt-1 text-sm text-[var(--muted)]">
+              {tab === "certificates"
+                ? "Your certificates and badges — earned as you complete courses."
+                : "Log the hours you spend — progress is calculated from them."}
+            </p>
           </div>
         </div>
-        <button onClick={() => setShowAdd(true)} className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-dark)]">
-          <Plus className="h-4 w-4" /> Add Course
-        </button>
+        {tab !== "certificates" && (
+          <button onClick={() => setShowAdd(true)} className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-dark)]">
+            <Plus className="h-4 w-4" /> Add Course
+          </button>
+        )}
       </div>
 
       {/* Tabs — counts live in the labels, so no separate stat card row is needed */}
@@ -138,6 +169,7 @@ export default function MyLearningPage() {
             not_started: data.stats.notStarted,
             in_progress: data.stats.inProgress,
             completed: data.stats.completed,
+            certificates: certificates.length,
           };
           return (
             <button key={t.key} onClick={() => setTab(t.key)}
@@ -148,11 +180,13 @@ export default function MyLearningPage() {
         })}
       </div>
 
-      {/* One stat only — hours spent. Course counts are in the tab labels above;
-          certificates are homed on the Certificates page. */}
-      <div className="mb-6 max-w-xs">
-        <Stat3D icon={Clock} tone={TONES.amber} label="Hours Spent" value={`${data.stats.hoursThisMonth}h`} sub="This month" />
-      </div>
+      {/* One stat only — hours spent. Course counts are in the tab labels above.
+          Hidden on the Certificates tab, where the trophy shelf carries the stats. */}
+      {tab !== "certificates" && (
+        <div className="mb-6 max-w-xs">
+          <Stat3D icon={Clock} tone={TONES.amber} label="Hours Spent" value={`${data.stats.hoursThisMonth}h`} sub="This month" />
+        </div>
+      )}
 
       {/* Tab content */}
       {tab === "in_progress" && (
@@ -281,10 +315,62 @@ export default function MyLearningPage() {
               {/* CPD earned is the time the learner logged, never the catalogue's
                   estimate — same number the CPD ledger and certificate carry. */}
               <span className="shrink-0 rounded-full bg-[var(--brand-tint)] px-2.5 py-1 text-xs font-medium text-[var(--brand-dark)]">+{c.hoursLogged} CPD</span>
-              {c.certificateId && <Link href="/me/certificates" className="shrink-0 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--ink)] hover:bg-slate-50">View Certificate</Link>}
+              {c.certificateId && <button onClick={() => setTab("certificates")} className="shrink-0 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--ink)] hover:bg-slate-50">View Certificate</button>}
             </div>
           ))}
         </Section>
+      )}
+
+      {/* Certificates + badges — read-only. New certificates are earned by completing
+          a course (the proof upload lives in the completion flow), never minted here. */}
+      {tab === "certificates" && (
+        <>
+          <AchievementsBento certificates={certificates.length} coursesCompleted={data.stats.completed} cpdHours={cpdHours} />
+          {certificates.length === 0 ? (
+            <div className="rounded-2xl border border-[var(--border)] bg-white p-8 text-center">
+              <div className="mx-auto w-fit"><Icon3D icon={Award} tone={TONES.violet} /></div>
+              <p className="mt-3 text-sm font-medium text-[var(--ink)]">No certificates yet.</p>
+              <p className="mt-1 text-sm text-[var(--muted)]">Complete a course above and upload its certificate — it lands here, with the CPD hours and XP that come with it.</p>
+              <button onClick={() => setTab("in_progress")} className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--ink)] hover:bg-slate-50">
+                <BookOpen className="h-4 w-4" /> Go to my courses
+              </button>
+            </div>
+          ) : (
+            <>
+              <h2 className="mb-3 text-sm font-semibold text-[var(--ink)]">Your certificates</h2>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {certificates.map((cert) => (
+                  <div key={cert.id} className="flex flex-col rounded-2xl border border-[var(--border)] bg-white p-5">
+                    <div className="flex items-start justify-between">
+                      <Icon3D icon={Award} tone={TONES.violet} />
+                      <CertStatusBadge status={cert.status} />
+                    </div>
+                    <h3 className="mt-4 font-semibold text-[var(--ink)]">{cert.title}</h3>
+                    <p className="mt-1 text-sm text-[var(--muted)]">{cert.issuer}</p>
+                    <div className="mt-3 flex items-baseline gap-2">
+                      <span className="text-xs text-[var(--muted)]">{cert.issuedDate}</span>
+                      {cert.cpdHours > 0 && <span className="text-xs font-medium text-[var(--brand-dark)]">+{cert.cpdHours} CPD</span>}
+                    </div>
+                    {/* Two distinct artefacts: the uploaded document, and the issuer's
+                        verification link. Older certificates may have neither. */}
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {cert.fileUrl && (
+                        <a href={cert.fileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-2 text-xs font-medium text-[var(--ink)] hover:bg-slate-50">
+                          <FileText className="h-3.5 w-3.5" /> View Certificate
+                        </a>
+                      )}
+                      {cert.certificateUrl && (
+                        <a href={cert.certificateUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-2 text-xs font-medium text-[var(--ink)] hover:bg-slate-50">
+                          <ExternalLink className="h-3.5 w-3.5" /> Verify
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </>
       )}
 
       {detail && (
@@ -612,4 +698,13 @@ function Section({ title, children, empty, emptyText }: { title: string; childre
 
 function CourseIcon() {
   return <Icon3D icon={BookOpen} tone={TONES.blue} size="sm" />;
+}
+
+function CertStatusBadge({ status }: { status: string }) {
+  const map: Record<string, string> = {
+    approved: "bg-emerald-50 text-emerald-700",
+    pending: "bg-amber-50 text-amber-700",
+    rejected: "bg-red-50 text-red-700",
+  };
+  return <span className={`rounded-full px-2.5 py-1 text-[11px] font-medium capitalize ${map[status] ?? "bg-slate-100 text-slate-600"}`}>{status}</span>;
 }

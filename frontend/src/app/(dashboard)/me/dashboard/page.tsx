@@ -107,7 +107,7 @@ export default function EmployeeDashboardPage() {
       </div>
 
       {/* ROW 1 — four KPI cards. */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div data-tour="dashboard-kpis" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map((k) => (
           <Link key={k.label} href={k.href}
             className="flex items-center justify-between rounded-2xl border border-[var(--border)] bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-md"
@@ -126,7 +126,7 @@ export default function EmployeeDashboardPage() {
 
       {/* ROW 2 — learning-activity chart (wide) + recommendations sidebar. */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="rounded-2xl border border-[var(--border)] bg-white p-5 lg:col-span-2">
+        <div data-tour="dashboard-activity" className="rounded-2xl border border-[var(--border)] bg-white p-5 lg:col-span-2">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <span className="grid h-9 w-9 place-items-center rounded-xl bg-emerald-50 text-emerald-600"><TrendingUp className="h-5 w-5" /></span>
@@ -153,7 +153,7 @@ export default function EmployeeDashboardPage() {
         </div>
 
         {/* Recommendations sidebar — the "Recent Orders" sidebar pattern. */}
-        <div className="flex flex-col rounded-2xl border border-[var(--border)] bg-white p-5">
+        <div data-tour="dashboard-recommended" className="flex flex-col rounded-2xl border border-[var(--border)] bg-white p-5">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <span className="grid h-9 w-9 place-items-center rounded-xl bg-purple-50 text-purple-600"><Sparkles className="h-5 w-5" /></span>
@@ -189,7 +189,7 @@ export default function EmployeeDashboardPage() {
       {/* ROW 3 — my-courses table (wide) + course-status donut. */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* Data table — "Latest Projects" / "Recent Orders" pattern. */}
-        <div className="rounded-2xl border border-[var(--border)] bg-white lg:col-span-2">
+        <div data-tour="dashboard-courses" className="rounded-2xl border border-[var(--border)] bg-white lg:col-span-2">
           <div className="flex items-center justify-between border-b border-[var(--border)] p-5">
             <div className="flex items-center gap-2.5">
               <span className="grid h-9 w-9 place-items-center rounded-xl bg-blue-50 text-blue-600"><BookOpen className="h-5 w-5" /></span>
@@ -247,7 +247,7 @@ export default function EmployeeDashboardPage() {
         </div>
 
         {/* Donut with legend — "Browser Usage" / "Order By Device" pattern. */}
-        <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
+        <div data-tour="dashboard-status" className="rounded-2xl border border-[var(--border)] bg-white p-5">
           <div className="mb-4 flex items-center gap-2.5">
             <span className="grid h-9 w-9 place-items-center rounded-xl bg-sky-50 text-sky-600"><PieChart className="h-5 w-5" /></span>
             <div>

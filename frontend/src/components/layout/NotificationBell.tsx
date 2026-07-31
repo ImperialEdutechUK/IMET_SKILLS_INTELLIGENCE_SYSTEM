@@ -68,7 +68,7 @@ export default function NotificationBell() {
   }
 
   return (
-    <div className="relative" ref={ref}>
+    <div data-tour="topbar-notifications" className="relative" ref={ref}>
       <button
         onClick={toggle}
         aria-label="Notifications"

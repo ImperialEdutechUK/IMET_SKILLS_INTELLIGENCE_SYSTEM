@@ -143,7 +143,7 @@ export default function MySkillsPage() {
             <p className="mt-1 text-sm text-[var(--muted)]">Track your skills, see your progress and plan what to improve next.</p>
           </div>
         </div>
-        <button onClick={openAdd} className="inline-flex items-center gap-2 rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-dark)]">
+        <button data-tour="skills-add" onClick={openAdd} className="inline-flex items-center gap-2 rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-dark)]">
           <Plus className="h-4 w-4" /> Add Skill
         </button>
       </div>
@@ -216,7 +216,7 @@ export default function MySkillsPage() {
         </div>
       )}
 
-      <div className="mb-6 flex flex-wrap gap-6 border-b border-[var(--border)]">
+      <div data-tour="skills-tabs" className="mb-6 flex flex-wrap gap-6 border-b border-[var(--border)]">
         {([["overview", "Overview"], ["improve", "Skills to Improve"]] as [Tab, string][]).map(([k, l]) => (
           <button key={k} onClick={() => setTab(k)}
             className={`-mb-px border-b-2 pb-2.5 text-sm font-medium transition-colors ${tab === k ? "border-[var(--brand)] text-[var(--brand)]" : "border-transparent text-[var(--muted)] hover:text-[var(--ink)]"}`}>{l}</button>

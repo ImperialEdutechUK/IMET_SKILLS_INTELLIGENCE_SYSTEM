@@ -237,7 +237,8 @@ export default function RecommendationChatPage() {
   return (
     <div className={`mx-auto flex flex-col ${showBoard ? "max-w-6xl" : "h-[calc(100vh-8rem)] max-w-3xl"}`}>
       {/* Header — Start over lives here (the intro copy points users to it) */}
-      <div className="mb-4 flex items-center justify-between gap-3">
+      {/* data-tour: onboarding-tour anchor only — no behaviour change. */}
+      <div data-tour="rec-header" className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--brand-tint)] text-[var(--brand-dark)]">
             <Sparkles className="h-5 w-5" />

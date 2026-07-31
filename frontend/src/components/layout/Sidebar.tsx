@@ -34,13 +34,13 @@ export default function Sidebar({ user }: { user: SessionUser }) {
           <ArrowLeft className="h-3.5 w-3.5" /> All Departments
         </Link>
       )}
-      <nav className="flex-1 overflow-y-auto p-3">
+      <nav data-tour="sidebar-nav" className="flex-1 overflow-y-auto p-3">
         {sections.map((section, si) => (
           <NavGroup key={section.title ?? si} section={section} pathname={pathname} className={si > 0 ? "mt-4" : ""} />
         ))}
       </nav>
 
-      <div className="border-t border-[var(--border)] p-3">
+      <div data-tour="sidebar-account" className="border-t border-[var(--border)] p-3">
         <div className="flex items-center gap-3 rounded-lg px-3 py-2">
           <Avatar name={user.fullName} size={36} />
           <div className="min-w-0 flex-1">

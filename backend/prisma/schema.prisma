@@ -130,6 +130,16 @@ model User {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
+  // Per-user onboarding progress, e.g. { "tour": { "status": "completed", ... } }.
+  // One small JSONB blob rather than a column per flag, so adding the next
+  // onboarding step needs no migration. Deliberately NOT indexed, and the write
+  // path is bounded by a closed Zod schema (see src/lib/onboarding-state.ts), so
+  // the value stays a few dozen bytes. That keeps it inline in the row rather
+  // than TOASTed, which is why the many `user.findMany` calls elsewhere in the
+  // app do not measurably slow down. Reads that only need this field select it
+  // on its own.
+  onboardingState Json @default("{}")
+
   departmentId String?
   department   Department? @relation(fields: [departmentId], references: [id])
 

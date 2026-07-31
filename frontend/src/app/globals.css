@@ -9,11 +9,71 @@
   --page:        #f4f8f6;
   --card:        #ffffff;
   --border:      #e6ebe8;
+
+  /* Interface font stack: the native UI face on each platform, which is what
+     business systems use. No web font is downloaded. */
+  --font-ui: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
 }
 
 body {
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   color: var(--ink);
+}
+
+/* ---- Onboarding tour --------------------------------------------------- */
+@keyframes tour-card-in {
+  from { opacity: 0; transform: translateY(6px) scale(.985); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+/* Each step's content swaps in with a small lift, so moving on feels like
+   progress rather than a silent text replacement. */
+@keyframes tour-body-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes tour-ring {
+  0%   { outline-color: rgba(46,125,91,.95); }
+  50%  { outline-color: rgba(46,125,91,.45); }
+  100% { outline-color: rgba(46,125,91,.95); }
+}
+.onboarding-tour .tour-card {
+  animation: tour-card-in .22s cubic-bezier(.2,.7,.3,1) both;
+  /* The card glides to the next anchor instead of teleporting, which is what
+     makes a multi-step tour read as one continuous movement. */
+  transition: top .3s cubic-bezier(.4,0,.2,1), left .3s cubic-bezier(.4,0,.2,1);
+}
+.onboarding-tour .tour-body {
+  animation: tour-body-in .24s cubic-bezier(.2,.7,.3,1) both;
+}
+.onboarding-tour .tour-rail {
+  transition: width .3s cubic-bezier(.4,0,.2,1);
+}
+/* Pulses while the tour waits for the next screen to finish loading. */
+@keyframes tour-dot {
+  0%, 100% { opacity: .35; transform: scale(.8); }
+  50%      { opacity: 1;   transform: scale(1.15); }
+}
+.onboarding-tour .tour-dot { animation: tour-dot 1s ease-in-out infinite; }
+/* The "Click the highlight" pill breathes gently so the eye finds the ask. */
+@keyframes tour-hint {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: .55; }
+}
+.onboarding-tour .tour-click-hint { animation: tour-hint 1.6s ease-in-out infinite; }
+.onboarding-tour .tour-spotlight {
+  outline: 2px solid rgba(46,125,91,.95);
+  outline-offset: 0;
+  transition: top .3s cubic-bezier(.4,0,.2,1), left .3s cubic-bezier(.4,0,.2,1),
+              width .3s cubic-bezier(.4,0,.2,1), height .3s cubic-bezier(.4,0,.2,1);
+  animation: tour-ring 2.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .onboarding-tour .tour-card,
+  .onboarding-tour .tour-body { animation: none; transition: none; }
+  .onboarding-tour .tour-rail { transition: none; }
+  .onboarding-tour .tour-dot { animation: none; }
+  .onboarding-tour .tour-click-hint { animation: none; }
+  .onboarding-tour .tour-spotlight { animation: none; transition: none; }
 }
 
 /* ---- Gamification motion ---------------------------------------------- */

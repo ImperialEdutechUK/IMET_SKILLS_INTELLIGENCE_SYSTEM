@@ -1,5 +1,6 @@
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
+import EmployeeOnboarding from "@/components/onboarding/EmployeeOnboarding";
 import type { SessionUser } from "@/types";
 
 export default function DashboardShell({
@@ -16,6 +17,8 @@ export default function DashboardShell({
         <Topbar user={user} />
         <main className="flex-1 overflow-y-auto p-6">{children}</main>
       </div>
+      {/* First-run guided tour. Renders nothing unless this user is due one. */}
+      <EmployeeOnboarding user={user} />
     </div>
   );
 }

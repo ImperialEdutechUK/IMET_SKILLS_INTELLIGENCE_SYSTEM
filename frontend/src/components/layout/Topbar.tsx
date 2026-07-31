@@ -13,7 +13,7 @@ export default function Topbar({ user }: { user: SessionUser }) {
   const showGame = user.role !== "admin";
   return (
     <header className="flex h-16 items-center justify-between border-b border-[var(--border)] bg-white px-6">
-      <div className="relative w-72">
+      <div data-tour="topbar-search" className="relative w-72">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <input
           placeholder={canSearchPeople ? "Search courses, skills, people…" : "Search courses, skills…"}

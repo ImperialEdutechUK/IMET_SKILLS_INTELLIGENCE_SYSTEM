@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { User, Lock, Bell } from "lucide-react";
-import { getToken } from "@/lib/authClient";
+import { useRouter } from "next/navigation";
+import { User, Lock, Bell, Compass } from "lucide-react";
+import { getToken, getUser } from "@/lib/authClient";
+import { requestTourReplay } from "@/lib/onboarding";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
 
 export default function SettingsPage() {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [department, setDepartment] = useState("");
@@ -19,8 +22,10 @@ export default function SettingsPage() {
   const [savingPw, setSavingPw] = useState(false);
   const [pwMsg, setPwMsg] = useState("");
   const [pwErr, setPwErr] = useState(false);
+  const [isEmployee, setIsEmployee] = useState(false);
 
   useEffect(() => {
+    setIsEmployee(getUser()?.role === "employee");
     fetch(`${API}/api/me/profile`, { headers: { Authorization: `Bearer ${getToken()}` } })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => { if (d) { setName(d.fullName); setEmail(d.email); setDepartment(d.department); } setLoaded(true); })
@@ -57,6 +62,14 @@ export default function SettingsPage() {
     setSavingPw(false);
   };
 
+  // Queue the welcome tour and send the user to the screen it explains.
+  const replayTour = () => {
+    const u = getUser();
+    if (!u) return;
+    requestTourReplay(u.id);
+    router.push("/me/dashboard");
+  };
+
   return (
     <div>
       <div className="mb-6"><h1 className="text-2xl font-bold text-[var(--ink)]">Settings</h1><p className="mt-1 text-sm text-[var(--muted)]">Manage your account preferences.</p></div>
@@ -84,6 +97,13 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
+        {isEmployee && (
+          <div className="rounded-2xl border border-[var(--border)] bg-white p-6">
+            <div className="mb-4 flex items-center gap-2"><Compass className="h-4 w-4 text-[var(--brand)]" /><h3 className="font-semibold text-[var(--ink)]">Getting started</h3></div>
+            <p className="mb-3 text-sm text-[var(--muted)]">Run the guided tour again to see what each part of your dashboard is for.</p>
+            <button onClick={replayTour} className="rounded-lg border border-[var(--brand)] px-4 py-2 text-sm font-medium text-[var(--brand-dark)] transition-colors hover:bg-[var(--brand-tint)]">Replay the welcome tour</button>
+          </div>
+        )}
         <div className="rounded-2xl border border-[var(--border)] bg-white p-6">
           <div className="mb-4 flex items-center gap-2"><Bell className="h-4 w-4 text-[var(--brand)]" /><h3 className="font-semibold text-[var(--ink)]">Notifications</h3></div>
           <p className="mb-3 text-xs text-[var(--muted)]">Notification preferences are not yet configurable.</p>

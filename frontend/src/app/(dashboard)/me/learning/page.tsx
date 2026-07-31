@@ -156,14 +156,14 @@ export default function MyLearningPage() {
           </div>
         </div>
         {tab !== "certificates" && (
-          <button onClick={() => setShowAdd(true)} className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-dark)]">
+          <button data-tour="learning-add" onClick={() => setShowAdd(true)} className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-dark)]">
             <Plus className="h-4 w-4" /> Add Course
           </button>
         )}
       </div>
 
       {/* Tabs — counts live in the labels, so no separate stat card row is needed */}
-      <div className="mb-6 flex flex-wrap gap-6 border-b border-[var(--border)]">
+      <div data-tour="learning-tabs" className="mb-6 flex flex-wrap gap-6 border-b border-[var(--border)]">
         {TABS.map((t) => {
           const counts: Record<Tab, number> = {
             not_started: data.stats.notStarted,
@@ -604,10 +604,10 @@ function AddCourseModal({ onClose, onSaved }: { onClose: () => void; onSaved: ()
     <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/40 p-4" onClick={onClose}>
       {/* The Completed branch adds four fields, so the dialog has to be able to
           scroll on a short viewport rather than run off the bottom. */}
-      <div className="my-auto w-full max-w-md rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+      <div data-tour="learning-add-modal" className="my-auto w-full max-w-md rounded-xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
         <div className="mb-1 flex items-center justify-between">
           <h2 className="text-lg font-bold text-[var(--ink)]">Add a Course</h2>
-          <button onClick={onClose} className="text-[var(--muted)] hover:text-[var(--ink)]"><X className="h-5 w-5" /></button>
+          <button data-tour="learning-add-close" onClick={onClose} className="text-[var(--muted)] hover:text-[var(--ink)]"><X className="h-5 w-5" /></button>
         </div>
         <p className="mb-4 text-xs text-[var(--muted)]">For a course you&apos;re doing (or did) outside the recommended list. It&apos;s tracked here in your learning.</p>
         <div className="space-y-4">

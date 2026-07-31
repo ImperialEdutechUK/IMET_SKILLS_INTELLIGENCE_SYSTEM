@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { BookOpen, Clock, CheckCircle2, PlayCircle, Plus, ExternalLink, X, History, Award, FileText } from "lucide-react";
+import { BookOpen, Clock, CheckCircle2, PlayCircle, Plus, ExternalLink, X, History, Award } from "lucide-react";
 import Stat3D from "@/components/dashboard/Stat3D";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
 import AchievementsBento from "@/components/gamification/AchievementsBento";
 import CertificateProofModal, { CertificateFileField } from "@/components/certificates/CertificateProofModal";
+import CertificateGallery from "@/components/certificates/CertificateGallery";
 import { getToken } from "@/lib/authClient";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -336,39 +337,7 @@ export default function MyLearningPage() {
               </button>
             </div>
           ) : (
-            <>
-              <h2 className="mb-3 text-sm font-semibold text-[var(--ink)]">Your certificates</h2>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {certificates.map((cert) => (
-                  <div key={cert.id} className="flex flex-col rounded-2xl border border-[var(--border)] bg-white p-5">
-                    <div className="flex items-start justify-between">
-                      <Icon3D icon={Award} tone={TONES.violet} />
-                      <CertStatusBadge status={cert.status} />
-                    </div>
-                    <h3 className="mt-4 font-semibold text-[var(--ink)]">{cert.title}</h3>
-                    <p className="mt-1 text-sm text-[var(--muted)]">{cert.issuer}</p>
-                    <div className="mt-3 flex items-baseline gap-2">
-                      <span className="text-xs text-[var(--muted)]">{cert.issuedDate}</span>
-                      {cert.cpdHours > 0 && <span className="text-xs font-medium text-[var(--brand-dark)]">+{cert.cpdHours} CPD</span>}
-                    </div>
-                    {/* Two distinct artefacts: the uploaded document, and the issuer's
-                        verification link. Older certificates may have neither. */}
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {cert.fileUrl && (
-                        <a href={cert.fileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-2 text-xs font-medium text-[var(--ink)] hover:bg-slate-50">
-                          <FileText className="h-3.5 w-3.5" /> View Certificate
-                        </a>
-                      )}
-                      {cert.certificateUrl && (
-                        <a href={cert.certificateUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-2 text-xs font-medium text-[var(--ink)] hover:bg-slate-50">
-                          <ExternalLink className="h-3.5 w-3.5" /> Verify
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
+            <CertificateGallery certificates={certificates} />
           )}
         </>
       )}
@@ -698,13 +667,4 @@ function Section({ title, children, empty, emptyText }: { title: string; childre
 
 function CourseIcon() {
   return <Icon3D icon={BookOpen} tone={TONES.blue} size="sm" />;
-}
-
-function CertStatusBadge({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    approved: "bg-emerald-50 text-emerald-700",
-    pending: "bg-amber-50 text-amber-700",
-    rejected: "bg-red-50 text-red-700",
-  };
-  return <span className={`rounded-full px-2.5 py-1 text-[11px] font-medium capitalize ${map[status] ?? "bg-slate-100 text-slate-600"}`}>{status}</span>;
 }

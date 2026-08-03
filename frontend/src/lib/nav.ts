@@ -43,12 +43,23 @@ export const navConfig: Record<Role, NavSection[]> = {
 
   admin: [
     {
+      title: "Administration",
       items: [
         { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
         { label: "Departments", href: "/admin/departments", icon: Building2 },
         { label: "User Management", href: "/admin/users", icon: UserCog },
         { label: "Pending Approvals", href: "/admin/approvals", icon: UserCheck },
-        { label: "AI Recommendations", href: "/admin/recommendations", icon: Sparkles },
+        // Org-wide skill-gap insights (distinct from the personal recommendation bot below).
+        { label: "AI Insights", href: "/admin/recommendations", icon: BarChart3 },
+      ],
+    },
+    {
+      // Admins learn too: the same personal pages employees and managers get.
+      title: "My Learning",
+      items: [
+        { label: "My Learning", href: "/me/learning", icon: BookOpen },
+        { label: "My Skills", href: "/me/skills", icon: Target },
+        { label: "AI Recommendations", href: "/me/recommendations", icon: Sparkles },
         { label: "Settings", href: "/me/settings", icon: Settings },
       ],
     },

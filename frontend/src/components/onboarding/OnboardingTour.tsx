@@ -161,6 +161,21 @@ export default function OnboardingTour({
     );
   }, [step]);
 
+  // Coalesce measurements into one per frame: a page settling can fire the
+  // observers below many times in a row, and each measure walks the DOM.
+  const rafRef = useRef<number | null>(null);
+  const scheduleMeasure = useCallback(() => {
+    if (rafRef.current !== null) return;
+    rafRef.current = window.requestAnimationFrame(() => {
+      rafRef.current = null;
+      measure();
+    });
+  }, [measure]);
+  useEffect(
+    () => () => { if (rafRef.current !== null) window.cancelAnimationFrame(rafRef.current); },
+    [],
+  );
+
   // Walk to the screen this step lives on.
   useEffect(() => {
     if (step?.path && step.path !== pathname) router.push(step.path);
@@ -177,23 +192,58 @@ export default function OnboardingTour({
     return () => timers.forEach(window.clearTimeout);
   }, [step, measure]);
 
-  // A targeted step with nothing measured yet, which is the normal state right
-  // after navigating to a screen that is still fetching: watch the DOM and grab
-  // the anchor the moment it renders.
+  // Track the anchor for as long as the step is on screen. Anchors do not only
+  // arrive late, they MOVE late: a screen that renders one layout while it
+  // fetches and a different one once the data lands (AI Recommendations goes
+  // from a narrow centred column to a wide board) would otherwise leave the
+  // spotlight sitting on the anchor's old position. Measuring only until the
+  // first rect appears is not enough — keep watching until the step changes.
   useEffect(() => {
-    if (!step?.target || rect) return;
+    if (!step?.target) return;
     const selector = step.target;
-    const observer = new MutationObserver(() => {
-      if (!document.querySelector(selector)) return;
-      document.querySelector(selector)?.scrollIntoView({ block: "center", behavior: "smooth" });
-      measure();
+    let seen = !!readRect(selector);
+    let watched: Element | null = null;
+
+    const sync = () => {
+      const el = document.querySelector(selector);
+      // Only scroll on the anchor's first appearance; doing it on every layout
+      // change would yank the page around under the user.
+      if (el && !seen) {
+        seen = true;
+        el.scrollIntoView({ block: "center", behavior: "smooth" });
+      }
+      // The anchor can be replaced by a re-render, so follow the current node.
+      if (el !== watched) {
+        if (watched) resize.unobserve(watched);
+        if (el) resize.observe(el);
+        watched = el;
+      }
+      scheduleMeasure();
+    };
+
+    // Catches the anchor resizing in place — the container swapping max-width
+    // once results land changes no DOM node, only the box.
+    const resize = new ResizeObserver(scheduleMeasure);
+    resize.observe(document.body);
+
+    const mutation = new MutationObserver(sync);
+    mutation.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["class", "style"],
     });
-    observer.observe(document.body, { childList: true, subtree: true });
+
+    sync();
     // Some pages here take many seconds to load, so allow a generous wait before
     // conceding and letting the user move on without a highlight.
     const bail = window.setTimeout(() => setAnchorGaveUp(true), ANCHOR_WAIT_MS);
-    return () => { observer.disconnect(); window.clearTimeout(bail); };
-  }, [step, rect, measure]);
+    return () => {
+      mutation.disconnect();
+      resize.disconnect();
+      window.clearTimeout(bail);
+    };
+  }, [step, scheduleMeasure]);
 
   // Every step starts out willing to wait again.
   useEffect(() => { setAnchorGaveUp(false); }, [index]);

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { verifyToken } from "@/lib/verifyToken";
 import { getCpdTargetHours } from "@/lib/cpd-target";
+import { getAllDepartmentSummaries } from "@/lib/team-queries";
 
 export async function GET(req: Request) {
   const authUser = verifyToken(req);
@@ -9,7 +10,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
-  const [employees, activeCourses, certificatesEarned, departments, allEnrollments, allCpd, userSkills, activities] =
+  const [employees, activeCourses, certificatesEarned, departments, allEnrollments, allCpd, userSkills, activities, deptSummaries] =
     await Promise.all([
       prisma.user.count({ where: { role: "employee" } }),
       prisma.course.count({ where: { status: "published" } }),
@@ -19,6 +20,9 @@ export async function GET(req: Request) {
       prisma.cpdRecord.findMany({ select: { userId: true, hours: true } }),
       prisma.userSkill.findMany({ include: { skill: true } }),
       prisma.activity.findMany({ orderBy: { createdAt: "desc" }, take: 6, include: { user: true } }),
+      // Per-department roll-up (members, at-risk, avg CPD/skill, completions) — reused
+      // for the department grid + drill-down, so HR/Director reads the same figures.
+      getAllDepartmentSummaries(),
     ]);
 
   // 6-month learning activity (completions by month)
@@ -75,11 +79,44 @@ export async function GET(req: Request) {
   const totalEmp = onTrack + atRisk;
   const compliancePct = totalEmp ? Math.round((onTrack / totalEmp) * 100) : 0;
 
+  // Org-wide health for the hero ring: on-pace vs behind, summed across departments.
+  const orgAtRisk = deptSummaries.reduce((s, d) => s + d.atRisk, 0);
+  const orgAttention = deptSummaries.reduce((s, d) => s + d.attention, 0);
+  const orgMembers = deptSummaries.reduce((s, d) => s + d.teamMembers, 0);
+  const orgOnTrack = Math.max(0, orgMembers - orgAtRisk - orgAttention);
+  const withMembers = deptSummaries.filter((d) => d.teamMembers > 0);
+  const avgSkillLevel = withMembers.length
+    ? Math.round((withMembers.reduce((s, d) => s + d.avgSkillLevel, 0) / withMembers.length) * 10) / 10
+    : 0;
+
+  // Compact per-department cards for the grid (drop heavy category arrays).
+  const departmentsData = deptSummaries.map((d) => ({
+    id: d.id,
+    name: d.name,
+    teamMembers: d.teamMembers,
+    coursesInProgress: d.coursesInProgress,
+    coursesCompleted: d.coursesCompleted,
+    notStarted: d.notStarted,
+    atRisk: d.atRisk,
+    attention: d.attention,
+    avgCpd: d.avgCpd,
+    avgSkillLevel: d.avgSkillLevel,
+  }));
+
   return NextResponse.json({
     totalEmployees: employees,
     activeCourses,
     cpdCompletionRate: compliancePct,
     certificatesEarned,
+    orgHealth: {
+      totalMembers: orgMembers,
+      onTrack: orgOnTrack,
+      atRisk: orgAtRisk,
+      attention: orgAttention,
+      avgSkillLevel,
+      departments: deptSummaries.length,
+    },
+    departments: departmentsData,
     learningActivity: months,
     departmentPerformance,
     skillsGap,

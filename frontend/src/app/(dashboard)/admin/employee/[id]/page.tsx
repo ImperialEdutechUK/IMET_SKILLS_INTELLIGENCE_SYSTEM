@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, BookOpen, Target } from "lucide-react";
+import { ArrowLeft, BookOpen, Target, Award, ExternalLink, FileText } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
+import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
+import AchievementsBento from "@/components/gamification/AchievementsBento";
 import { getToken } from "@/lib/authClient";
 
 const API = process.env.NEXT_PUBLIC_API_URL;
@@ -25,6 +27,7 @@ interface Gap {
   gap: number;
   importance: string;
 }
+interface CertItem { id: string; title: string; issuer: string; issuedDate: string; fileUrl: string | null; certificateUrl: string | null; status: string }
 interface EmployeeDetail {
   id: string;
   fullName: string;
@@ -36,6 +39,10 @@ interface EmployeeDetail {
   counts: { completed: number; inProgress: number };
   courses: Course[];
   skillGaps: Gap[];
+  coursesCompleted: number;
+  cpdHours: number;
+  certificates: number;
+  certificateList: CertItem[];
 }
 
 const importanceColor: Record<string, string> = {
@@ -134,6 +141,52 @@ export default function AdminEmployeeDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Achievements & badges — the same trophy shelf the employee sees. Read-only. */}
+      <div className="mt-8">
+        <div className="mb-4 flex items-center gap-3"><Icon3D icon={Award} tone={TONES.violet} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Achievements &amp; Badges</h3></div>
+        <AchievementsBento certificates={data.certificates} coursesCompleted={data.coursesCompleted} cpdHours={data.cpdHours} />
+      </div>
+
+      {/* Certificates — read-only list with links */}
+      <div className="mt-6 rounded-2xl border border-[var(--border)] bg-white">
+        <div className="border-b border-[var(--border)] p-5"><h3 className="font-semibold text-[var(--ink)]">Certificates <span className="text-sm font-normal text-[var(--muted)]">({data.certificateList.length})</span></h3></div>
+        {data.certificateList.length === 0 ? (
+          <p className="p-5 text-sm text-[var(--muted)]">No certificates yet.</p>
+        ) : (
+          <ul className="divide-y divide-[var(--border)]">
+            {data.certificateList.map((c) => (
+              <li key={c.id} className="flex items-center gap-3 px-5 py-3">
+                <Icon3D icon={Award} tone={TONES.violet} size="sm" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-[var(--ink)]" title={c.title}>{c.title}</p>
+                  <p className="text-xs text-[var(--muted)]">{c.issuer}{c.issuedDate ? ` · ${c.issuedDate}` : ""}</p>
+                </div>
+                <CertStatusBadge status={c.status} />
+                {c.fileUrl && (
+                  <a href={c.fileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--ink)] hover:bg-slate-50">
+                    <FileText className="h-3.5 w-3.5" /> View
+                  </a>
+                )}
+                {c.certificateUrl && (
+                  <a href={c.certificateUrl} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--ink)] hover:bg-slate-50">
+                    <ExternalLink className="h-3.5 w-3.5" /> Verify
+                  </a>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
+}
+
+function CertStatusBadge({ status }: { status: string }) {
+  const map: Record<string, string> = {
+    approved: "bg-emerald-50 text-emerald-700",
+    pending: "bg-amber-50 text-amber-700",
+    rejected: "bg-red-50 text-red-700",
+  };
+  return <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium capitalize ${map[status] ?? "bg-slate-100 text-slate-600"}`}>{status}</span>;
 }

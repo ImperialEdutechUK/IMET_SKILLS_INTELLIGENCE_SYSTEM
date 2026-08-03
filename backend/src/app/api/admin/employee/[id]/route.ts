@@ -22,6 +22,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       cpdRecords: true,
       userSkills: { include: { skill: true } },
       skillGaps: { include: { skill: true } },
+      certificates: true,
     },
   });
   if (!user) return NextResponse.json({ error: "Employee not found." }, { status: 404 });
@@ -102,5 +103,21 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     },
     courses,
     skillGaps,
+    // Same badges/trophy-shelf inputs the employee (and their manager) sees. Read-only.
+    coursesCompleted: courses.filter((c) => c.status === "completed").length,
+    cpdHours: Math.round(cpdHours * 10) / 10,
+    certificates: user.certificates.length,
+    certificateList: user.certificates
+      .slice()
+      .sort((a, b) => (a.issuedDate < b.issuedDate ? 1 : -1))
+      .map((c) => ({
+        id: c.id,
+        title: c.title,
+        issuer: c.issuer,
+        issuedDate: c.issuedDate,
+        fileUrl: c.fileUrl,
+        certificateUrl: c.certificateUrl,
+        status: c.status,
+      })),
   });
 }

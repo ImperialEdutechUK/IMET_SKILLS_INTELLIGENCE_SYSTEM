@@ -1,0 +1,62 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
+import { verifyToken } from "@/lib/verifyToken";
+import { getTeamSummary, getTeamMembers } from "@/lib/team-queries";
+
+// Org-wide per-department drill-down for admin / HR / Director. Same shape as the
+// manager department view, but NOT scoped to one department — an admin can open any.
+// Read-only; reuses the shared team-query lib so the numbers match everywhere.
+export async function GET(
+  req: Request,
+  { params }: { params: Promise<{ departmentId: string }> }
+) {
+  const authUser = verifyToken(req);
+  if (!authUser || authUser.role !== "admin") {
+    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+  }
+
+  const { departmentId } = await params;
+  const department = await prisma.department.findUnique({ where: { id: departmentId } });
+  if (!department) {
+    return NextResponse.json({ error: "Department not found." }, { status: 404 });
+  }
+
+  const [summary, members, activities] = await Promise.all([
+    getTeamSummary(departmentId),
+    getTeamMembers(departmentId),
+    prisma.activity.findMany({
+      where: { user: { departmentId } },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      include: { user: true },
+    }),
+  ]);
+
+  return NextResponse.json({
+    department: { id: department.id, name: department.name },
+    summary,
+    members: members.map((m) => ({
+      id: m.id,
+      fullName: m.fullName,
+      coursesCompleted: m.coursesCompleted,
+      coursesInProgress: m.coursesInProgress,
+      cpdProgress: m.cpdProgress,
+      attentionStatus: m.attentionStatus,
+      courses: m.enrollments.map((e) => ({
+        id: e.id,
+        title: e.course.title,
+        provider: e.course.provider,
+        category: e.course.category?.name ?? null,
+        status: e.status,
+        progress: e.progress,
+        externalUrl: e.course.externalUrl,
+      })),
+    })),
+    activities: activities.map((a) => ({
+      id: a.id,
+      user: a.user.fullName,
+      action: a.type,
+      time: a.createdAt.toLocaleDateString(),
+    })),
+  });
+}

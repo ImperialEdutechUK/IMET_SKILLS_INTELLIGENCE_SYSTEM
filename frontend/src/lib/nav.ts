@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, BookOpen, Target, ScrollText, Sparkles,
-  BarChart3, Users, UserCog, UserCheck, Library, ClipboardCheck, Tags, Settings, Trophy,
+  BarChart3, Users, UserCog, UserCheck, Library, ClipboardCheck, Tags, Settings, Trophy, Building2,
 } from "lucide-react";
 import type { NavSection, Role } from "@/types";
 
@@ -45,6 +45,7 @@ export const navConfig: Record<Role, NavSection[]> = {
     {
       items: [
         { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+        { label: "Departments", href: "/admin/departments", icon: Building2 },
         { label: "User Management", href: "/admin/users", icon: UserCog },
         { label: "Pending Approvals", href: "/admin/approvals", icon: UserCheck },
         { label: "AI Recommendations", href: "/admin/recommendations", icon: Sparkles },

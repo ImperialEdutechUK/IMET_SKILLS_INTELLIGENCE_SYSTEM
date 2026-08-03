@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import type { LucideIcon } from "lucide-react";
 import {
-  GraduationCap, Menu, ArrowRight, ArrowDownRight, ArrowDown,
+  GraduationCap, Menu, ArrowRight, ArrowDownRight,
   Sparkles, Award, BarChart3,
 } from "lucide-react";
 
@@ -75,41 +75,32 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Right — visual composition */}
-          <div className="home-rise relative mx-auto h-[560px] w-full max-w-[560px]" style={{ animationDelay: ".1s" }}>
-            {/* Stat with bracket */}
-            <div className="absolute right-0 top-2 text-right">
+          {/* Right — visual composition (landscape image, shown in full, no crop) */}
+          <div className="home-rise relative mx-auto h-[440px] w-full max-w-[560px]" style={{ animationDelay: ".1s" }}>
+            {/* Courses stat */}
+            <div className="absolute right-0 top-0 z-20 text-right">
               <p className="text-4xl font-extrabold tracking-tight">27k<span className="ml-1 font-semibold text-[var(--brand)]">+</span></p>
               <p className="text-sm text-[var(--muted)]">Courses</p>
-              <div className="ml-auto mt-3 h-8 w-px bg-[var(--border)]" />
             </div>
 
-            {/* Hero image */}
-            <div className="absolute right-2 top-16 h-[420px] w-[340px] overflow-hidden rounded-[2rem] border border-[var(--border)] shadow-[0_30px_60px_-30px_rgba(15,27,45,.3)]">
-              <Image src="/hero-team.png" alt="A team using LearnSmart AI's skills intelligence platform" fill sizes="340px" priority className="object-cover" />
+            {/* Soft sunburst texture behind the frame */}
+            <div className="absolute -left-4 top-8 opacity-30"><Sunburst size={120} /></div>
+
+            {/* Hero image — frame matches the image's ratio so nothing is cropped */}
+            <div className="absolute right-0 top-[68px] w-[480px] max-w-full overflow-hidden rounded-[1.75rem] border border-[var(--border)] shadow-[0_30px_60px_-30px_rgba(15,27,45,.3)]" style={{ aspectRatio: "2024 / 1382" }}>
+              <Image src="/hero-team.png" alt="A team using LearnSmart AI's skills intelligence platform" fill sizes="480px" priority className="object-cover" />
             </div>
 
-            {/* Overlapping info card */}
-            <div className="absolute left-0 top-24 w-56 rounded-[1.5rem] border border-[var(--border)] bg-white p-5 shadow-[0_20px_40px_-24px_rgba(15,27,45,.25)]">
-              <div className="flex gap-1">
-                {[3, 1, 2, 4, 2].map((h, i) => <span key={i} className="w-1.5 rounded-sm bg-[var(--brand)]" style={{ height: `${h * 5}px` }} />)}
-              </div>
-              <p className="mt-5 text-[17px] font-semibold leading-snug">Track skills<br />in real time</p>
+            {/* Brand accent circle — corner accent, clear of faces */}
+            <div className="absolute left-8 top-8 z-20 grid h-20 w-20 place-items-center rounded-full bg-[var(--brand)] text-white shadow-lg">
+              <ArrowDownRight className="h-8 w-8" />
             </div>
 
-            {/* Brand accent circle with diagonal arrow */}
-            <div className="absolute left-44 top-8 grid h-24 w-24 place-items-center rounded-full bg-[var(--brand)] text-white shadow-lg">
-              <ArrowDownRight className="h-9 w-9" />
+            {/* Info chip — floats at the lower-left, over the desk area */}
+            <div className="absolute bottom-2 left-0 z-20 flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-white/95 px-4 py-3 shadow-[0_20px_40px_-24px_rgba(15,27,45,.3)] backdrop-blur">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[var(--brand-tint)] text-[var(--brand-dark)]"><BarChart3 className="h-4.5 w-4.5" /></span>
+              <p className="text-sm font-semibold leading-tight">Track skills<br />in real time</p>
             </div>
-
-            {/* Sunburst */}
-            <div className="absolute bottom-16 left-2 opacity-70"><Sunburst size={124} /></div>
-
-            {/* Connector line + down button */}
-            <svg className="pointer-events-none absolute bottom-0 left-28 h-40 w-44" viewBox="0 0 176 160" fill="none" aria-hidden>
-              <path d="M8 8 V80 Q8 96 24 96 H150 Q166 96 166 112 V160" stroke="rgba(15,27,45,.2)" strokeWidth="1.5" />
-            </svg>
-            <span className="absolute bottom-24 left-[7.5rem] grid h-9 w-9 place-items-center rounded-full border border-[var(--border)] bg-white text-[var(--brand)]"><ArrowDown className="h-4 w-4" /></span>
           </div>
         </div>
       </section>

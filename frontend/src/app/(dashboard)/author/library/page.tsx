@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { Library, BookOpen, AlertCircle, Users, Eye, Search } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
-import { getToken } from "@/lib/authClient";
+import { useApi } from "@/lib/api";
+import { RefreshingBadge } from "@/components/ui/DataState";
 
 const statusConfig: Record<string, string> = {
   published: "bg-[var(--brand-tint)] text-[var(--brand-dark)]",
@@ -14,32 +15,24 @@ interface Course { id: string; title: string; source: string; category: string; 
 interface Data { total: number; published: number; draft: number; totalEnrollments: number; page: number; totalPages: number; matchCount: number; courses: Course[]; }
 
 export default function CourseLibraryPage() {
-  const [data, setData] = useState<Data | null>(null);
-  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState("");
 
-  const load = useCallback(() => {
-    setLoading(true);
-    const params = new URLSearchParams({ page: String(page) });
-    if (query) params.set("search", query);
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/author/library?${params}`, {
-      headers: { Authorization: `Bearer ${getToken()}` },
-    })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, [page, query]);
-
-  useEffect(() => { load(); }, [load]);
+  const params = new URLSearchParams({ page: String(page) });
+  if (query) params.set("search", query);
+  // Each page/search combination is its own cache entry, so paging back to a
+  // page you've already seen is instant. `keepPreviousData` (the useApi default)
+  // keeps the current rows on screen while the next page loads.
+  const { data, isLoading, isRefreshing } = useApi<Data>(`/api/author/library?${params}`);
+  const loading = isLoading;
 
   const runSearch = () => { setPage(1); setQuery(search); };
 
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <div><h1 className="text-2xl font-bold text-[var(--ink)]">Course Library</h1><p className="mt-1 text-sm text-[var(--muted)]">All courses in the platform.</p></div>
+        <div><div className="flex items-center gap-3"><h1 className="text-2xl font-bold text-[var(--ink)]">Course Library</h1><RefreshingBadge show={isRefreshing} /></div><p className="mt-1 text-sm text-[var(--muted)]">All courses in the platform.</p></div>
         <a href="/author/courses/new" className="flex items-center gap-2 rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-dark)]"><BookOpen className="h-4 w-4" /> Add Course</a>
       </div>
       <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">

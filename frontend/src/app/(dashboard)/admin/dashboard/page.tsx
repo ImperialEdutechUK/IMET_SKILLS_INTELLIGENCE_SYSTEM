@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Users, BookOpen, Award, Building2, TrendingUp, BarChart3, Activity, Clock,
@@ -11,9 +10,8 @@ import HeroRing from "@/components/dashboard/HeroRing";
 import StatTile from "@/components/dashboard/StatTile";
 import CollapsibleCard from "@/components/dashboard/CollapsibleCard";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
-import { getToken } from "@/lib/authClient";
-
-const API = process.env.NEXT_PUBLIC_API_URL;
+import { useApi } from "@/lib/api";
+import { PageSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
 
 interface Dept {
   id: string;
@@ -39,19 +37,10 @@ interface Data {
 }
 
 export default function AdminDashboardPage() {
-  const [data, setData] = useState<Data | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data, error, isLoading, isRefreshing, refresh } = useApi<Data>("/api/admin/dashboard");
 
-  useEffect(() => {
-    fetch(`${API}/api/admin/dashboard`, { headers: { Authorization: `Bearer ${getToken()}` } })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, []);
-
-  if (loading || !data) {
-    return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">{loading ? "Loading…" : "Could not load dashboard."}</p></div>;
-  }
+  if (isLoading) return <PageSkeleton />;
+  if (!data) return <ErrorPanel message={error?.message ?? "Could not load dashboard."} onRetry={refresh} />;
 
   const h = data.orgHealth;
   const behind = h.atRisk + h.attention;
@@ -73,7 +62,10 @@ export default function AdminDashboardPage() {
       {/* Header */}
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--ink)]">Organisation dashboard</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-[var(--ink)]">Organisation dashboard</h1>
+            <RefreshingBadge show={isRefreshing} />
+          </div>
           <p className="mt-1 text-sm text-[var(--muted)]">{today} · {h.departments} department{h.departments === 1 ? "" : "s"} · {data.totalEmployees} employee{data.totalEmployees === 1 ? "" : "s"}</p>
         </div>
         <Link href="/admin/recommendations" className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium text-[var(--ink)] hover:bg-slate-50">

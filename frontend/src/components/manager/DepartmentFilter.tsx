@@ -1,23 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Building2 } from "lucide-react";
-
-const API = process.env.NEXT_PUBLIC_API_URL;
+import { useApi } from "@/lib/api";
 
 interface Dept { id: string; name: string }
 
 // Reusable "All Departments" selector used across the manager pages.
 // Emits "" for all departments, or a departmentId.
 export default function DepartmentFilter({ value, onChange }: { value: string; onChange: (id: string) => void }) {
-  const [depts, setDepts] = useState<Dept[]>([]);
-
-  useEffect(() => {
-    fetch(`${API}/api/departments`)
-      .then((r) => (r.ok ? r.json() : []))
-      .then((d) => setDepts(Array.isArray(d) ? d : []))
-      .catch(() => setDepts([]));
-  }, []);
+  // The department list barely changes, so cache it for the session and only
+  // recheck on focus rather than on every mount.
+  const { data } = useApi<Dept[]>("/api/departments", { revalidateIfStale: false });
+  const depts = Array.isArray(data) ? data : [];
 
   return (
     <div className="relative">

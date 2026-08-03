@@ -4,6 +4,16 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { saveAuth, dashboardPathFor } from "@/lib/authClient";
+import { swrCache } from "@/lib/swr-cache";
+import { prefetch } from "@/lib/api";
+
+/** Endpoints each role lands on — requested during the redirect, not after it. */
+const WARM_ON_LOGIN = {
+  admin: ["/api/admin/dashboard", "/api/notifications"],
+  manager: ["/api/manager/dashboard", "/api/notifications"],
+  author: ["/api/author/dashboard", "/api/notifications"],
+  employee: ["/api/me/dashboard", "/api/me/certificates", "/api/notifications"],
+} as const;
 import AuthShell from "@/components/auth/AuthShell";
 import {
   GraduationCap,
@@ -41,6 +51,11 @@ export default function LoginPage() {
         return;
       }
       saveAuth(data.token, data.user);
+      // Switch the cache to this user (wiping whoever was here before) and start
+      // their dashboard request now, so the route paints on arrival instead of
+      // beginning its fetch then.
+      swrCache.activate(data.user.id);
+      prefetch(...(WARM_ON_LOGIN[data.user.role as keyof typeof WARM_ON_LOGIN] ?? []));
       router.push(dashboardPathFor(data.user));
     } catch {
       setLoading(false);

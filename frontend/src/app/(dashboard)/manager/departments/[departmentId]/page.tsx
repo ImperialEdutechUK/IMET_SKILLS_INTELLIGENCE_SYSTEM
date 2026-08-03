@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft, Users, BookOpen, BarChart3, ChevronDown } from "lucide-react";
-import { getToken } from "@/lib/authClient";
+import { useApi } from "@/lib/api";
+import { PageSkeleton, RefreshingBadge } from "@/components/ui/DataState";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
 import StatCard from "@/components/dashboard/StatCard";
 import AttentionList from "@/components/dashboard/AttentionList";
@@ -49,26 +50,14 @@ interface DeptData {
 export default function DepartmentDetailPage() {
   const params = useParams();
   const departmentId = params.departmentId as string;
-  const [data, setData] = useState<DeptData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading, isRefreshing } = useApi<DeptData>(
+    departmentId ? `/api/manager/departments/${departmentId}` : null,
+    // Switching department must not show the previous one's members.
+    { keepPreviousData: false },
+  );
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/manager/departments/${departmentId}`, {
-      headers: { Authorization: `Bearer ${getToken()}` },
-    })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, [departmentId]);
-
-  if (loading) {
-    return (
-      <div className="rounded-2xl border border-[var(--border)] bg-white p-6">
-        <p className="text-sm text-[var(--muted)]">Loading…</p>
-      </div>
-    );
-  }
+  if (isLoading) return <PageSkeleton cards={3} />;
 
   if (!data) {
     return (
@@ -99,7 +88,10 @@ export default function DepartmentDetailPage() {
         <ArrowLeft className="h-3.5 w-3.5" /> All Departments
       </Link>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[var(--ink)]">{department.name}</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-[var(--ink)]">{department.name}</h1>
+          <RefreshingBadge show={isRefreshing} />
+        </div>
         <p className="mt-1 text-sm text-[var(--muted)]">Learning and skills for this department.</p>
       </div>
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

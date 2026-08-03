@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Users, BookOpen, Award, TrendingUp, Download, ArrowRight, ArrowLeft, GraduationCap, Target, CheckCircle2, ScrollText, BarChart3 } from "lucide-react";
 import Stat3D from "@/components/dashboard/Stat3D";
@@ -8,7 +8,8 @@ import Icon3D, { TONES, type Icon3DTone } from "@/components/dashboard/Icon3D";
 import LearnAreaChart from "@/components/charts/LearnAreaChart";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
 import ProgressRing from "@/components/cpd/ProgressRing";
-import { getToken } from "@/lib/authClient";
+import { useApi } from "@/lib/api";
+import { CardGridSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
 
 type InsightTab = "progress" | "trend" | "breakdown";
 const INSIGHT_TABS: { key: InsightTab; label: string; icon: typeof BarChart3 }[] = [
@@ -17,7 +18,6 @@ const INSIGHT_TABS: { key: InsightTab; label: string; icon: typeof BarChart3 }[]
   { key: "breakdown", label: "Breakdown", icon: BarChart3 },
 ];
 
-const API = process.env.NEXT_PUBLIC_API_URL;
 
 interface ReportData {
   stats: { totalMembers: number; totalCpdHours: number; coursesCompleted: number; coursesInProgress: number; avgProgress: number };
@@ -33,19 +33,8 @@ const REPORT_CARDS: { title: string; desc: string; href: string; icon: typeof Gr
 ];
 
 export default function ManagerReportsPage() {
-  const [data, setData] = useState<ReportData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data, error, isLoading, isRefreshing, refresh } = useApi<ReportData>("/api/manager/reports");
   const [tab, setTab] = useState<InsightTab>("progress");
-
-  const load = useCallback(() => {
-    setLoading(true);
-    fetch(`${API}/api/manager/reports`, { headers: { Authorization: `Bearer ${getToken()}` } })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
 
   const exportCsv = () => {
     if (!data) return;
@@ -77,7 +66,10 @@ export default function ManagerReportsPage() {
         <div className="flex items-center gap-3">
           <Icon3D icon={ScrollText} tone={TONES.blue} />
           <div>
-            <h1 className="text-2xl font-bold text-[var(--ink)]">Reports</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-[var(--ink)]">Reports</h1>
+              <RefreshingBadge show={isRefreshing} />
+            </div>
             <p className="mt-1 text-sm text-[var(--muted)]">View and export key reports to track your team&apos;s learning performance.</p>
           </div>
         </div>
@@ -101,10 +93,10 @@ export default function ManagerReportsPage() {
         ))}
       </div>
 
-      {loading ? (
-        <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>
+      {isLoading ? (
+        <CardGridSkeleton />
       ) : !data ? (
-        <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load reports.</p></div>
+        <ErrorPanel message={error?.message ?? "Could not load reports."} onRetry={refresh} />
       ) : (
         <>
           <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">

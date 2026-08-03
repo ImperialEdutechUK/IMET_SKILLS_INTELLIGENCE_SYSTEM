@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Users, BookOpen, Award, TrendingUp, Download, ChevronRight, ShieldCheck, AlertTriangle, BarChart3, PieChart, Activity, Clock } from "lucide-react";
 import LearnAreaChart from "@/components/charts/LearnAreaChart";
@@ -11,9 +11,8 @@ import StatTile from "@/components/dashboard/StatTile";
 import Dropdown from "@/components/dashboard/Dropdown";
 import CollapsibleCard from "@/components/dashboard/CollapsibleCard";
 import MyAchievementsCard from "@/components/gamification/MyAchievementsCard";
-import { getToken } from "@/lib/authClient";
-
-const API = process.env.NEXT_PUBLIC_API_URL;
+import { useApi, apiSend, ApiError } from "@/lib/api";
+import { PageSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
 
 interface DashData {
   fullName: string;
@@ -34,38 +33,35 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 };
 
 export default function ManagerDashboardPage() {
-  const [data, setData] = useState<DashData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data, error, isLoading, isRefreshing, refresh } = useApi<DashData>("/api/manager/dashboard");
   const [reminding, setReminding] = useState(false);
   const [remindMsg, setRemindMsg] = useState("");
   const [showAtRisk, setShowAtRisk] = useState(false);
   const [trendWeeks, setTrendWeeks] = useState(8);
 
-  const load = () => fetch(`${API}/api/manager/dashboard`, { headers: { Authorization: `Bearer ${getToken()}` } })
-    .then((r) => (r.ok ? r.json() : null)).then((d) => { setData(d); setLoading(false); }).catch(() => setLoading(false));
-  useEffect(() => { load(); }, []);
-
   async function sendReminders() {
     setReminding(true); setRemindMsg("");
     try {
-      const r = await fetch(`${API}/api/cpd/notify`, { method: "POST", headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" }, body: "{}" });
-      const d = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        setRemindMsg(d?.error ? `Could not send reminders — ${d.error}` : "Could not send reminders. Please try again.");
-      } else if (d.employeesNotified > 0) {
+      // Reminders change who is flagged, so the dashboard read is stale after this.
+      const d = await apiSend<{ employeesNotified?: number; behind?: number }>(
+        "/api/cpd/notify", "POST", {}, { invalidates: ["/api/manager/dashboard", "/api/notifications"] },
+      );
+      if (d.employeesNotified && d.employeesNotified > 0) {
         setRemindMsg(`✅ Reminder sent to ${d.employeesNotified} team member${d.employeesNotified === 1 ? "'s" : "s'"} dashboard${d.employeesNotified === 1 ? "" : "s"}.`);
-      } else if (d.behind > 0) {
+      } else if (d.behind && d.behind > 0) {
         setRemindMsg("Everyone behind pace already has an unread reminder on their dashboard.");
       } else {
         setRemindMsg("Nobody is behind pace right now — no reminders needed. 🎉");
       }
-    } catch { setRemindMsg("Could not send reminders — the server didn't respond. Please try again."); }
+    } catch (e) {
+      setRemindMsg(e instanceof ApiError ? `Could not send reminders — ${e.message}` : "Could not send reminders — the server didn't respond. Please try again.");
+    }
     setReminding(false);
   }
 
-  if (loading || !data) {
-    return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">{loading ? "Loading…" : "Could not load dashboard."}</p></div>;
-  }
+  // Only block when there is genuinely nothing cached to paint.
+  if (isLoading) return <PageSkeleton />;
+  if (!data) return <ErrorPanel message={error?.message ?? "Could not load dashboard."} onRetry={refresh} />;
 
   const { stats } = data;
   const behind = stats.atRisk + stats.attention;
@@ -93,7 +89,10 @@ export default function ManagerDashboardPage() {
       {/* Header */}
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--ink)]">Team dashboard</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-[var(--ink)]">Team dashboard</h1>
+            <RefreshingBadge show={isRefreshing} />
+          </div>
           <p className="mt-1 text-sm text-[var(--muted)]">{today} · {data.departmentName} · {stats.teamMembers} team member{stats.teamMembers === 1 ? "" : "s"}</p>
         </div>
         <Link href="/manager/reports" className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium text-[var(--ink)] hover:bg-slate-50">

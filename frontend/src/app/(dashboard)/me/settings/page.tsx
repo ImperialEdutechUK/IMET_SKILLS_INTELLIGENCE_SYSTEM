@@ -3,17 +3,23 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { User, Lock, Bell, Compass } from "lucide-react";
-import { getToken, getUser } from "@/lib/authClient";
+import { getUser } from "@/lib/authClient";
 import { requestTourReplay } from "@/lib/onboarding";
+import { useApi, apiSend, ApiError } from "@/lib/api";
 
-const API = process.env.NEXT_PUBLIC_API_URL;
+interface Profile { fullName: string; email: string; department: string }
 
 export default function SettingsPage() {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [department, setDepartment] = useState("");
-  const [loaded, setLoaded] = useState(false);
+  const { data: profile, isLoading, mutate } = useApi<Profile>("/api/me/profile");
+  // `null` = the field is untouched, so it tracks whatever the server last said.
+  // Once the user types, their draft wins and a background revalidation can't
+  // overwrite what they're editing.
+  const [nameDraft, setNameDraft] = useState<string | null>(null);
+  const name = nameDraft ?? profile?.fullName ?? "";
+  const email = profile?.email ?? "";
+  const department = profile?.department ?? "";
+  const loaded = !isLoading;
   const [savingName, setSavingName] = useState(false);
   const [nameMsg, setNameMsg] = useState("");
 
@@ -26,39 +32,32 @@ export default function SettingsPage() {
 
   useEffect(() => {
     setIsEmployee(getUser()?.role === "employee");
-    fetch(`${API}/api/me/profile`, { headers: { Authorization: `Bearer ${getToken()}` } })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (d) { setName(d.fullName); setEmail(d.email); setDepartment(d.department); } setLoaded(true); })
-      .catch(() => setLoaded(true));
   }, []);
 
   const saveName = async () => {
     setSavingName(true); setNameMsg("");
     try {
-      const r = await fetch(`${API}/api/me/profile`, {
-        method: "PATCH",
-        headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ fullName: name }),
-      });
-      const d = await r.json();
-      if (r.ok) { setName(d.fullName); setNameMsg("Profile saved."); }
-      else setNameMsg(d.error ?? "Could not save.");
-    } catch { setNameMsg("Could not save."); }
+      const d = await apiSend<Profile>("/api/me/profile", "PATCH", { fullName: name });
+      // Write the server's answer into the cache and drop the draft, so the field
+      // now reflects what was actually stored rather than what was typed.
+      await mutate(d, { revalidate: false });
+      setNameDraft(null);
+      setNameMsg("Profile saved.");
+    } catch (e) {
+      setNameMsg(e instanceof ApiError ? e.message : "Could not save.");
+    }
     setSavingName(false);
   };
 
   const savePassword = async () => {
     setSavingPw(true); setPwMsg(""); setPwErr(false);
     try {
-      const r = await fetch(`${API}/api/me/password`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ currentPassword: current, newPassword: next }),
-      });
-      const d = await r.json();
-      if (r.ok) { setPwMsg("Password updated."); setCurrent(""); setNext(""); }
-      else { setPwMsg(d.error ?? "Could not update password."); setPwErr(true); }
-    } catch { setPwMsg("Could not update password."); setPwErr(true); }
+      await apiSend("/api/me/password", "POST", { currentPassword: current, newPassword: next });
+      setPwMsg("Password updated."); setCurrent(""); setNext("");
+    } catch (e) {
+      setPwMsg(e instanceof ApiError ? e.message : "Could not update password.");
+      setPwErr(true);
+    }
     setSavingPw(false);
   };
 
@@ -77,7 +76,7 @@ export default function SettingsPage() {
         <div className="rounded-2xl border border-[var(--border)] bg-white p-6">
           <div className="mb-4 flex items-center gap-2"><User className="h-4 w-4 text-[var(--brand)]" /><h3 className="font-semibold text-[var(--ink)]">Profile</h3></div>
           <div className="space-y-4">
-            <div><label className="mb-1.5 block text-sm font-medium text-[var(--ink)]">Full Name</label><input value={name} onChange={e => setName(e.target.value)} disabled={!loaded} className="w-full rounded-lg border border-[var(--border)] px-3 py-2.5 text-sm outline-none focus:border-[var(--brand)]" /></div>
+            <div><label className="mb-1.5 block text-sm font-medium text-[var(--ink)]">Full Name</label><input value={name} onChange={e => setNameDraft(e.target.value)} disabled={!loaded} className="w-full rounded-lg border border-[var(--border)] px-3 py-2.5 text-sm outline-none focus:border-[var(--brand)]" /></div>
             <div><label className="mb-1.5 block text-sm font-medium text-[var(--ink)]">Email</label><input value={email} disabled className="w-full rounded-lg border border-[var(--border)] bg-slate-50 px-3 py-2.5 text-sm text-[var(--muted)]" /></div>
             <div><label className="mb-1.5 block text-sm font-medium text-[var(--ink)]">Department</label><input value={department} disabled className="w-full rounded-lg border border-[var(--border)] bg-slate-50 px-3 py-2.5 text-sm text-[var(--muted)]" /></div>
             <div className="flex items-center gap-3">

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { getUser, type AuthUser } from "@/lib/authClient";
+import { swrCache } from "@/lib/swr-cache";
 import DashboardShell from "@/components/layout/DashboardShell";
 import type { SessionUser } from "@/types";
 
@@ -40,6 +41,10 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       router.replace(ownDashboard(u.role));
       return;
     }
+    // Point the SWR cache at this user's bucket *before* any dashboard screen
+    // renders, so the first paint can come from their cached data — and never
+    // from the previous account's.
+    swrCache.activate(u.id);
     setUser(u);
     setChecked(true);
   }, [pathname, router]);

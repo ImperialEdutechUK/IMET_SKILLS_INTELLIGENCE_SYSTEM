@@ -1,14 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { BookOpen, Target, Award, Sparkles, Bell, Check, ScrollText, TrendingUp, PieChart, ArrowRight } from "lucide-react";
 import LearnAreaChart from "@/components/charts/LearnAreaChart";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
 import { computeGamification } from "@/lib/gamification";
-import { getToken } from "@/lib/authClient";
-
-const API = process.env.NEXT_PUBLIC_API_URL;
+import { useApi, apiSend } from "@/lib/api";
+import { PageSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
 
 interface Rec {
   id: string; courseId: string; title: string; source: string; category: string;
@@ -34,38 +33,28 @@ function statusPill(status: string) {
 }
 
 export default function EmployeeDashboardPage() {
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [certCount, setCertCount] = useState(0);
+  const { data, error, isLoading, isRefreshing, refresh } = useApi<DashboardData>("/api/me/dashboard");
+  // Shares its cache entry with the certificates page and the gamification
+  // widgets, so this costs nothing extra once any of them has loaded.
+  const { data: certData } = useApi<{ certificates: unknown[] }>("/api/me/certificates");
+  const certCount = certData?.certificates?.length ?? 0;
   const [enrolled, setEnrolled] = useState<Record<string, boolean>>({});
   const [enrolling, setEnrolling] = useState<Record<string, boolean>>({});
-
-  useEffect(() => {
-    fetch(`${API}/api/me/dashboard`, { headers: { Authorization: `Bearer ${getToken()}` } })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
-    fetch(`${API}/api/me/certificates`, { headers: { Authorization: `Bearer ${getToken()}` } })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => setCertCount(d?.certificates?.length ?? 0))
-      .catch(() => {});
-  }, []);
 
   const enrol = async (courseId: string) => {
     setEnrolling((s) => ({ ...s, [courseId]: true }));
     try {
-      const r = await fetch(`${API}/api/me/enrollments`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ courseId }),
+      // Enrolling changes the course counts on this very page and on My Learning.
+      await apiSend("/api/me/enrollments", "POST", { courseId }, {
+        invalidates: ["/api/me/dashboard", "/api/me/learning"],
       });
-      if (r.ok) setEnrolled((s) => ({ ...s, [courseId]: true }));
-    } catch { /* ignore */ }
+      setEnrolled((s) => ({ ...s, [courseId]: true }));
+    } catch { /* button re-enables; the row is unchanged */ }
     setEnrolling((s) => ({ ...s, [courseId]: false }));
   };
 
-  if (loading) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
-  if (!data) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Account not found. Please sign in again.</p></div>;
+  if (isLoading) return <PageSkeleton />;
+  if (!data) return <ErrorPanel message={error?.message ?? "Account not found. Please sign in again."} onRetry={refresh} />;
 
   const g = computeGamification({ certificates: certCount, coursesCompleted: data.completedCount, cpdHours: data.cpdHours });
   const first = data.fullName.split(" ")[0];
@@ -102,7 +91,10 @@ export default function EmployeeDashboardPage() {
 
       {/* HEADER — plain title, as in the reference dashboards. */}
       <div>
-        <h1 className="text-2xl font-bold text-[var(--ink)]">Dashboard</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-[var(--ink)]">Dashboard</h1>
+          <RefreshingBadge show={isRefreshing} />
+        </div>
         <p className="mt-1 text-sm text-[var(--muted)]">Welcome back, {first} — here&rsquo;s your learning at a glance.</p>
       </div>
 

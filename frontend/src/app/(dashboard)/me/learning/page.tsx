@@ -7,9 +7,14 @@ import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
 import AchievementsBento from "@/components/gamification/AchievementsBento";
 import CertificateProofModal, { CertificateFileField } from "@/components/certificates/CertificateProofModal";
 import CertificateGallery from "@/components/certificates/CertificateGallery";
-import { getToken } from "@/lib/authClient";
+import { useApi, apiSend, ApiError, invalidate } from "@/lib/api";
+import { PageSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
 
-const API = process.env.NEXT_PUBLIC_API_URL;
+/**
+ * Every enrollment write moves numbers on all three of these reads (course
+ * counts, certificate list, dashboard XP), so they're invalidated together.
+ */
+const LEARNING_KEYS = ["/api/me/learning", "/api/me/certificates", "/api/me/dashboard"];
 
 interface EnrollmentEvent {
   id: string; type: string; hours: number | null; note: string | null; at: string;
@@ -46,8 +51,11 @@ const TABS: { key: Tab; label: string }[] = [
 ];
 
 export default function MyLearningPage() {
-  const [data, setData] = useState<LearningData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data, error, isLoading, isRefreshing, mutate } = useApi<LearningData>("/api/me/learning");
+  const { data: certData } = useApi<{ certificates: Certificate[] }>("/api/me/certificates");
+  const { data: dashData } = useApi<{ cpdHours: number }>("/api/me/dashboard");
+  const certificates = certData?.certificates ?? [];
+  const cpdHours = dashData?.cpdHours ?? 0;
   const [tab, setTab] = useState<Tab>("not_started");
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [showAdd, setShowAdd] = useState(false);
@@ -59,34 +67,16 @@ export default function MyLearningPage() {
   // The course awaiting proof of completion. Closing this without a successful
   // upload leaves the enrollment untouched — it stays In Progress at the same %.
   const [completing, setCompleting] = useState<Course | null>(null);
-  // Certificates + badges live here now (the standalone page was merged in). cpdHours
-  // is pulled from the dashboard so the trophy-shelf XP matches everywhere.
-  const [certificates, setCertificates] = useState<Certificate[]>([]);
-  const [cpdHours, setCpdHours] = useState(0);
   const didInit = useRef(false);
 
-  const load = useCallback(async () => {
-    const r = await fetch(`${API}/api/me/learning`, { headers: { Authorization: `Bearer ${getToken()}` } });
-    setData(r.ok ? await r.json() : null);
-    setLoading(false);
-  }, []);
+  /** Re-read everything an enrollment write touches. */
+  const load = useCallback(async () => { await invalidate(...LEARNING_KEYS); }, []);
 
-  const loadCerts = useCallback(async () => {
-    const r = await fetch(`${API}/api/me/certificates`, { headers: { Authorization: `Bearer ${getToken()}` } });
-    if (r.ok) { const d = await r.json(); setCertificates(d.certificates ?? []); }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
   useEffect(() => {
-    loadCerts();
-    fetch(`${API}/api/me/dashboard`, { headers: { Authorization: `Bearer ${getToken()}` } })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (d) setCpdHours(d.cpdHours ?? 0); })
-      .catch(() => {});
     // Open the Certificates tab directly when linked with ?tab=certificates.
     const t = new URLSearchParams(window.location.search).get("tab");
     if (t === "certificates") { setTab("certificates"); didInit.current = true; }
-  }, [loadCerts]);
+  }, []);
 
   // Land the user on content, not an empty state: once data arrives, select the first
   // non-empty tab (respecting tab order). A manual click wins.
@@ -109,19 +99,10 @@ export default function MyLearningPage() {
     setErr((s) => ({ ...s, [id]: "" }));
     let ok = false;
     try {
-      const r = await fetch(`${API}/api/me/enrollments/${id}`, {
-        method: "PATCH",
-        headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      ok = r.ok;
-      if (r.ok) await load();
-      else {
-        const j = await r.json().catch(() => null);
-        setErr((s) => ({ ...s, [id]: j?.error ?? "Could not save that." }));
-      }
-    } catch {
-      setErr((s) => ({ ...s, [id]: "Could not reach the server." }));
+      await apiSend(`/api/me/enrollments/${id}`, "PATCH", body, { invalidates: LEARNING_KEYS });
+      ok = true;
+    } catch (e) {
+      setErr((s) => ({ ...s, [id]: e instanceof ApiError ? e.message : "Could not reach the server." }));
     }
     setBusy((s) => ({ ...s, [id]: false }));
     return ok;
@@ -139,8 +120,8 @@ export default function MyLearningPage() {
     setLogOpen((s) => ({ ...s, [id]: false }));
   };
 
-  if (loading) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
-  if (!data) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load your courses.</p></div>;
+  if (isLoading) return <PageSkeleton cards={1} />;
+  if (!data) return <ErrorPanel message={error?.message ?? "Could not load your courses."} onRetry={() => mutate()} />;
 
   return (
     <div>
@@ -148,7 +129,10 @@ export default function MyLearningPage() {
         <div className="flex items-center gap-3">
           <Icon3D icon={BookOpen} tone={TONES.blue} />
           <div>
-            <h1 className="text-2xl font-bold text-[var(--ink)]">My Learning</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-[var(--ink)]">My Learning</h1>
+              <RefreshingBadge show={isRefreshing} />
+            </div>
             <p className="mt-1 text-sm text-[var(--muted)]">
               {tab === "certificates"
                 ? "Your certificates and badges — earned as you complete courses."
@@ -368,35 +352,26 @@ export default function MyLearningPage() {
             // thing if the proof is missing or invalid, so a failure here leaves the
             // course In Progress with its progress bar exactly where it was.
             try {
-              const r = await fetch(`${API}/api/me/enrollments/${completing.id}`, {
-                method: "PATCH",
-                headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  status: "completed",
-                  certificate: {
-                    fileUrl: payload.fileUrl,
-                    certificateUrl: payload.certificateUrl,
-                    issuer: payload.issuer,
-                    issuedDate: payload.issuedDate || undefined,
-                  },
-                }),
-              });
-              if (r.ok) {
-                setCompleting(null);
-                await load();
-                setTab("completed");
-                return null;
-              }
-              const d = await r.json().catch(() => ({}));
-              return d.error || "Could not mark the course complete.";
-            } catch {
-              return "Could not reach the server.";
+              await apiSend(`/api/me/enrollments/${completing.id}`, "PATCH", {
+                status: "completed",
+                certificate: {
+                  fileUrl: payload.fileUrl,
+                  certificateUrl: payload.certificateUrl,
+                  issuer: payload.issuer,
+                  issuedDate: payload.issuedDate || undefined,
+                },
+              }, { invalidates: LEARNING_KEYS });
+              setCompleting(null);
+              setTab("completed");
+              return null;
+            } catch (e) {
+              return e instanceof ApiError ? e.message : "Could not reach the server.";
             }
           }}
         />
       )}
 
-      {showAdd && <AddCourseModal onClose={() => setShowAdd(false)} onSaved={() => { setShowAdd(false); setLoading(true); load(); }} />}
+      {showAdd && <AddCourseModal onClose={() => setShowAdd(false)} onSaved={() => { setShowAdd(false); load(); }} />}
     </div>
   );
 }
@@ -416,16 +391,11 @@ function CourseDetailModal({ course, onClose, onSaved }: { course: Course; onClo
   const save = async (value: number | null) => {
     setSaving(true); setError("");
     try {
-      const r = await fetch(`${API}/api/me/enrollments/${course.id}`, {
-        method: "PATCH",
-        headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ targetHours: value }),
-      });
-      if (r.ok) { onSaved(); return; }
-      const d = await r.json().catch(() => ({}));
-      setError(d.error || "Could not save the course length.");
-    } catch {
-      setError("Could not save the course length.");
+      await apiSend(`/api/me/enrollments/${course.id}`, "PATCH", { targetHours: value }, { invalidates: LEARNING_KEYS });
+      onSaved();
+      return;
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Could not save the course length.");
     }
     setSaving(false);
   };
@@ -536,35 +506,30 @@ function AddCourseModal({ onClose, onSaved }: { onClose: () => void; onSaved: ()
     }
     setSaving(true); setError("");
     try {
-      const r = await fetch(`${API}/api/me/enrollments`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          manual: true,
-          title: title.trim(),
-          externalUrl: externalUrl.trim() || undefined,
-          provider: provider.trim() || undefined,
-          status,
-          ...(done
-            ? {
-                cpdHours: Number(cpdHours),
-                certificate: {
-                  fileUrl: fileData,
-                  certificateUrl: certificateUrl.trim(),
-                  // The provider typed above is the certificate's issuer — no point
-                  // asking for the same name twice in one dialog.
-                  issuer: provider.trim() || undefined,
-                  issuedDate: issuedDate || undefined,
-                },
-              }
-            : {}),
-        }),
-      });
-      if (r.ok) { onSaved(); return; }
-      const d = await r.json().catch(() => ({}));
-      setError(d.error || "Could not add the course.");
-    } catch {
-      setError("Could not add the course.");
+      await apiSend("/api/me/enrollments", "POST", {
+        manual: true,
+        title: title.trim(),
+        externalUrl: externalUrl.trim() || undefined,
+        provider: provider.trim() || undefined,
+        status,
+        ...(done
+          ? {
+              cpdHours: Number(cpdHours),
+              certificate: {
+                fileUrl: fileData,
+                certificateUrl: certificateUrl.trim(),
+                // The provider typed above is the certificate's issuer — no point
+                // asking for the same name twice in one dialog.
+                issuer: provider.trim() || undefined,
+                issuedDate: issuedDate || undefined,
+              },
+            }
+          : {}),
+      }, { invalidates: LEARNING_KEYS });
+      onSaved();
+      return;
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "Could not add the course.");
     }
     setSaving(false);
   };

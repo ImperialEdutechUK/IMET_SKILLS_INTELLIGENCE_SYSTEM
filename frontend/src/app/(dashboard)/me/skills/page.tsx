@@ -1,14 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { TrendingUp, Star, Target, PlusCircle, CheckCircle2, ArrowUpRight, Plus, X, PieChart, Pencil } from "lucide-react";
 import Stat3D from "@/components/dashboard/Stat3D";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
-import { getToken } from "@/lib/authClient";
+import { useApi, apiSend, ApiError } from "@/lib/api";
+import { PageSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
 
-const API = process.env.NEXT_PUBLIC_API_URL;
+/** A skill change re-runs the gap analysis, which the dashboard and reports read. */
+const SKILL_KEYS = ["/api/me/skills", "/api/me/dashboard", "/api/me/reports"];
 
 interface Skill { id: string; name: string; category: string; currentLevel: number; targetLevel: number; currentLabel: string; targetLabel: string }
 interface Improve { id: string; name: string; category: string; current: number; target: number; currentLabel: string; targetLabel: string; gap: number; priority: string }
@@ -61,8 +63,7 @@ function editNotice(d: SaveResponse): string {
 }
 
 export default function MySkillsPage() {
-  const [data, setData] = useState<SkillsData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data, error, isLoading, isRefreshing, refresh } = useApi<SkillsData>("/api/me/skills");
   const [tab, setTab] = useState<Tab>("overview");
   const [skillsPage, setSkillsPage] = useState(1);
   const [improvePage, setImprovePage] = useState(1);
@@ -78,13 +79,6 @@ export default function MySkillsPage() {
   const [addErr, setAddErr] = useState("");
   const [notice, setNotice] = useState("");
 
-  const load = useCallback(async () => {
-    const r = await fetch(`${API}/api/me/skills`, { headers: { Authorization: `Bearer ${getToken()}` } });
-    setData(r.ok ? await r.json() : null);
-    setLoading(false);
-  }, []);
-  useEffect(() => { load(); }, [load]);
-
   const openAdd = () => {
     setName(""); setCurrent(1); setTarget(3); setNotes(""); setAddErr("");
     setDialog({ mode: "add" });
@@ -99,30 +93,24 @@ export default function MySkillsPage() {
     if (dialog.mode === "add" && !name.trim()) { setAddErr("Enter a skill name."); return; }
     setSaving(true); setAddErr("");
     try {
-      const r = dialog.mode === "add"
-        ? await fetch(`${API}/api/me/skills`, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ name: name.trim(), currentLevel: current, targetLevel: target, gapAnalysis: notes.trim() }),
-          })
-        : await fetch(`${API}/api/me/skills/${dialog.id}`, {
-            method: "PATCH",
-            headers: { Authorization: `Bearer ${getToken()}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ currentLevel: current, targetLevel: target }),
-          });
-      const d = await r.json();
-      if (!r.ok) { setAddErr(d.error ?? (dialog.mode === "add" ? "Could not add skill." : "Could not save your changes.")); setSaving(false); return; }
+      const d = dialog.mode === "add"
+        ? await apiSend<SaveResponse>("/api/me/skills", "POST",
+            { name: name.trim(), currentLevel: current, targetLevel: target, gapAnalysis: notes.trim() },
+            { invalidates: SKILL_KEYS })
+        : await apiSend<SaveResponse>(`/api/me/skills/${dialog.id}`, "PATCH",
+            { currentLevel: current, targetLevel: target },
+            { invalidates: SKILL_KEYS });
       setDialog(null);
       setNotice(dialog.mode === "edit" ? editNotice(d) : "");
-      await load();
-    } catch {
-      setAddErr(dialog.mode === "add" ? "Could not add skill." : "Could not save your changes.");
+    } catch (e) {
+      const fallback = dialog.mode === "add" ? "Could not add skill." : "Could not save your changes.";
+      setAddErr(e instanceof ApiError ? e.message : fallback);
     }
     setSaving(false);
   };
 
-  if (loading) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
-  if (!data) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load your skills.</p></div>;
+  if (isLoading) return <PageSkeleton />;
+  if (!data) return <ErrorPanel message={error?.message ?? "Could not load your skills."} onRetry={refresh} />;
 
   // Client-side pagination — clamped so a shrinking list can never leave us on an empty page.
   const skillsTotalPages = Math.max(1, Math.ceil(data.skills.length / PER_PAGE));
@@ -139,7 +127,10 @@ export default function MySkillsPage() {
         <div className="flex items-center gap-3">
           <Icon3D icon={Target} tone={TONES.emerald} />
           <div>
-            <h1 className="text-2xl font-bold text-[var(--ink)]">My Skills</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-[var(--ink)]">My Skills</h1>
+              <RefreshingBadge show={isRefreshing} />
+            </div>
             <p className="mt-1 text-sm text-[var(--muted)]">Track your skills, see your progress and plan what to improve next.</p>
           </div>
         </div>

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Tags } from "lucide-react";
-import { getToken } from "@/lib/authClient";
+import { useApi } from "@/lib/api";
+import { CardGridSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
 
 interface Category { id: string; name: string; }
 interface Skill { id: string; name: string; category: string; }
@@ -11,26 +11,16 @@ interface Data { categories: Category[]; skills: Skill[]; }
 const SKILL_LIMIT = 100;
 
 export default function TaxonomyPage() {
-  const [data, setData] = useState<Data | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data, error, isLoading, isRefreshing, refresh } = useApi<Data>("/api/author/taxonomy");
 
-  useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/author/taxonomy`, {
-      headers: { Authorization: `Bearer ${getToken()}` },
-    })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, []);
-
-  if (loading) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
-  if (!data) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load taxonomy.</p></div>;
+  if (isLoading) return <CardGridSkeleton cards={2} />;
+  if (!data) return <ErrorPanel message={error?.message ?? "Could not load taxonomy."} onRetry={refresh} />;
 
   const shownSkills = data.skills.slice(0, SKILL_LIMIT);
 
   return (
     <div>
-      <div className="mb-6"><div className="flex items-center gap-2"><Tags className="h-5 w-5 text-[var(--brand)]" /><h1 className="text-2xl font-bold text-[var(--ink)]">Categories & Skills</h1></div><p className="mt-1 text-sm text-[var(--muted)]">The taxonomy that drives course matching.</p></div>
+      <div className="mb-6"><div className="flex items-center gap-2"><Tags className="h-5 w-5 text-[var(--brand)]" /><h1 className="text-2xl font-bold text-[var(--ink)]">Categories & Skills</h1><RefreshingBadge show={isRefreshing} /></div><p className="mt-1 text-sm text-[var(--muted)]">The taxonomy that drives course matching.</p></div>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
           <div className="mb-4 flex items-center justify-between"><h3 className="font-semibold text-[var(--ink)]">Categories <span className="text-xs font-normal text-[var(--muted)]">({data.categories.length})</span></h3></div>

@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import LearnAreaChart from "@/components/charts/LearnAreaChart";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
 import { Library, BookOpen, AlertCircle, Users, Upload, Tags, ClipboardCheck, Plus } from "lucide-react";
 import BentoStat from "@/components/dashboard/BentoStat";
 import ActivityFeed from "@/components/dashboard/ActivityFeed";
 import BarList from "@/components/charts/BarList";
-import { getToken } from "@/lib/authClient";
+import { useApi } from "@/lib/api";
+import { PageSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
 
 const missingConfig: Record<string, { label: string; bg: string }> = {
   curriculum: { label: "Missing Curriculum", bg: "bg-amber-50 text-amber-700 border-amber-200" },
@@ -39,26 +39,19 @@ interface Data {
 }
 
 export default function AuthorDashboardPage() {
-  const [data, setData] = useState<Data | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data, error, isLoading, isRefreshing, refresh } = useApi<Data>("/api/author/dashboard");
 
-  useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/author/dashboard`, {
-      headers: { Authorization: `Bearer ${getToken()}` },
-    })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, []);
-
-  if (loading) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
-  if (!data) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load dashboard.</p></div>;
+  if (isLoading) return <PageSkeleton />;
+  if (!data) return <ErrorPanel message={error?.message ?? "Could not load dashboard."} onRetry={refresh} />;
 
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--ink)]">Author Dashboard</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-[var(--ink)]">Author Dashboard</h1>
+            <RefreshingBadge show={isRefreshing} />
+          </div>
           <p className="mt-1 text-sm text-[var(--muted)]">Manage your course library and keep it recommendation-ready.</p>
         </div>
         <a href="/author/courses/new" className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium text-[var(--ink)] hover:bg-slate-50">

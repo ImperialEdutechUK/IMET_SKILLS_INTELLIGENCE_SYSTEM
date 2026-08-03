@@ -1,13 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { BookOpen, Award, Download } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import LearnAreaChart from "@/components/charts/LearnAreaChart";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
-import { getToken } from "@/lib/authClient";
-
-const API = process.env.NEXT_PUBLIC_API_URL;
+import { useApi } from "@/lib/api";
+import { PageSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
 
 interface ReportData {
   stats: { totalCpdHours: number; cpdDelta: number; learningActivities: number; activitiesDelta: number; coursesCompleted: number; completedDelta: number; skillsImproved: number; cpdStreak: number };
@@ -18,15 +16,7 @@ interface ReportData {
 }
 
 export default function MyReportsPage() {
-  const [data, setData] = useState<ReportData | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch(`${API}/api/me/reports`, { headers: { Authorization: `Bearer ${getToken()}` } })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, []);
+  const { data, error, isLoading, isRefreshing, refresh } = useApi<ReportData>("/api/me/reports");
 
   const exportCsv = () => {
     if (!data) return;
@@ -48,8 +38,8 @@ export default function MyReportsPage() {
     URL.revokeObjectURL(url);
   };
 
-  if (loading) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
-  if (!data) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load reports.</p></div>;
+  if (isLoading) return <PageSkeleton />;
+  if (!data) return <ErrorPanel message={error?.message ?? "Could not load reports."} onRetry={refresh} />;
 
   const delta = (n: number, unit = "") => (n === 0 ? "no change vs last week" : `${n > 0 ? "↑" : "↓"} ${Math.abs(n)}${unit} vs last week`);
 
@@ -57,7 +47,10 @@ export default function MyReportsPage() {
     <div>
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--ink)]">My Reports</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-[var(--ink)]">My Reports</h1>
+            <RefreshingBadge show={isRefreshing} />
+          </div>
           <p className="mt-1 text-sm text-[var(--muted)]">Track your learning progress and growth over time.</p>
         </div>
         <button onClick={exportCsv} className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--ink)] hover:bg-slate-50">

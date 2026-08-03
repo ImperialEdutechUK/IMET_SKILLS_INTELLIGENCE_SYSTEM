@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Briefcase, Target, AlertTriangle } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
-import { getToken } from "@/lib/authClient";
+import { useApi } from "@/lib/api";
+import { CardGridSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
 
 const importanceConfig: Record<string, string> = {
   CRITICAL: "bg-red-50 text-red-700 border-red-200",
@@ -27,27 +28,21 @@ function LevelDots({ level, max = 5 }: { level: number; max?: number }) {
 }
 
 export default function RoleProfilesPage() {
-  const [data, setData] = useState<Data | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data, error, isLoading, isRefreshing, refresh } = useApi<Data>("/api/manager/roles");
+  // `null` = untouched (default to the first role); `""` = deliberately collapsed.
+  // Derived rather than set on load, so a revalidation can't reopen a panel the
+  // user just closed.
   const [openRole, setOpenRole] = useState<string | null>(null);
+  const activeRole = openRole === null ? data?.roles?.[0]?.id ?? null : openRole;
 
-  useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/manager/roles`, {
-      headers: { Authorization: `Bearer ${getToken()}` },
-    })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { setData(d); setLoading(false); if (d?.roles?.length) setOpenRole(d.roles[0].id); })
-      .catch(() => setLoading(false));
-  }, []);
-
-  if (loading) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
-  if (!data) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load role profiles.</p></div>;
+  if (isLoading) return <CardGridSkeleton cards={3} />;
+  if (!data) return <ErrorPanel message={error?.message ?? "Could not load role profiles."} onRetry={refresh} />;
 
   const unmatchedPositions = data.positionsInUse.filter((p) => !data.roles.some((r) => r.title === p));
 
   return (
     <div>
-      <div className="mb-6"><div className="flex items-center gap-2"><Briefcase className="h-5 w-5 text-[var(--brand)]" /><h1 className="text-2xl font-bold text-[var(--ink)]">Role Profiles</h1></div><p className="mt-1 text-sm text-[var(--muted)]">Skill requirements that define each role. These drive the gap analysis and course recommendations.</p></div>
+      <div className="mb-6"><div className="flex items-center gap-2"><Briefcase className="h-5 w-5 text-[var(--brand)]" /><h1 className="text-2xl font-bold text-[var(--ink)]">Role Profiles</h1><RefreshingBadge show={isRefreshing} /></div><p className="mt-1 text-sm text-[var(--muted)]">Skill requirements that define each role. These drive the gap analysis and course recommendations.</p></div>
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard icon={Briefcase} label="Defined Roles" value={data.totalRoles} />
@@ -67,10 +62,10 @@ export default function RoleProfilesPage() {
       ) : (
         <div className="space-y-4">
           {data.roles.map((role) => {
-            const isOpen = openRole === role.id;
+            const isOpen = activeRole === role.id;
             return (
               <div key={role.id} className="rounded-2xl border border-[var(--border)] bg-white">
-                <button onClick={() => setOpenRole(isOpen ? null : role.id)} className="flex w-full items-start justify-between gap-4 p-5 text-left">
+                <button onClick={() => setOpenRole(isOpen ? "" : role.id)} className="flex w-full items-start justify-between gap-4 p-5 text-left">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="font-semibold text-[var(--ink)]">{role.title}</h3>

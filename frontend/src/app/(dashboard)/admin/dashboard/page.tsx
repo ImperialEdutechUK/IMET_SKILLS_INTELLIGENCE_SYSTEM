@@ -1,29 +1,21 @@
 "use client";
 
-import Link from "next/link";
-import {
-  Users, BookOpen, Award, Building2, TrendingUp, BarChart3, Activity, Clock,
-  ChevronRight, ShieldCheck, AlertTriangle, Sparkles,
-} from "lucide-react";
+import { useMemo, useState } from "react";
 import LearnAreaChart from "@/components/charts/LearnAreaChart";
-import HeroRing from "@/components/dashboard/HeroRing";
-import StatTile from "@/components/dashboard/StatTile";
-import CollapsibleCard from "@/components/dashboard/CollapsibleCard";
-import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
+import LearnDonutChart from "@/components/charts/LearnDonutChart";
+import LearnBarChart from "@/components/charts/LearnBarChart";
+import BarList from "@/components/charts/BarList";
 import { useApi } from "@/lib/api";
 import { PageSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
 
+const CATEGORY_COLORS = ["#2e7d5b", "#3b82f6", "#8b5cf6", "#f59e0b", "#f43f5e", "#0ea5e9", "#64748b", "#e11d48"];
+
+interface Cat { name: string; value: number }
 interface Dept {
-  id: string;
-  name: string;
-  teamMembers: number;
-  coursesInProgress: number;
-  coursesCompleted: number;
-  notStarted: number;
-  atRisk: number;
-  attention: number;
-  avgCpd: number;
-  avgSkillLevel: number;
+  id: string; name: string;
+  teamMembers: number; coursesInProgress: number; coursesCompleted: number; notStarted: number;
+  atRisk: number; attention: number; avgCpd: number; avgSkillLevel: number; certificates: number;
+  categoryBreakdown: Cat[];
 }
 interface Data {
   totalEmployees: number;
@@ -31,185 +23,220 @@ interface Data {
   certificatesEarned: number;
   orgHealth: { totalMembers: number; onTrack: number; atRisk: number; attention: number; avgSkillLevel: number; departments: number };
   departments: Dept[];
+  categoryBreakdown: Cat[];
   learningActivity: { month: string; completions: number }[];
-  skillsGap: { name: string }[];
+  skillsGap: { name: string; gap: number }[];
   recentActivities: { id: string; type: string; user: string; action: string; time: string }[];
 }
 
-export default function AdminDashboardPage() {
+export default function AdminAnalyticsDashboard() {
   const { data, error, isLoading, isRefreshing, refresh } = useApi<Data>("/api/admin/dashboard");
+  const [deptId, setDeptId] = useState<string | null>(null); // null = whole organisation
 
-  if (isLoading) return <PageSkeleton />;
+  // Re-resolved against whatever the latest response says. If a background
+  // revalidation removes the selected department, this falls back to null and
+  // the page reads org-wide rather than rendering a stale department.
+  const dept = useMemo(() => (data && deptId ? data.departments.find((d) => d.id === deptId) ?? null : null), [data, deptId]);
+
+  if (isLoading) return <PageSkeleton cards={6} />;
   if (!data) return <ErrorPanel message={error?.message ?? "Could not load dashboard."} onRetry={refresh} />;
 
-  const h = data.orgHealth;
-  const behind = h.atRisk + h.attention;
-  const today = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+  const sum = (f: (d: Dept) => number) => data.departments.reduce((s, d) => s + f(d), 0);
+  const scopeLabel = dept ? dept.name : "Whole organisation";
 
-  // One clear org-wide verdict at the top.
-  const verdict = h.totalMembers === 0
-    ? { word: "No employees yet", line: "No employees have been added to any department yet." }
-    : h.atRisk > 0
-      ? { word: "Needs attention", line: `${behind} of ${h.totalMembers} ${behind === 1 ? "person is" : "people are"} behind on their learning across ${h.departments} department${h.departments === 1 ? "" : "s"}.` }
-      : h.attention > 0
-        ? { word: "Mostly on track", line: `${behind} of ${h.totalMembers} ${behind === 1 ? "person needs" : "people need"} a nudge to stay on pace.` }
-        : { word: "On track", line: `All ${h.totalMembers} employees are on pace with their learning. 🎉` };
-  const ringColor = h.totalMembers === 0 ? "#94a3b8" : h.atRisk > 0 ? "#e11d48" : h.attention > 0 ? "#f59e0b" : "var(--brand)";
-  const accent = h.totalMembers === 0 ? "#f1f5f9" : h.atRisk > 0 ? "#fef1f2" : h.attention > 0 ? "#fef7ec" : "#eef7f2";
+  // KPI values re-scope to the selected department chip (org totals when "All").
+  const kpis: { label: string; value: string | number; color?: string; sub?: string }[] = [
+    { label: "Employees", value: dept ? dept.teamMembers : data.totalEmployees, sub: dept ? "in department" : "org-wide" },
+    { label: "Completed", value: dept ? dept.coursesCompleted : sum((d) => d.coursesCompleted), color: "#2e7d5b", sub: "courses" },
+    { label: "In progress", value: dept ? dept.coursesInProgress : sum((d) => d.coursesInProgress), color: "#2563eb", sub: "courses" },
+    { label: "Not started", value: dept ? dept.notStarted : sum((d) => d.notStarted), color: "#64748b", sub: "employees" },
+    { label: "Certificates", value: dept ? dept.certificates : data.certificatesEarned, color: "#7c3aed", sub: "earned" },
+    { label: "At risk", value: dept ? dept.atRisk : sum((d) => d.atRisk), color: (dept ? dept.atRisk : sum((d) => d.atRisk)) > 0 ? "#e11d48" : "#2e7d5b", sub: "behind pace" },
+  ];
+
+  // Donut: category breakdown for the current scope.
+  const catSource = dept ? dept.categoryBreakdown : data.categoryBreakdown;
+  const categoryData = catSource.map((c, i) => ({ ...c, color: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }));
+  const catTotal = catSource.reduce((s, c) => s + c.value, 0);
+
+  // Completed courses per department (comparison bar list — highlight the selected dept).
+  const maxCompleted = Math.max(1, ...data.departments.map((d) => d.coursesCompleted));
+  const completedByDept = data.departments.map((d) => ({
+    name: d.name,
+    value: d.coursesCompleted,
+    max: maxCompleted,
+    color: deptId && d.id !== deptId ? "#cbd5e1" : "#3f9d75",
+  }));
+
+  // CPD % per department (vertical bars).
+  const cpdByDept = data.departments.map((d) => ({ name: d.name, value: d.avgCpd }));
+
+  // Top skill gaps (org-wide).
+  const maxGap = Math.max(1, ...data.skillsGap.map((s) => s.gap));
+  const skillGapItems = data.skillsGap.map((s) => ({ name: s.name, value: s.gap, max: maxGap, color: "#f59e0b" }));
 
   return (
     <div>
-      {/* Header */}
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-[var(--ink)]">Organisation dashboard</h1>
-            <RefreshingBadge show={isRefreshing} />
+      {/* Header + department filter chips */}
+      <div className="mb-5">
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-[var(--ink)]">Organisation analytics</h1>
+          <RefreshingBadge show={isRefreshing} />
+        </div>
+        <p className="mt-1 text-sm text-[var(--muted)]">{scopeLabel} · {data.orgHealth.departments} departments · {data.totalEmployees} employees</p>
+      </div>
+
+      <div className="mb-6 flex flex-wrap gap-2">
+        <Chip active={deptId === null} onClick={() => setDeptId(null)}>All departments</Chip>
+        {data.departments.map((d) => (
+          <Chip key={d.id} active={deptId === d.id} onClick={() => setDeptId(deptId === d.id ? null : d.id)}>{d.name}</Chip>
+        ))}
+      </div>
+
+      {/* KPI row */}
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        {kpis.map((k) => (
+          <div key={k.label} className="rounded-2xl border border-[var(--border)] bg-white p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]">{k.label}</p>
+            <p className="mt-2 text-[1.75rem] font-extrabold leading-none" style={{ color: k.color ?? "var(--ink)" }}>{typeof k.value === "number" ? k.value.toLocaleString() : k.value}</p>
+            {k.sub && <p className="mt-1 text-[11px] text-[var(--muted)]">{k.sub}</p>}
           </div>
-          <p className="mt-1 text-sm text-[var(--muted)]">{today} · {h.departments} department{h.departments === 1 ? "" : "s"} · {data.totalEmployees} employee{data.totalEmployees === 1 ? "" : "s"}</p>
-        </div>
-        <Link href="/admin/recommendations" className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium text-[var(--ink)] hover:bg-slate-50">
-          <BarChart3 className="h-4 w-4" /> View insights
-        </Link>
+        ))}
       </div>
 
-      {/* Org health hero */}
-      <HeroRing
-        percent={h.totalMembers ? Math.round((h.onTrack / h.totalMembers) * 100) : 0}
-        ringColor={ringColor}
-        ringLabel={`${h.onTrack}/${h.totalMembers}`}
-        ringSublabel="on track"
-        accent={accent}
-        title={verdict.word}
-        subtitle={verdict.line}
-        metrics={[
-          { label: "Departments", value: String(h.departments), color: "#0284c7" },
-          { label: "Behind pace", value: String(behind), color: behind > 0 ? "#e11d48" : "#16a34a" },
-          { label: "Avg skill", value: `${h.avgSkillLevel}/5`, color: "#7c3aed" },
-        ]}
-      />
+      {/* Row 1 — donut · area · department matrix */}
+      <div className="mb-6 grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <Panel title="Learning by category" subtitle={scopeLabel}>
+          {categoryData.length === 0 ? (
+            <Empty>No enrolments yet.</Empty>
+          ) : (
+            <LearnDonutChart data={categoryData} label={String(catTotal)} sublabel="Courses" height={200} />
+          )}
+        </Panel>
 
-      {/* Key numbers */}
-      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Key numbers</p>
-      <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatTile index={0} href="/admin/departments" icon={Building2} tone="green" label="Departments" value={h.departments} sub="Across the org" />
-        <StatTile index={1} href="/admin/users" icon={Users} tone="sky" label="Employees" value={data.totalEmployees} sub="Total tracked" />
-        <StatTile index={2} href="/admin/departments" icon={BookOpen} tone="teal" label="Active courses" value={data.activeCourses.toLocaleString()} sub="Published catalogue" />
-        <StatTile index={3} href="/admin/departments" icon={Award} tone="violet" label="Certificates" value={data.certificatesEarned} sub="Earned org-wide" />
+        <Panel title="Learning activity" subtitle="Completions · last 6 months · org-wide">
+          <LearnAreaChart data={data.learningActivity} xKey="month" dataKeys={[{ key: "completions", label: "completions", color: "#3f9d75" }]} unit="" height={200} />
+        </Panel>
+
+        <Panel title="Department breakdown" subtitle="Members · completed · in progress · at risk">
+          <DeptMatrix departments={data.departments} selectedId={deptId} onSelect={(id) => setDeptId(deptId === id ? null : id)} />
+        </Panel>
       </div>
 
-      {/* Departments grid — the org-wide equivalent of a manager's team list */}
-      <div className="mb-8">
-        <div className="mb-3 flex items-center justify-between">
-          <p className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Departments <span className="font-normal normal-case text-[var(--muted)]/70">· tap to drill in</span></p>
-          <Link href="/admin/departments" className="text-xs font-medium text-[var(--brand)] hover:text-[var(--brand-dark)]">View all →</Link>
-        </div>
-        {data.departments.length === 0 ? (
-          <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">No departments yet.</p></div>
+      {/* Row 2 — completed by dept · CPD by dept · skill gaps */}
+      <div className="mb-6 grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <Panel title="Completed by department" subtitle="Total completed courses">
+          {completedByDept.length === 0 ? <Empty>No departments yet.</Empty> : <BarList items={completedByDept} unit="" max={maxCompleted} />}
+        </Panel>
+
+        <Panel title="CPD compliance by department" subtitle="Average CPD progress %">
+          {cpdByDept.length === 0 ? <Empty>No departments yet.</Empty> : <LearnBarChart data={cpdByDept} unit="%" height={200} highlightName={dept?.name ?? null} />}
+        </Panel>
+
+        <Panel title="Top skill gaps" subtitle="Highest average gaps · org-wide">
+          {skillGapItems.length === 0 ? (
+            <Empty>No skill-gap data yet.</Empty>
+          ) : (
+            <BarList items={skillGapItems} unit="" max={maxGap} />
+          )}
+        </Panel>
+      </div>
+
+      {/* Recent activity — full width */}
+      <Panel title="Recent activity" subtitle="Enrolments and completions across every department">
+        {data.recentActivities.length === 0 ? (
+          <Empty>No recent activity recorded yet.</Empty>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {data.departments.map((d) => <DepartmentCard key={d.id} d={d} />)}
-          </div>
+          <ul className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
+            {data.recentActivities.map((a) => (
+              <li key={a.id} className="flex items-center justify-between gap-3 border-b border-[var(--border)] py-2 last:border-0">
+                <p className="min-w-0 truncate text-sm text-[var(--ink)]"><span className="font-medium">{a.user}</span> {a.action}</p>
+                <span className="shrink-0 text-xs text-[var(--muted)]">{a.time}</span>
+              </li>
+            ))}
+          </ul>
         )}
-      </div>
-
-      {/* Detail behind dropdowns */}
-      <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">More detail <span className="font-normal normal-case text-[var(--muted)]/70">· tap to expand</span></p>
-      <div className="space-y-4">
-        <CollapsibleCard title="Learning activity" subtitle="Course completions over the last 6 months" icon={BarChart3} tone={TONES.blue}>
-          <LearnAreaChart data={data.learningActivity} xKey="month" dataKeys={[{ key: "completions", label: "completions", color: "#3f9d75" }]} unit="" height={220} />
-        </CollapsibleCard>
-
-        <CollapsibleCard title="Top skill gaps" subtitle="Highest average gaps across the organisation" icon={TrendingUp} tone={TONES.amber}>
-          {data.skillsGap.length === 0 ? (
-            <p className="text-sm text-[var(--muted)]">No skill-gap data yet.</p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {data.skillsGap.map((s) => (
-                <span key={s.name} className="rounded-full border border-[var(--border)] px-3 py-1 text-sm text-[var(--ink)]">{s.name}</span>
-              ))}
-            </div>
-          )}
-          <Link href="/admin/recommendations" className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[var(--brand)]">
-            <Sparkles className="h-3.5 w-3.5" /> Full AI analysis →
-          </Link>
-        </CollapsibleCard>
-
-        <CollapsibleCard title="Recent activity" subtitle="Enrolments and completions across every department" icon={Activity} tone={TONES.violet}>
-          {data.recentActivities.length === 0 ? (
-            <p className="text-sm text-[var(--muted)]">No recent activity recorded yet.</p>
-          ) : (
-            <ul className="space-y-3">
-              {data.recentActivities.map((item) => (
-                <li key={item.id} className="flex items-start gap-3">
-                  <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[var(--brand-tint)] text-[var(--brand-dark)]">
-                    <ActIcon type={item.type} />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm text-[var(--ink)]"><span className="font-medium">{item.user}</span> {item.action}</p>
-                    <p className="text-xs text-[var(--muted)]">{item.time}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CollapsibleCard>
-      </div>
+      </Panel>
     </div>
   );
 }
 
-function ActIcon({ type }: { type?: string }) {
-  const Icon = type === "course_complete" ? Award : type === "cpd" ? Clock : BookOpen;
-  return <Icon className="h-3.5 w-3.5" />;
+function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
+        active
+          ? "bg-[var(--brand)] text-white shadow-sm"
+          : "border border-[var(--border)] bg-white text-[var(--ink)] hover:bg-slate-50"
+      }`}
+    >
+      {children}
+    </button>
+  );
 }
 
-function DepartmentCard({ d }: { d: Dept }) {
-  const behind = d.atRisk + d.attention;
-  const tone = d.atRisk > 0 ? TONES.rose : d.attention > 0 ? TONES.amber : TONES.emerald;
-  const badge = d.teamMembers === 0
-    ? { cls: "bg-slate-100 text-slate-600", label: "No members" }
-    : d.atRisk > 0
-      ? { cls: "bg-red-50 text-red-700", label: `${d.atRisk} at risk` }
-      : d.attention > 0
-        ? { cls: "bg-amber-50 text-amber-700", label: `${d.attention} behind` }
-        : { cls: "bg-emerald-50 text-emerald-700", label: "On track" };
+function Panel({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
-    <Link
-      href={`/admin/departments/${d.id}`}
-      className="group flex flex-col rounded-2xl border border-[var(--border)] bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-md"
-    >
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <Icon3D icon={d.atRisk > 0 || d.attention > 0 ? AlertTriangle : ShieldCheck} tone={tone} size="sm" />
-          <h3 className="font-semibold text-[var(--ink)]">{d.name}</h3>
-        </div>
-        <ChevronRight className="h-4 w-4 shrink-0 text-slate-300 transition-transform group-hover:translate-x-0.5" />
+    <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
+      <div className="mb-4">
+        <h3 className="font-semibold text-[var(--ink)]">{title}</h3>
+        {subtitle && <p className="mt-0.5 text-xs text-[var(--muted)]">{subtitle}</p>}
       </div>
-      <span className={`mb-4 inline-flex w-fit rounded-full px-2.5 py-0.5 text-[11px] font-medium ${badge.cls}`}>{badge.label}</span>
-      <div className="grid grid-cols-3 gap-2 text-center">
-        <div>
-          <p className="text-lg font-bold leading-none text-[var(--ink)]">{d.teamMembers}</p>
-          <p className="mt-1 text-[11px] text-[var(--muted)]">Members</p>
-        </div>
-        <div>
-          <p className="text-lg font-bold leading-none text-[var(--brand)]">{d.coursesCompleted}</p>
-          <p className="mt-1 text-[11px] text-[var(--muted)]">Completed</p>
-        </div>
-        <div>
-          <p className="text-lg font-bold leading-none text-blue-600">{d.coursesInProgress}</p>
-          <p className="mt-1 text-[11px] text-[var(--muted)]">In progress</p>
-        </div>
-      </div>
-      {/* Avg CPD progress bar */}
-      <div className="mt-4">
-        <div className="mb-1 flex items-center justify-between text-[11px] text-[var(--muted)]">
-          <span>Avg CPD</span><span className="font-medium text-[var(--ink)]">{d.avgCpd}%</span>
-        </div>
-        <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
-          <div className="h-full rounded-full" style={{ width: `${Math.min(100, d.avgCpd)}%`, background: behind > 0 ? (d.atRisk > 0 ? "#e11d48" : "#f59e0b") : "var(--brand)" }} />
-        </div>
-      </div>
-    </Link>
+      {children}
+    </div>
+  );
+}
+
+function Empty({ children }: { children: React.ReactNode }) {
+  return <p className="py-6 text-center text-sm text-[var(--muted)]">{children}</p>;
+}
+
+function DeptMatrix({ departments, selectedId, onSelect }: { departments: Dept[]; selectedId: string | null; onSelect: (id: string) => void }) {
+  if (departments.length === 0) return <Empty>No departments yet.</Empty>;
+  const total = departments.reduce(
+    (t, d) => ({ m: t.m + d.teamMembers, c: t.c + d.coursesCompleted, p: t.p + d.coursesInProgress, r: t.r + d.atRisk }),
+    { m: 0, c: 0, p: 0, r: 0 }
+  );
+  return (
+    <div className="-mx-1 overflow-x-auto">
+      <table className="w-full min-w-[320px] text-sm">
+        <thead>
+          <tr className="text-[11px] uppercase tracking-wide text-[var(--brand-dark)]">
+            <th className="px-1 pb-2 text-left font-semibold">Department</th>
+            <th className="px-1 pb-2 text-right font-semibold">Mem</th>
+            <th className="px-1 pb-2 text-right font-semibold">Done</th>
+            <th className="px-1 pb-2 text-right font-semibold">Prog</th>
+            <th className="px-1 pb-2 text-right font-semibold">Risk</th>
+          </tr>
+        </thead>
+        <tbody>
+          {departments.map((d) => {
+            const sel = d.id === selectedId;
+            return (
+              <tr
+                key={d.id}
+                onClick={() => onSelect(d.id)}
+                className={`cursor-pointer border-t border-[var(--border)] transition-colors ${sel ? "bg-[var(--brand-tint)]" : "hover:bg-slate-50"}`}
+              >
+                <td className="px-1 py-2 font-medium text-[var(--ink)]">{d.name}</td>
+                <td className="px-1 py-2 text-right text-[var(--ink)]">{d.teamMembers}</td>
+                <td className="px-1 py-2 text-right text-[var(--brand-dark)]">{d.coursesCompleted}</td>
+                <td className="px-1 py-2 text-right text-blue-600">{d.coursesInProgress}</td>
+                <td className={`px-1 py-2 text-right font-medium ${d.atRisk > 0 ? "text-red-600" : "text-[var(--muted)]"}`}>{d.atRisk}</td>
+              </tr>
+            );
+          })}
+          <tr className="border-t-2 border-[var(--border)] font-bold text-[var(--ink)]">
+            <td className="px-1 py-2">Total</td>
+            <td className="px-1 py-2 text-right">{total.m}</td>
+            <td className="px-1 py-2 text-right">{total.c}</td>
+            <td className="px-1 py-2 text-right">{total.p}</td>
+            <td className="px-1 py-2 text-right">{total.r}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   );
 }

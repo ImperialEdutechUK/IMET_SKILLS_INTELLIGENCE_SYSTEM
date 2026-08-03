@@ -2,22 +2,24 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Users, Search } from "lucide-react";
-import StatCard from "@/components/dashboard/StatCard";
+import { Search, ChevronRight } from "lucide-react";
+import Avatar from "@/components/ui/Avatar";
 import { useApi } from "@/lib/api";
 import { TableSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
 
+const CARD = "rounded-2xl border border-[var(--border)] bg-white shadow-[0_1px_2px_rgba(15,27,45,.04),0_10px_26px_-14px_rgba(15,27,45,.12)]";
+
 const roleConfig: Record<string, string> = {
-  employee: "bg-blue-50 text-blue-700",
-  manager: "bg-purple-50 text-purple-700",
-  admin: "bg-red-50 text-red-700",
+  employee: "bg-slate-100 text-slate-600",
+  manager: "bg-violet-50 text-violet-700",
+  admin: "bg-[var(--brand-tint)] text-[var(--brand-dark)]",
   author: "bg-amber-50 text-amber-700",
 };
 const statusConfig: Record<string, string> = {
-  active: "bg-[var(--brand-tint)] text-[var(--brand-dark)]",
+  active: "bg-emerald-50 text-emerald-700",
   pending_approval: "bg-amber-50 text-amber-700",
   invited: "bg-blue-50 text-blue-700",
-  inactive: "bg-slate-100 text-slate-600",
+  inactive: "bg-slate-100 text-slate-500",
 };
 
 interface User { id: string; fullName: string; department: string; lastActive: string; role: string; status: string; }
@@ -30,77 +32,109 @@ export default function UserManagementPage() {
   if (isLoading) return <TableSkeleton rows={8} />;
   if (!data) return <ErrorPanel message={error?.message ?? "Could not load users."} onRetry={refresh} />;
 
-  const filtered = data.users.filter((u) => u.fullName.toLowerCase().includes(search.toLowerCase()) || u.department.toLowerCase().includes(search.toLowerCase()));
+  const q = search.trim().toLowerCase();
+  const filtered = data.users.filter((u) => u.fullName.toLowerCase().includes(q) || u.department.toLowerCase().includes(q) || u.role.toLowerCase().includes(q));
 
-  // Group users by department so the list is organised and scannable.
+  // Group by department so the roster is organised and scannable.
   const groups = filtered.reduce((acc, u) => {
     const dept = u.department && u.department !== "—" ? u.department : "Unassigned";
     (acc[dept] ??= []).push(u);
     return acc;
   }, {} as Record<string, User[]>);
-  const departments = Object.keys(groups).sort((a, b) =>
-    a === "Unassigned" ? 1 : b === "Unassigned" ? -1 : a.localeCompare(b)
-  );
+  const departments = Object.keys(groups).sort((a, b) => (a === "Unassigned" ? 1 : b === "Unassigned" ? -1 : a.localeCompare(b)));
 
   return (
-    <div>
-      <div className="mb-6">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-[var(--ink)]">User Management</h1>
+    <div className="-m-6 min-h-full bg-white p-6 lg:p-8">
+      <div className="mx-auto max-w-5xl">
+        <div className="mb-1 flex items-center gap-2.5">
+          <h1 className="text-[1.65rem] font-bold tracking-tight text-[var(--ink)]">User management</h1>
           <RefreshingBadge show={isRefreshing} />
         </div>
-        <p className="mt-1 text-sm text-[var(--muted)]">View and monitor all platform users, grouped by department. New users self-register and appear under Pending Approvals.</p>
-      </div>
-      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard icon={Users} label="Total Users" value={data.total} />
-        <StatCard icon={Users} label="Active" value={data.active} sub="accounts" />
-        <StatCard icon={Users} iconBg="bg-amber-50" label="Pending" value={data.pending} sub="awaiting approval" />
-        <StatCard icon={Users} label="Departments" value={data.departmentCount} />
-      </div>
-      <div className="rounded-2xl border border-[var(--border)] bg-white">
-        <div className="border-b border-[var(--border)] p-5">
-          <div className="relative max-w-sm"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search users..." className="w-full rounded-lg border border-[var(--border)] py-2 pl-9 pr-3 text-sm outline-none focus:border-[var(--brand)]" /></div>
+        <p className="mb-6 text-sm text-[var(--muted)]">Everyone on the platform, grouped by department. New people self-register and wait under Pending approvals.</p>
+
+        {/* Lean summary — figures, not a wall of icon cards. Pending is actionable. */}
+        <div className={`${CARD} mb-7 flex flex-wrap items-center gap-x-10 gap-y-4 px-6 py-5`}>
+          <Figure value={data.total} label="Total users" />
+          <Figure value={data.active} label="Active" />
+          {data.pending > 0 ? (
+            <Link href="/admin/approvals" className="group -my-1 rounded-lg py-1">
+              <p className="text-[1.55rem] font-bold leading-none tracking-tight text-amber-600">{data.pending}</p>
+              <p className="mt-1 text-xs text-amber-700/90 group-hover:underline">Pending approval →</p>
+            </Link>
+          ) : (
+            <Figure value={0} label="Pending" />
+          )}
+          <Figure value={data.departmentCount} label="Departments" />
         </div>
-        {filtered.length === 0 ? (
-          <p className="p-5 text-sm text-[var(--muted)]">No users match your search.</p>
-        ) : (
-          <div className="divide-y divide-[var(--border)]">
-            {departments.map((dept) => (
-              <div key={dept}>
-                <div className="flex items-center justify-between bg-slate-50/70 px-5 py-2">
-                  <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">{dept}</h3>
-                  <span className="text-xs font-medium text-[var(--muted)]">{groups[dept].length}</span>
+
+        {/* Search */}
+        <div className="relative mb-4 max-w-sm">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name, department or role…"
+            className="w-full rounded-xl border border-[var(--border)] bg-white py-2.5 pl-9 pr-3 text-sm text-[var(--ink)] outline-none transition-colors placeholder:text-slate-400 focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/15"
+          />
+        </div>
+
+        {/* Roster */}
+        <div className={`${CARD} overflow-hidden`}>
+          {filtered.length === 0 ? (
+            <p className="p-6 text-sm text-[var(--muted)]">No users match your search.</p>
+          ) : (
+            <div className="divide-y divide-[var(--border)]">
+              {departments.map((dept) => (
+                <div key={dept}>
+                  <div className="flex items-center justify-between bg-slate-50/70 px-5 py-2">
+                    <h2 className="text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]">{dept}</h2>
+                    <span className="text-[11px] font-medium text-[var(--muted)]">{groups[dept].length}</span>
+                  </div>
+                  <ul className="divide-y divide-[var(--border)]">
+                    {groups[dept].map((user) => {
+                      const rowInner = (
+                        <>
+                          <Avatar name={user.fullName} size={36} />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium text-[var(--ink)]">{user.fullName}</p>
+                            <p className="truncate text-xs text-[var(--muted)]">Last active {user.lastActive}</p>
+                          </div>
+                          <span className={`hidden shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium capitalize sm:inline ${roleConfig[user.role] ?? "bg-slate-100 text-slate-600"}`}>{user.role}</span>
+                          <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium capitalize ${statusConfig[user.status] ?? "bg-slate-100 text-slate-600"}`}>{user.status.replace("_", " ")}</span>
+                        </>
+                      );
+                      return (
+                        <li key={user.id}>
+                          {user.role === "employee" ? (
+                            <Link href={`/admin/employee/${user.id}`} className="group flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-slate-50/80">
+                              {rowInner}
+                              <ChevronRight className="h-4 w-4 shrink-0 text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-400" />
+                            </Link>
+                          ) : (
+                            <div className="flex items-center gap-4 px-5 py-3.5">
+                              {rowInner}
+                              <span className="h-4 w-4 shrink-0" aria-hidden />
+                            </div>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
                 </div>
-                <ul className="divide-y divide-[var(--border)]">
-                  {groups[dept].map((user) => (
-                    <li key={user.id} className="flex items-center gap-4 px-5 py-4">
-                      {user.role === "employee" ? (
-                        <Link href={`/admin/employee/${user.id}`} className="group flex min-w-0 flex-1 items-center gap-4">
-                          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--brand-tint)] text-xs font-semibold text-[var(--brand-dark)]">{user.fullName.split(" ").map((p) => p[0]).join("").toUpperCase()}</span>
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium text-[var(--ink)] group-hover:text-[var(--brand)]">{user.fullName}</p>
-                            <p className="text-xs text-[var(--muted)]">Last active: {user.lastActive}</p>
-                          </div>
-                        </Link>
-                      ) : (
-                        <div className="flex min-w-0 flex-1 items-center gap-4">
-                          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--brand-tint)] text-xs font-semibold text-[var(--brand-dark)]">{user.fullName.split(" ").map((p) => p[0]).join("").toUpperCase()}</span>
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium text-[var(--ink)]">{user.fullName}</p>
-                            <p className="text-xs text-[var(--muted)]">Last active: {user.lastActive}</p>
-                          </div>
-                        </div>
-                      )}
-                      <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${roleConfig[user.role] ?? "bg-slate-100 text-slate-600"}`}>{user.role}</span>
-                      <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${statusConfig[user.status] ?? "bg-slate-100 text-slate-600"}`}>{user.status.replace("_", " ")}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
       </div>
+    </div>
+  );
+}
+
+function Figure({ value, label }: { value: number; label: string }) {
+  return (
+    <div>
+      <p className="text-[1.55rem] font-bold leading-none tracking-tight text-[var(--ink)]">{value.toLocaleString()}</p>
+      <p className="mt-1 text-xs text-[var(--muted)]">{label}</p>
     </div>
   );
 }

@@ -2,14 +2,17 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Target, BookOpen, ScrollText, TrendingUp, Activity, Award, ExternalLink, FileText } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ArrowLeft, Target, BookOpen, ScrollText, TrendingUp, Activity, Award, ExternalLink, FileText, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import Icon3D, { TONES, type Icon3DTone } from "@/components/dashboard/Icon3D";
-import AchievementsBento from "@/components/gamification/AchievementsBento";
+import AchievementsSummary from "@/components/gamification/AchievementsSummary";
 import type { LucideIcon } from "lucide-react";
 import { useApi } from "@/lib/api";
 import { PageSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
 
 const LEVELS = ["None", "Basic", "Intermediate", "Advanced", "Expert"];
+const SKILLS_PER_PAGE = 5;
+const CERTS_PER_PAGE = 5;
 
 interface Skill { name: string; current: number; target: number; gap: number }
 interface Course {
@@ -47,6 +50,21 @@ export default function EmployeeDetailPage() {
   );
   const notFound = error?.status === 404 || error?.status === 403;
 
+  // Paging / tab state lives above the early returns so hook order stays stable.
+  const [skillPage, setSkillPage] = useState(0);
+  const [certPage, setCertPage] = useState(0);
+  const [courseTab, setCourseTab] = useState<"inProgress" | "completed">("inProgress");
+
+  const skills = useMemo(() => data?.skills ?? [], [data]);
+  const skillPageCount = Math.max(1, Math.ceil(skills.length / SKILLS_PER_PAGE));
+  const skillPageIdx = Math.min(skillPage, skillPageCount - 1);
+  const pagedSkills = skills.slice(skillPageIdx * SKILLS_PER_PAGE, skillPageIdx * SKILLS_PER_PAGE + SKILLS_PER_PAGE);
+
+  const certs = useMemo(() => data?.certificateList ?? [], [data]);
+  const certPageCount = Math.max(1, Math.ceil(certs.length / CERTS_PER_PAGE));
+  const certPageIdx = Math.min(certPage, certPageCount - 1);
+  const pagedCerts = certs.slice(certPageIdx * CERTS_PER_PAGE, certPageIdx * CERTS_PER_PAGE + CERTS_PER_PAGE);
+
   if (isLoading) return <PageSkeleton />;
   if (notFound) return (
     <div>
@@ -58,7 +76,6 @@ export default function EmployeeDetailPage() {
 
   const status = data.cpd.status ?? "on_track";
   const badge = STATUS_BADGE[status] ?? STATUS_BADGE.on_track;
-  const topSkills = data.skills.slice(0, 8);
 
   return (
     <div>
@@ -83,21 +100,26 @@ export default function EmployeeDetailPage() {
       </div>
 
       {/* Stat tiles */}
-      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-3">
+      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Tile icon={TrendingUp} tone={TONES.emerald} label="Avg Skill Level" value={`${data.avgSkillPercent}%`} sub={`${data.gapsCount} gap${data.gapsCount === 1 ? "" : "s"} to close`} />
         <Tile icon={BookOpen} tone={TONES.blue} label="Courses" value={data.courseCounts.completed} sub={`${data.courseCounts.inProgress} in progress`} />
         <Tile icon={ScrollText} tone={TONES.violet} label="Certificates" value={data.certificates} sub="Earned" />
+        <Tile icon={Clock} tone={TONES.amber} label="Total CPD Hours" value={`${data.cpd.hours}h`} sub={`${data.cpd.progress}% of ${data.cpd.target}h target`} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Skills & gaps — bar per skill (current vs target) */}
-        <div className="lg:col-span-2 rounded-2xl border border-[var(--border)] bg-white p-5">
-          <div className="mb-4 flex items-center gap-3"><Icon3D icon={Target} tone={TONES.emerald} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Skills &amp; Gaps</h3></div>
-          {topSkills.length === 0 ? (
+        <div className="lg:col-span-2 flex flex-col rounded-2xl border border-[var(--border)] bg-white p-5">
+          <div className="mb-4 flex items-center gap-3">
+            <Icon3D icon={Target} tone={TONES.emerald} size="sm" />
+            <h3 className="font-semibold text-[var(--ink)]">Skills &amp; Gaps</h3>
+            {skills.length > 0 && <span className="text-sm text-[var(--muted)]">({skills.length})</span>}
+          </div>
+          {pagedSkills.length === 0 ? (
             <p className="text-sm text-[var(--muted)]">No skills recorded yet.</p>
           ) : (
             <ul className="space-y-3.5">
-              {topSkills.map((s) => (
+              {pagedSkills.map((s) => (
                 <li key={s.name}>
                   <div className="mb-1 flex items-center justify-between text-xs">
                     <span className="font-medium text-[var(--ink)]">{s.name}</span>
@@ -112,6 +134,14 @@ export default function EmployeeDetailPage() {
               ))}
             </ul>
           )}
+          <Pager
+            page={skillPageIdx}
+            pageCount={skillPageCount}
+            total={skills.length}
+            perPage={SKILLS_PER_PAGE}
+            noun="skills"
+            onChange={setSkillPage}
+          />
         </div>
 
         {/* Recent activity */}
@@ -135,26 +165,32 @@ export default function EmployeeDetailPage() {
         </div>
       </div>
 
-      {/* Courses */}
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <CourseList title="In Progress" courses={data.courses.inProgress} showProgress />
-        <CourseList title="Completed" courses={data.courses.completed} />
+      {/* Courses — one card, two tabs, so only one list is on screen at a time. */}
+      <div className="mt-6 rounded-2xl border border-[var(--border)] bg-white">
+        <div className="flex items-center gap-2 border-b border-[var(--border)] px-5 pt-4">
+          <Tab active={courseTab === "inProgress"} onClick={() => setCourseTab("inProgress")} label="In Progress" count={data.courses.inProgress.length} />
+          <Tab active={courseTab === "completed"} onClick={() => setCourseTab("completed")} label="Completed" count={data.courses.completed.length} />
+        </div>
+        <CourseList
+          courses={courseTab === "inProgress" ? data.courses.inProgress : data.courses.completed}
+          showProgress={courseTab === "inProgress"}
+        />
       </div>
 
-      {/* Achievements & badges — the same trophy shelf the employee sees. Read-only. */}
-      <div className="mt-8">
+      {/* Achievements & badges — condensed: level, trophy badge, certificate count. */}
+      <div className="mt-8 mb-6">
         <div className="mb-4 flex items-center gap-3"><Icon3D icon={Award} tone={TONES.violet} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Achievements &amp; Badges</h3></div>
-        <AchievementsBento certificates={data.certificates} coursesCompleted={data.coursesCompleted} cpdHours={data.cpdHours} />
+        <AchievementsSummary certificates={data.certificates} coursesCompleted={data.coursesCompleted} cpdHours={data.cpdHours} />
       </div>
 
-      {/* Certificates — read-only list with links */}
+      {/* Certificates — read-only list with links, 5 at a time */}
       <div className="rounded-2xl border border-[var(--border)] bg-white">
-        <div className="border-b border-[var(--border)] p-5"><h3 className="font-semibold text-[var(--ink)]">Certificates <span className="text-sm font-normal text-[var(--muted)]">({data.certificateList.length})</span></h3></div>
-        {data.certificateList.length === 0 ? (
+        <div className="border-b border-[var(--border)] p-5"><h3 className="font-semibold text-[var(--ink)]">Certificates <span className="text-sm font-normal text-[var(--muted)]">({certs.length})</span></h3></div>
+        {pagedCerts.length === 0 ? (
           <p className="p-5 text-sm text-[var(--muted)]">No certificates yet.</p>
         ) : (
           <ul className="divide-y divide-[var(--border)]">
-            {data.certificateList.map((c) => (
+            {pagedCerts.map((c) => (
               <li key={c.id} className="flex items-center gap-3 px-5 py-3">
                 <Icon3D icon={Award} tone={TONES.violet} size="sm" />
                 <div className="min-w-0 flex-1">
@@ -176,8 +212,68 @@ export default function EmployeeDetailPage() {
             ))}
           </ul>
         )}
+        <div className="px-5 pb-1">
+          <Pager
+            page={certPageIdx}
+            pageCount={certPageCount}
+            total={certs.length}
+            perPage={CERTS_PER_PAGE}
+            noun="certificates"
+            onChange={setCertPage}
+          />
+        </div>
       </div>
     </div>
+  );
+}
+
+function Tab({ active, onClick, label, count }: { active: boolean; onClick: () => void; label: string; count: number }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`-mb-px border-b-2 px-3 pb-3 text-sm font-semibold transition-colors ${
+        active
+          ? "border-[var(--brand)] text-[var(--ink)]"
+          : "border-transparent text-[var(--muted)] hover:text-[var(--ink)]"
+      }`}
+    >
+      {label} <span className="font-normal text-[var(--muted)]">({count})</span>
+    </button>
+  );
+}
+
+// Shared 5-per-view pager. Hidden entirely when everything already fits.
+function Pager({ page, pageCount, total, perPage, noun, onChange }: {
+  page: number; pageCount: number; total: number; perPage: number; noun: string;
+  onChange: (p: number) => void;
+}) {
+  if (pageCount <= 1) return null;
+  const from = page * perPage + 1;
+  const to = Math.min(total, from + perPage - 1);
+  return (
+    <div className="mt-4 flex items-center justify-between border-t border-[var(--border)] pt-3">
+      <span className="text-xs text-[var(--muted)]">{from}–{to} of {total} {noun}</span>
+      <div className="flex items-center gap-1">
+        <PagerBtn disabled={page === 0} onClick={() => onChange(page - 1)} label={`Previous ${noun}`}><ChevronLeft className="h-4 w-4" /></PagerBtn>
+        <span className="px-1 text-xs font-medium text-[var(--ink)]">{page + 1} / {pageCount}</span>
+        <PagerBtn disabled={page >= pageCount - 1} onClick={() => onChange(page + 1)} label={`Next ${noun}`}><ChevronRight className="h-4 w-4" /></PagerBtn>
+      </div>
+    </div>
+  );
+}
+
+function PagerBtn({ disabled, onClick, label, children }: { disabled: boolean; onClick: () => void; label: string; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
+      className="grid h-7 w-7 place-items-center rounded-lg border border-[var(--border)] text-[var(--ink)] transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+    >
+      {children}
+    </button>
   );
 }
 
@@ -209,14 +305,13 @@ function Tile({ icon: Icon, tone, label, value, sub }: { icon: LucideIcon; tone:
   );
 }
 
-function CourseList({ title, courses, showProgress }: { title: string; courses: Course[]; showProgress?: boolean }) {
+function CourseList({ courses, showProgress }: { courses: Course[]; showProgress?: boolean }) {
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-white">
-      <div className="border-b border-[var(--border)] p-5"><h3 className="font-semibold text-[var(--ink)]">{title} <span className="text-sm font-normal text-[var(--muted)]">({courses.length})</span></h3></div>
+    <>
       {courses.length === 0 ? (
         <p className="p-5 text-sm text-[var(--muted)]">Nothing here yet.</p>
       ) : (
-        <ul className="divide-y divide-[var(--border)]">
+        <ul className="max-h-80 divide-y divide-[var(--border)] overflow-y-auto">
           {courses.map((c) => (
             <li key={c.id} className="flex items-center gap-3 px-5 py-3">
               <div className="min-w-0 flex-1">
@@ -241,6 +336,6 @@ function CourseList({ title, courses, showProgress }: { title: string; courses: 
           ))}
         </ul>
       )}
-    </div>
+    </>
   );
 }

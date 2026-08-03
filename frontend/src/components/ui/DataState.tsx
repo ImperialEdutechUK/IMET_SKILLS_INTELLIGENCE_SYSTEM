@@ -16,10 +16,22 @@ export function Skeleton({ className = "" }: { className?: string }) {
   return <div className={`animate-pulse rounded-lg bg-slate-100 ${className}`} />;
 }
 
-/** Placeholder shaped like a stat/summary card grid. */
+// Tailwind needs these class strings to appear literally, so they can't be
+// built by interpolation.
+const GRID_COLS: Record<number, string> = {
+  2: "sm:grid-cols-2",
+  3: "sm:grid-cols-2 lg:grid-cols-3",
+  4: "sm:grid-cols-2 lg:grid-cols-4",
+  6: "grid-cols-2 sm:grid-cols-3 lg:grid-cols-6",
+};
+
+/**
+ * Placeholder shaped like a stat/summary card grid. Pass the same count the
+ * real row uses so the first paint doesn't reflow when data lands.
+ */
 export function CardGridSkeleton({ cards = 4 }: { cards?: number }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className={`grid gap-4 ${GRID_COLS[cards] ?? GRID_COLS[4]}`}>
       {Array.from({ length: cards }).map((_, i) => (
         <div key={i} className="rounded-2xl border border-[var(--border)] bg-white p-5">
           <Skeleton className="h-3 w-20" />

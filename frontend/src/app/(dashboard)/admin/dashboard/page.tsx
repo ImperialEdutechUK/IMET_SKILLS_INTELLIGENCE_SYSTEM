@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { BarChart3, ArrowUpRight } from "lucide-react";
 import LearnAreaChart from "@/components/charts/LearnAreaChart";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
 import LearnBarChart from "@/components/charts/LearnBarChart";
@@ -86,14 +84,9 @@ export default function AdminAnalyticsDashboard() {
   return (
     <div>
       {/* Header + department filter chips */}
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--ink)]">Organisation analytics</h1>
-          <p className="mt-1 text-sm text-[var(--muted)]">{scopeLabel} · {data.orgHealth.departments} departments · {data.totalEmployees} employees</p>
-        </div>
-        <Link href="/admin/recommendations" className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] bg-white px-4 py-2 text-sm font-medium text-[var(--ink)] hover:bg-slate-50">
-          <BarChart3 className="h-4 w-4" /> AI insights
-        </Link>
+      <div className="mb-5">
+        <h1 className="text-2xl font-bold text-[var(--ink)]">Organisation analytics</h1>
+        <p className="mt-1 text-sm text-[var(--muted)]">{scopeLabel} · {data.orgHealth.departments} departments · {data.totalEmployees} employees</p>
       </div>
 
       <div className="mb-6 flex flex-wrap gap-2">
@@ -147,10 +140,7 @@ export default function AdminAnalyticsDashboard() {
           {skillGapItems.length === 0 ? (
             <Empty>No skill-gap data yet.</Empty>
           ) : (
-            <>
-              <BarList items={skillGapItems} unit="" max={maxGap} />
-              <Link href="/admin/recommendations" className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-[var(--brand)]">Full AI analysis <ArrowUpRight className="h-3.5 w-3.5" /></Link>
-            </>
+            <BarList items={skillGapItems} unit="" max={maxGap} />
           )}
         </Panel>
       </div>

@@ -49,8 +49,6 @@ export const navConfig: Record<Role, NavSection[]> = {
         { label: "Departments", href: "/admin/departments", icon: Building2 },
         { label: "User Management", href: "/admin/users", icon: UserCog },
         { label: "Pending Approvals", href: "/admin/approvals", icon: UserCheck },
-        // Org-wide skill-gap insights (distinct from the personal recommendation bot below).
-        { label: "AI Insights", href: "/admin/recommendations", icon: BarChart3 },
       ],
     },
     {

@@ -1,14 +1,23 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { LucideIcon } from "lucide-react";
+import {
+  Users, CheckCircle2, Clock, CircleDashed, Award, AlertTriangle,
+  PieChart, TrendingUp, Building2, Target, Activity, BookOpen,
+} from "lucide-react";
 import LearnAreaChart from "@/components/charts/LearnAreaChart";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
 import LearnBarChart from "@/components/charts/LearnBarChart";
 import BarList from "@/components/charts/BarList";
+import StatTile, { type TileTone } from "@/components/dashboard/StatTile";
 import { useApi } from "@/lib/api";
 import { PageSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
 
 const CATEGORY_COLORS = ["#2e7d5b", "#3b82f6", "#8b5cf6", "#f59e0b", "#f43f5e", "#0ea5e9", "#64748b", "#e11d48"];
+
+// Soft, layered card elevation — the "3D" feel: a hairline highlight + a deep soft drop.
+const CARD = "rounded-3xl border border-[var(--border)] bg-white shadow-[0_1px_2px_rgba(15,27,45,.04),0_12px_32px_-14px_rgba(15,27,45,.14)]";
 
 interface Cat { name: string; value: number }
 interface Dept {
@@ -33,9 +42,8 @@ export default function AdminAnalyticsDashboard() {
   const { data, error, isLoading, isRefreshing, refresh } = useApi<Data>("/api/admin/dashboard");
   const [deptId, setDeptId] = useState<string | null>(null); // null = whole organisation
 
-  // Re-resolved against whatever the latest response says. If a background
-  // revalidation removes the selected department, this falls back to null and
-  // the page reads org-wide rather than rendering a stale department.
+  // Re-resolved against the latest response; if a revalidation drops the selected
+  // department, this falls back to org-wide rather than rendering stale data.
   const dept = useMemo(() => (data && deptId ? data.departments.find((d) => d.id === deptId) ?? null : null), [data, deptId]);
 
   if (isLoading) return <PageSkeleton cards={6} />;
@@ -43,49 +51,51 @@ export default function AdminAnalyticsDashboard() {
 
   const sum = (f: (d: Dept) => number) => data.departments.reduce((s, d) => s + f(d), 0);
   const scopeLabel = dept ? dept.name : "Whole organisation";
+  const atRiskVal = dept ? dept.atRisk : sum((d) => d.atRisk);
 
-  // KPI values re-scope to the selected department chip (org totals when "All").
-  const kpis: { label: string; value: string | number; color?: string; sub?: string }[] = [
-    { label: "Employees", value: dept ? dept.teamMembers : data.totalEmployees, sub: dept ? "in department" : "org-wide" },
-    { label: "Completed", value: dept ? dept.coursesCompleted : sum((d) => d.coursesCompleted), color: "#2e7d5b", sub: "courses" },
-    { label: "In progress", value: dept ? dept.coursesInProgress : sum((d) => d.coursesInProgress), color: "#2563eb", sub: "courses" },
-    { label: "Not started", value: dept ? dept.notStarted : sum((d) => d.notStarted), color: "#64748b", sub: "employees" },
-    { label: "Certificates", value: dept ? dept.certificates : data.certificatesEarned, color: "#7c3aed", sub: "earned" },
-    { label: "At risk", value: dept ? dept.atRisk : sum((d) => d.atRisk), color: (dept ? dept.atRisk : sum((d) => d.atRisk)) > 0 ? "#e11d48" : "#2e7d5b", sub: "behind pace" },
+  // KPI cards — vivid animated 3D tiles. Values re-scope to the selected chip.
+  const kpis: { label: string; value: number; sub: string; icon: LucideIcon; tone: TileTone; delta?: { dir: "up" | "down"; text: string } }[] = [
+    { label: "Employees", value: dept ? dept.teamMembers : data.totalEmployees, sub: dept ? "in department" : "org-wide", icon: Users, tone: "sky" },
+    { label: "Completed", value: dept ? dept.coursesCompleted : sum((d) => d.coursesCompleted), sub: "courses", icon: CheckCircle2, tone: "green" },
+    { label: "In progress", value: dept ? dept.coursesInProgress : sum((d) => d.coursesInProgress), sub: "courses", icon: Clock, tone: "teal" },
+    { label: "Not started", value: dept ? dept.notStarted : sum((d) => d.notStarted), sub: "employees", icon: CircleDashed, tone: "amber" },
+    { label: "Certificates", value: dept ? dept.certificates : data.certificatesEarned, sub: "earned", icon: Award, tone: "violet" },
+    { label: "At risk", value: atRiskVal, sub: "behind pace", icon: AlertTriangle, tone: "pink", delta: atRiskVal > 0 ? { dir: "down", text: "behind" } : undefined },
   ];
 
-  // Donut: category breakdown for the current scope.
   const catSource = dept ? dept.categoryBreakdown : data.categoryBreakdown;
   const categoryData = catSource.map((c, i) => ({ ...c, color: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }));
   const catTotal = catSource.reduce((s, c) => s + c.value, 0);
 
-  // Completed courses per department (comparison bar list — highlight the selected dept).
   const maxCompleted = Math.max(1, ...data.departments.map((d) => d.coursesCompleted));
   const completedByDept = data.departments.map((d) => ({
-    name: d.name,
-    value: d.coursesCompleted,
-    max: maxCompleted,
+    name: d.name, value: d.coursesCompleted, max: maxCompleted,
     color: deptId && d.id !== deptId ? "#cbd5e1" : "#3f9d75",
   }));
 
-  // CPD % per department (vertical bars).
   const cpdByDept = data.departments.map((d) => ({ name: d.name, value: d.avgCpd }));
 
-  // Top skill gaps (org-wide).
   const maxGap = Math.max(1, ...data.skillsGap.map((s) => s.gap));
   const skillGapItems = data.skillsGap.map((s) => ({ name: s.name, value: s.gap, max: maxGap, color: "#f59e0b" }));
 
   return (
-    <div>
-      {/* Header + department filter chips */}
-      <div className="mb-5">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-[var(--ink)]">Organisation analytics</h1>
-          <RefreshingBadge show={isRefreshing} />
+    // Whiter, modern backdrop — full-bleed over the shell's grey page colour.
+    <div className="-m-6 min-h-full bg-gradient-to-b from-white via-white to-[#f4f9f6] p-6">
+      {/* Header */}
+      <div className="mb-5 flex items-center gap-3">
+        <span className="gam-float grid h-12 w-12 place-items-center rounded-2xl text-white shadow-md" style={{ background: "linear-gradient(135deg,#4ade80,#16a34a)" }}>
+          <Building2 className="h-6 w-6" strokeWidth={2.2} />
+        </span>
+        <div>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-[1.7rem] font-extrabold leading-tight tracking-tight text-[var(--ink)]">Organisation analytics</h1>
+            <RefreshingBadge show={isRefreshing} />
+          </div>
+          <p className="text-sm text-[var(--muted)]">{scopeLabel} · {data.orgHealth.departments} departments · {data.totalEmployees} employees</p>
         </div>
-        <p className="mt-1 text-sm text-[var(--muted)]">{scopeLabel} · {data.orgHealth.departments} departments · {data.totalEmployees} employees</p>
       </div>
 
+      {/* Department filter chips — clear, button-like, active state pops */}
       <div className="mb-6 flex flex-wrap gap-2">
         <Chip active={deptId === null} onClick={() => setDeptId(null)}>All departments</Chip>
         {data.departments.map((d) => (
@@ -93,65 +103,53 @@ export default function AdminAnalyticsDashboard() {
         ))}
       </div>
 
-      {/* KPI row */}
-      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        {kpis.map((k) => (
-          <div key={k.label} className="rounded-2xl border border-[var(--border)] bg-white p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--muted)]">{k.label}</p>
-            <p className="mt-2 text-[1.75rem] font-extrabold leading-none" style={{ color: k.color ?? "var(--ink)" }}>{typeof k.value === "number" ? k.value.toLocaleString() : k.value}</p>
-            {k.sub && <p className="mt-1 text-[11px] text-[var(--muted)]">{k.sub}</p>}
-          </div>
+      {/* KPI row — animated 3D tiles */}
+      <div className="mb-7 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        {kpis.map((k, i) => (
+          <StatTile key={k.label} index={i} icon={k.icon} tone={k.tone} label={k.label} value={k.value.toLocaleString()} sub={k.sub} delta={k.delta} />
         ))}
       </div>
 
       {/* Row 1 — donut · area · department matrix */}
       <div className="mb-6 grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <Panel title="Learning by category" subtitle={scopeLabel}>
-          {categoryData.length === 0 ? (
-            <Empty>No enrolments yet.</Empty>
-          ) : (
-            <LearnDonutChart data={categoryData} label={String(catTotal)} sublabel="Courses" height={200} />
-          )}
+        <Panel title="Learning by category" subtitle={scopeLabel} icon={PieChart} tone="green">
+          {categoryData.length === 0 ? <Empty>No enrolments yet.</Empty> : <LearnDonutChart data={categoryData} label={String(catTotal)} sublabel="Courses" height={200} />}
         </Panel>
 
-        <Panel title="Learning activity" subtitle="Completions · last 6 months · org-wide">
+        <Panel title="Learning activity" subtitle="Completions · last 6 months · org-wide" icon={TrendingUp} tone="sky">
           <LearnAreaChart data={data.learningActivity} xKey="month" dataKeys={[{ key: "completions", label: "completions", color: "#3f9d75" }]} unit="" height={200} />
         </Panel>
 
-        <Panel title="Department breakdown" subtitle="Members · completed · in progress · at risk">
+        <Panel title="Department breakdown" subtitle="Members · completed · in progress · at risk" icon={Building2} tone="violet">
           <DeptMatrix departments={data.departments} selectedId={deptId} onSelect={(id) => setDeptId(deptId === id ? null : id)} />
         </Panel>
       </div>
 
       {/* Row 2 — completed by dept · CPD by dept · skill gaps */}
       <div className="mb-6 grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <Panel title="Completed by department" subtitle="Total completed courses">
+        <Panel title="Completed by department" subtitle="Total completed courses" icon={CheckCircle2} tone="teal">
           {completedByDept.length === 0 ? <Empty>No departments yet.</Empty> : <BarList items={completedByDept} unit="" max={maxCompleted} />}
         </Panel>
 
-        <Panel title="CPD compliance by department" subtitle="Average CPD progress %">
+        <Panel title="CPD compliance by department" subtitle="Average CPD progress %" icon={BookOpen} tone="green">
           {cpdByDept.length === 0 ? <Empty>No departments yet.</Empty> : <LearnBarChart data={cpdByDept} unit="%" height={200} highlightName={dept?.name ?? null} />}
         </Panel>
 
-        <Panel title="Top skill gaps" subtitle="Highest average gaps · org-wide">
-          {skillGapItems.length === 0 ? (
-            <Empty>No skill-gap data yet.</Empty>
-          ) : (
-            <BarList items={skillGapItems} unit="" max={maxGap} />
-          )}
+        <Panel title="Top skill gaps" subtitle="Highest average gaps · org-wide" icon={Target} tone="amber">
+          {skillGapItems.length === 0 ? <Empty>No skill-gap data yet.</Empty> : <BarList items={skillGapItems} unit="" max={maxGap} />}
         </Panel>
       </div>
 
       {/* Recent activity — full width */}
-      <Panel title="Recent activity" subtitle="Enrolments and completions across every department">
+      <Panel title="Recent activity" subtitle="Enrolments and completions across every department" icon={Activity} tone="pink">
         {data.recentActivities.length === 0 ? (
           <Empty>No recent activity recorded yet.</Empty>
         ) : (
-          <ul className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
+          <ul className="grid grid-cols-1 gap-x-8 gap-y-1 sm:grid-cols-2">
             {data.recentActivities.map((a) => (
-              <li key={a.id} className="flex items-center justify-between gap-3 border-b border-[var(--border)] py-2 last:border-0">
-                <p className="min-w-0 truncate text-sm text-[var(--ink)]"><span className="font-medium">{a.user}</span> {a.action}</p>
-                <span className="shrink-0 text-xs text-[var(--muted)]">{a.time}</span>
+              <li key={a.id} className="flex items-center justify-between gap-3 border-b border-[var(--border)] py-2.5 last:border-0">
+                <p className="min-w-0 truncate text-sm text-[var(--ink)]"><span className="font-semibold">{a.user}</span> {a.action}</p>
+                <span className="shrink-0 text-xs font-medium text-[var(--muted)]">{a.time}</span>
               </li>
             ))}
           </ul>
@@ -161,28 +159,45 @@ export default function AdminAnalyticsDashboard() {
   );
 }
 
+const TILE_GRADIENTS: Record<TileTone, string> = {
+  green:  "linear-gradient(135deg,#4ade80,#16a34a)",
+  sky:    "linear-gradient(135deg,#38bdf8,#0284c7)",
+  violet: "linear-gradient(135deg,#a78bfa,#7c3aed)",
+  pink:   "linear-gradient(135deg,#f472b6,#db2777)",
+  amber:  "linear-gradient(135deg,#fbbf24,#d97706)",
+  teal:   "linear-gradient(135deg,#2dd4bf,#0d9488)",
+};
+
 function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
+      className={`rounded-full px-4 py-2 text-sm font-semibold transition active:scale-95 ${
         active
-          ? "bg-[var(--brand)] text-white shadow-sm"
-          : "border border-[var(--border)] bg-white text-[var(--ink)] hover:bg-slate-50"
+          ? "text-white shadow-md shadow-emerald-600/20"
+          : "border border-[var(--border)] bg-white text-[var(--ink)] shadow-sm hover:-translate-y-0.5 hover:border-[var(--brand)] hover:shadow-md"
       }`}
+      style={active ? { background: "linear-gradient(135deg,#34d399,#16a34a)" } : undefined}
     >
       {children}
     </button>
   );
 }
 
-function Panel({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
+function Panel({ title, subtitle, icon: Icon, tone = "green", children }: { title: string; subtitle?: string; icon?: LucideIcon; tone?: TileTone; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
-      <div className="mb-4">
-        <h3 className="font-semibold text-[var(--ink)]">{title}</h3>
-        {subtitle && <p className="mt-0.5 text-xs text-[var(--muted)]">{subtitle}</p>}
+    <div className={`${CARD} p-5 transition-shadow hover:shadow-[0_1px_2px_rgba(15,27,45,.05),0_18px_44px_-16px_rgba(15,27,45,.2)]`}>
+      <div className="mb-4 flex items-center gap-3">
+        {Icon && (
+          <span className="gam-float grid h-10 w-10 place-items-center rounded-xl text-white shadow-sm" style={{ background: TILE_GRADIENTS[tone] }}>
+            <Icon className="h-5 w-5" strokeWidth={2.2} />
+          </span>
+        )}
+        <div className="min-w-0">
+          <h3 className="font-semibold text-[var(--ink)]">{title}</h3>
+          {subtitle && <p className="truncate text-xs text-[var(--muted)]">{subtitle}</p>}
+        </div>
       </div>
       {children}
     </div>

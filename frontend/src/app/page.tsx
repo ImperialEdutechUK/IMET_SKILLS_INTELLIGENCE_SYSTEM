@@ -1,125 +1,143 @@
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
-import HeroScene3D from "@/components/home/HeroScene3D";
 import {
-  GraduationCap, Sparkles, Award, BarChart3, Globe, ArrowRight, ShieldCheck,
-  Trophy, Zap, Users, BookOpen,
+  GraduationCap, Sparkles, Award, BarChart3, ArrowRight, Trophy, ImageIcon,
 } from "lucide-react";
 
 const stats = [
-  { icon: BookOpen, value: "27,000+", label: "Courses in the catalogue" },
-  { icon: Users, value: "100+", label: "Employees learning" },
-  { icon: Award, value: "8", label: "Departments tracked" },
-  { icon: Globe, value: "24/7", label: "Learn anytime, anywhere" },
+  { value: "27,000+", label: "Courses in the catalogue" },
+  { value: "100+", label: "Employees learning" },
+  { value: "8", label: "Departments tracked" },
+  { value: "24/7", label: "Learn anytime" },
+];
+
+const features: { icon: LucideIcon; title: string; desc: string }[] = [
+  { icon: Sparkles, title: "AI-recommended learning", desc: "Every course matched to a person's real skill gaps and role — drawn from a catalogue of 27,000+ courses, no guesswork." },
+  { icon: BarChart3, title: "Skills, measured", desc: "See gaps close in real time. Clear dashboards for people, managers and HR — the whole organisation at a glance." },
+  { icon: Award, title: "Certificates & badges", desc: "Earn certificates, unlock badges and climb your level. Progress that people can see and feel." },
 ];
 
 export default function LandingPage() {
   return (
-    <main className="min-h-screen bg-[var(--page)]">
-      {/* Logo */}
-      <header className="mx-auto max-w-7xl px-6 py-6">
-        <div className="flex items-center gap-2">
-          <span className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--brand)] text-white">
-            <GraduationCap className="h-5 w-5" />
-          </span>
-          <div className="leading-tight">
-            <p className="text-sm font-semibold text-[var(--ink)]">
-              LearnSmart <span className="text-[var(--brand)]">AI</span>
-            </p>
-            <p className="text-[11px] text-[var(--muted)]">Empower. Learn. Grow.</p>
+    <main className="min-h-screen bg-white text-[var(--ink)]">
+      {/* Nav */}
+      <header className="sticky top-0 z-30 border-b border-[var(--border)]/70 bg-white/80 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
+          <div className="flex items-center gap-2.5">
+            <span className="grid h-8 w-8 place-items-center rounded-[10px] bg-[var(--brand)] text-white">
+              <GraduationCap className="h-4.5 w-4.5" />
+            </span>
+            <p className="text-[15px] font-semibold tracking-tight">LearnSmart <span className="text-[var(--brand)]">AI</span></p>
           </div>
+          <nav className="flex items-center gap-1.5">
+            <Link href="/login" className="rounded-full px-4 py-2 text-sm font-medium text-[var(--ink)] transition-colors hover:bg-slate-100">Sign in</Link>
+            <Link href="/register" className="rounded-full bg-[var(--ink)] px-4 py-2 text-sm font-medium text-white transition-transform hover:scale-[1.03] active:scale-95">Get started</Link>
+          </nav>
         </div>
       </header>
 
       {/* Hero */}
-      <section className="mx-auto grid max-w-7xl items-center gap-8 px-6 pb-4 pt-6 lg:grid-cols-2">
-        <div>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--brand-tint)] px-3 py-1 text-xs font-semibold text-[var(--brand-dark)]">
-            <Sparkles className="h-3.5 w-3.5" /> AI-powered · Gamified learning
-          </span>
-          <h1 className="mt-4 text-4xl font-bold leading-tight text-[var(--ink)] sm:text-5xl">
-            Empowering
-            <br />
-            <span className="text-[var(--brand)]">Employee Growth</span>
-            <br />
-            Through Smart Learning
-          </h1>
-          <div className="mt-5 h-1 w-16 rounded-full bg-[var(--brand)]" />
-          <p className="mt-6 max-w-md text-base text-[var(--muted)] sm:text-lg">
-            Enhance skills, close gaps, earn badges and discover personalized
-            learning with AI-powered course recommendations.
-          </p>
-          <Link
-            href="/login"
-            className="mt-8 inline-flex items-center gap-2 rounded-lg bg-[var(--brand)] px-6 py-3 text-sm font-medium text-white hover:bg-[var(--brand-dark)]"
-          >
-            Get Started <ArrowRight className="h-4 w-4" />
+      <section className="mx-auto max-w-6xl px-6 pt-20 pb-10 text-center sm:pt-28">
+        <h1 className="home-rise mx-auto max-w-4xl text-[2.75rem] font-semibold leading-[1.05] tracking-tight sm:text-6xl lg:text-[4.25rem]" style={{ animationDelay: "0s" }}>
+          Turn skills into your
+          <br className="hidden sm:block" /> team&apos;s advantage.
+        </h1>
+        <p className="home-rise mx-auto mt-6 max-w-xl text-lg leading-relaxed text-[var(--muted)] sm:text-xl" style={{ animationDelay: ".08s" }}>
+          AI-powered learning that finds each person&apos;s gaps, recommends the right courses, and shows your whole organisation growing — in real time.
+        </p>
+        <div className="home-rise mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row" style={{ animationDelay: ".16s" }}>
+          <Link href="/register" className="inline-flex items-center gap-2 rounded-full bg-[var(--brand)] px-7 py-3.5 text-[15px] font-semibold text-white shadow-sm transition-transform hover:scale-[1.03] active:scale-95">
+            Get started <ArrowRight className="h-4 w-4" />
+          </Link>
+          <Link href="/login" className="inline-flex items-center gap-1.5 rounded-full px-6 py-3.5 text-[15px] font-semibold text-[var(--ink)] transition-colors hover:bg-slate-100">
+            Sign in
           </Link>
         </div>
 
-        <div className="relative">
-          <HeroScene3D animate speed={1} tilt={0} />
+        {/* Hero image — replace this placeholder with a real product shot / illustration.
+            e.g. <Image src="/hero.png" alt="LearnSmart AI dashboard" fill className="object-cover" /> */}
+        <div className="home-rise mx-auto mt-16 max-w-5xl" style={{ animationDelay: ".24s" }}>
+          <div className="overflow-hidden rounded-[1.75rem] border border-[var(--border)] bg-white shadow-[0_2px_8px_rgba(15,27,45,.05),0_40px_80px_-40px_rgba(15,27,45,.28)]">
+            {/* Window chrome */}
+            <div className="flex items-center gap-1.5 border-b border-[var(--border)] bg-[var(--page)] px-4 py-3">
+              <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
+              <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
+              <span className="h-3 w-3 rounded-full bg-[#28c840]" />
+            </div>
+            {/* Image slot */}
+            <div className="relative grid aspect-[16/10] place-items-center bg-gradient-to-b from-[var(--brand-tint)]/40 to-white">
+              <div className="pointer-events-none absolute -top-24 left-1/2 h-64 w-[36rem] -translate-x-1/2 rounded-full bg-[var(--brand)]/10 blur-3xl" />
+              <div className="relative flex flex-col items-center gap-3 text-center">
+                <span className="grid h-14 w-14 place-items-center rounded-2xl bg-white shadow-sm">
+                  <ImageIcon className="h-6 w-6 text-[var(--muted)]" />
+                </span>
+                <p className="text-sm font-medium text-[var(--ink)]">Hero image goes here</p>
+                <p className="max-w-xs text-xs text-[var(--muted)]">Drop a product screenshot or illustration into this frame — sized 16:10 for a crisp fit.</p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Bento showcase */}
-      <section className="mx-auto max-w-7xl px-6 py-10">
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {/* Big AI tile (2×2) */}
-          <div className="group relative col-span-2 flex flex-col justify-between overflow-hidden rounded-3xl p-6 text-white transition hover:-translate-y-0.5 hover:shadow-lg lg:row-span-2" style={{ background: "linear-gradient(135deg,#45a37c,#216b4c)" }}>
-            <div className="pointer-events-none absolute -right-10 -top-12 h-44 w-44 rounded-full bg-white/10 blur-2xl" />
-            <span className="gam-float grid h-12 w-12 place-items-center rounded-2xl bg-white/15"><Sparkles className="h-6 w-6" /></span>
-            <div className="relative mt-6">
-              <h3 className="text-2xl font-extrabold">AI-Recommended Courses</h3>
-              <p className="mt-2 max-w-sm text-sm text-white/85">Matched to each person&apos;s skill gaps and role from a catalogue of 27,000+ real courses — no guesswork.</p>
-            </div>
-          </div>
-
-          <Feature icon={Award} tone="blue" title="Certificates & Achievements" desc="Collect certificates, earn badges and climb your level." />
-          <Feature icon={BarChart3} tone="teal" title="Track Progress" desc="Circular progress, skill gaps and clear dashboards." />
-
-          {/* Gamified wide tile */}
-          <div className="group relative col-span-2 flex items-center gap-4 overflow-hidden rounded-3xl p-6 text-white transition hover:-translate-y-0.5 hover:shadow-lg" style={{ background: "linear-gradient(135deg,#5b8def,#3563d6)" }}>
-            <span className="gam-float grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white/15"><Trophy className="h-6 w-6" /></span>
-            <div>
-              <h3 className="text-lg font-extrabold">Gamified learning</h3>
-              <p className="mt-1 text-sm text-white/85">Earn <Zap className="inline h-3.5 w-3.5 fill-current" /> XP, unlock badges and climb your team leaderboard.</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Stats strip */}
-        <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {stats.map((s, i) => {
-            const Icon = s.icon;
+      {/* Features */}
+      <section className="mx-auto max-w-6xl px-6 py-20 sm:py-28">
+        <h2 className="max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">Everything a growing team needs to keep learning.</h2>
+        <div className="mt-12 grid grid-cols-1 gap-x-10 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
+          {features.map((f) => {
+            const Icon = f.icon;
             return (
-              <div key={s.label} className="group rounded-2xl bg-[var(--brand-tint)] p-5 transition hover:-translate-y-0.5 hover:shadow-md">
-                <span className="gam-bob inline-flex transition-transform duration-300 group-hover:scale-110" style={{ animationDelay: `${(i % 4) * 0.4}s` }}>
-                  <Icon className="h-5 w-5 text-[var(--brand-dark)]" />
+              <div key={f.title}>
+                <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[var(--brand-tint)] text-[var(--brand-dark)]">
+                  <Icon className="h-5 w-5" strokeWidth={2} />
                 </span>
-                <p className="mt-3 text-2xl font-extrabold text-[var(--brand-dark)]">{s.value}</p>
-                <p className="mt-1 text-xs font-medium text-[var(--brand-dark)]/80">{s.label}</p>
+                <h3 className="mt-5 text-lg font-semibold tracking-tight">{f.title}</h3>
+                <p className="mt-2 text-[15px] leading-relaxed text-[var(--muted)]">{f.desc}</p>
               </div>
             );
           })}
         </div>
-
-        <p className="mt-8 flex items-center justify-center gap-2 text-sm text-[var(--muted)]">
-          <ShieldCheck className="h-4 w-4 text-[var(--brand)]" />
-          Trusted by <span className="font-semibold text-[var(--brand)]">100+ employees</span> to learn and grow every day
-        </p>
       </section>
-    </main>
-  );
-}
 
-function Feature({ icon: Icon, tone, title, desc }: { icon: LucideIcon; tone: "blue" | "teal"; title: string; desc: string }) {
-  const c = tone === "blue" ? { bg: "#e8f0fd", fg: "#2456c8" } : { bg: "#e0f2ec", fg: "#14806f" };
-  return (
-    <div className="group flex flex-col rounded-2xl p-5 transition hover:-translate-y-0.5 hover:shadow-md" style={{ background: c.bg }}>
-      <span className="gam-bob grid h-11 w-11 place-items-center rounded-xl bg-white/70 transition-transform duration-300 group-hover:scale-110"><Icon className="h-5 w-5" style={{ color: c.fg }} /></span>
-      <h3 className="mt-3 text-base font-bold" style={{ color: c.fg }}>{title}</h3>
-      <p className="mt-1 text-xs" style={{ color: c.fg, opacity: 0.8 }}>{desc}</p>
-    </div>
+      {/* Stats band */}
+      <section className="border-y border-[var(--border)] bg-[var(--page)]">
+        <div className="mx-auto grid max-w-6xl grid-cols-2 gap-y-10 px-6 py-16 sm:grid-cols-4">
+          {stats.map((s) => (
+            <div key={s.label} className="text-center">
+              <p className="text-3xl font-semibold tracking-tight text-[var(--ink)] sm:text-4xl">{s.value}</p>
+              <p className="mt-2 text-sm text-[var(--muted)]">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Closing CTA */}
+      <section className="mx-auto max-w-6xl px-6 py-24 text-center sm:py-32">
+        <span className="mx-auto mb-6 grid h-12 w-12 place-items-center rounded-2xl bg-[var(--brand-tint)] text-[var(--brand-dark)]">
+          <Trophy className="h-6 w-6" />
+        </span>
+        <h2 className="mx-auto max-w-2xl text-3xl font-semibold tracking-tight sm:text-5xl">Start growing your team today.</h2>
+        <p className="mx-auto mt-5 max-w-lg text-lg text-[var(--muted)]">Join 100+ employees already learning, closing skill gaps and earning certificates.</p>
+        <Link href="/register" className="mt-9 inline-flex items-center gap-2 rounded-full bg-[var(--brand)] px-7 py-3.5 text-[15px] font-semibold text-white shadow-sm transition-transform hover:scale-[1.03] active:scale-95">
+          Get started <ArrowRight className="h-4 w-4" />
+        </Link>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-[var(--border)]">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-8 sm:flex-row">
+          <div className="flex items-center gap-2.5">
+            <span className="grid h-7 w-7 place-items-center rounded-lg bg-[var(--brand)] text-white">
+              <GraduationCap className="h-4 w-4" />
+            </span>
+            <p className="text-sm font-semibold tracking-tight">LearnSmart <span className="text-[var(--brand)]">AI</span></p>
+          </div>
+          <p className="text-xs text-[var(--muted)]">© 2026 iMET · Imperial Edutech. Empower. Learn. Grow.</p>
+          <div className="flex items-center gap-5 text-sm text-[var(--muted)]">
+            <Link href="/login" className="transition-colors hover:text-[var(--ink)]">Sign in</Link>
+            <Link href="/register" className="transition-colors hover:text-[var(--ink)]">Register</Link>
+          </div>
+        </div>
+      </footer>
+    </main>
   );
 }

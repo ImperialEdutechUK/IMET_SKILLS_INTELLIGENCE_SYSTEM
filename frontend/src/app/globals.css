@@ -6,9 +6,9 @@
   --brand-tint:  #e8f1ed;
   --ink:         #0f1b2d;
   --muted:       #6b7280;
-  --page:        #f4f8f6;
+  --page:        #f5f6f8;
   --card:        #ffffff;
-  --border:      #e6ebe8;
+  --border:      #e8eaee;
 
   /* Interface font stack: the native UI face on each platform, which is what
      business systems use. No web font is downloaded. */
@@ -16,8 +16,25 @@
 }
 
 body {
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Apple's own face on Apple devices (SF Pro via -apple-system), with a clean
+     modern fallback elsewhere. Crisp smoothing gives the premium, high-fidelity feel. */
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter",
+    "Segoe UI Variable", "Segoe UI", ui-sans-serif, system-ui, Roboto, sans-serif;
   color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* One quiet entrance for landing sections — a gentle rise from an already-legible
+   default, exponential ease-out. Honoured only when motion is welcome. */
+@keyframes home-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.home-rise { animation: home-rise .7s cubic-bezier(.16,.84,.28,1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .home-rise { animation: none; }
 }
 
 /* ---- Onboarding tour --------------------------------------------------- */

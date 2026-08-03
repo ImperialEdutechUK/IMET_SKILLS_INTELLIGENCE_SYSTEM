@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { getToken, clearAuth } from "@/lib/authClient";
+import { swrCache } from "@/lib/swr-cache";
 import { GraduationCap, Lock, Eye, EyeOff, CheckCircle } from "lucide-react";
 
 export default function SetPasswordPage() {
@@ -47,6 +48,7 @@ export default function SetPasswordPage() {
     // the new password is simpler and more reliable than patching the
     // live session in place.
     clearAuth();
+    swrCache.clear();
     setDone(true);
   }
 

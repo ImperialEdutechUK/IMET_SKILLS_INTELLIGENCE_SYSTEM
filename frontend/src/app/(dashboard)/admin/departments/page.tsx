@@ -1,12 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Building2, ChevronRight, ShieldCheck, AlertTriangle } from "lucide-react";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
-import { getToken } from "@/lib/authClient";
-
-const API = process.env.NEXT_PUBLIC_API_URL;
+import { useApi } from "@/lib/api";
+import { CardGridSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
 
 interface Dept {
   id: string;
@@ -22,24 +20,21 @@ interface Dept {
 }
 
 export default function AdminDepartmentsPage() {
-  const [departments, setDepartments] = useState<Dept[] | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Same endpoint the admin dashboard uses — SWR serves it from cache, so
+  // switching between the two views costs no request at all.
+  const { data, error, isLoading, isRefreshing, refresh } = useApi<{ departments: Dept[] }>("/api/admin/dashboard");
+  const departments = data?.departments;
 
-  useEffect(() => {
-    fetch(`${API}/api/admin/dashboard`, { headers: { Authorization: `Bearer ${getToken()}` } })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { setDepartments(d?.departments ?? []); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, []);
-
-  if (loading || !departments) {
-    return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">{loading ? "Loading…" : "Could not load departments."}</p></div>;
-  }
+  if (isLoading) return <CardGridSkeleton />;
+  if (!departments) return <ErrorPanel message={error?.message ?? "Could not load departments."} onRetry={refresh} />;
 
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[var(--ink)]">Departments</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-[var(--ink)]">Departments</h1>
+          <RefreshingBadge show={isRefreshing} />
+        </div>
         <p className="mt-1 text-sm text-[var(--muted)]">Open a department to see its members, courses, badges and certificates.</p>
       </div>
 

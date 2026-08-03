@@ -1,12 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Trophy, Zap, ChevronRight, GraduationCap, BookOpen } from "lucide-react";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
-import { getToken } from "@/lib/authClient";
-
-const API = process.env.NEXT_PUBLIC_API_URL;
+import { useApi } from "@/lib/api";
+import { TableSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
 
 interface Row {
   id: string; fullName: string; position: string; rank: number;
@@ -22,15 +20,8 @@ const PODIUM = [
 ];
 
 export default function LeaderboardPage() {
-  const [rows, setRows] = useState<Row[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch(`${API}/api/manager/leaderboard`, { headers: { Authorization: `Bearer ${getToken()}` } })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { setRows(d?.members ?? []); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, []);
+  const { data, error, isLoading, isRefreshing, refresh } = useApi<{ members: Row[] }>("/api/manager/leaderboard");
+  const rows = data?.members ?? [];
 
   const top3 = rows.slice(0, 3);
   const rest = rows.slice(3);
@@ -42,13 +33,18 @@ export default function LeaderboardPage() {
       <div className="mb-6 flex items-center gap-3">
         <Icon3D icon={Trophy} tone={TONES.amber} />
         <div>
-          <h1 className="text-2xl font-bold text-[var(--ink)]">Team Leaderboard</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-[var(--ink)]">Team Leaderboard</h1>
+            <RefreshingBadge show={isRefreshing} />
+          </div>
           <p className="mt-1 text-sm text-[var(--muted)]">Who&apos;s earning the most XP — certificates and completed courses all count.</p>
         </div>
       </div>
 
-      {loading ? (
-        <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>
+      {isLoading ? (
+        <TableSkeleton />
+      ) : error && !data ? (
+        <ErrorPanel message={error.message} onRetry={refresh} />
       ) : rows.length === 0 ? (
         <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">No team members to rank yet.</p></div>
       ) : (

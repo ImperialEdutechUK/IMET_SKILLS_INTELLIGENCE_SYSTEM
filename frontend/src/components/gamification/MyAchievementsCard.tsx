@@ -1,32 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import AchievementsCard from "@/components/gamification/AchievementsCard";
-import { getToken } from "@/lib/authClient";
-import type { GamInput } from "@/lib/gamification";
+import { useApi } from "@/lib/api";
 
-const API = process.env.NEXT_PUBLIC_API_URL;
-
-// Drop-in gamification card that fetches its own inputs from already-deployed
-// endpoints (certificates + dashboard). Lets any page — including the manager
-// team dashboard — show the signed-in user's level/XP with zero wiring.
+// Drop-in gamification card that reads its own inputs (certificates +
+// dashboard). Lets any page — including the manager team dashboard — show the
+// signed-in user's level/XP with zero wiring. Shares SWR cache entries with the
+// top-bar pill and the employee dashboard, so it adds no extra requests.
 export default function MyAchievementsCard() {
-  const [input, setInput] = useState<GamInput | null>(null);
+  const { data: certs, isLoading: certsLoading } = useApi<{ certificates: unknown[] }>("/api/me/certificates");
+  const { data: dash, isLoading: dashLoading } = useApi<{ completedCount: number; cpdHours: number }>("/api/me/dashboard");
 
-  useEffect(() => {
-    const h = { headers: { Authorization: `Bearer ${getToken()}` } };
-    Promise.all([
-      fetch(`${API}/api/me/certificates`, h).then((r) => (r.ok ? r.json() : null)).catch(() => null),
-      fetch(`${API}/api/me/dashboard`, h).then((r) => (r.ok ? r.json() : null)).catch(() => null),
-    ]).then(([certs, dash]) => {
-      setInput({
-        certificates: certs?.certificates?.length ?? 0,
-        coursesCompleted: dash?.completedCount ?? 0,
-        cpdHours: dash?.cpdHours ?? 0,
-      });
-    });
-  }, []);
+  // Render nothing only while both are genuinely empty — once either is cached
+  // the card appears immediately and fills in the rest on arrival.
+  if (certsLoading && dashLoading) return null;
 
-  if (!input) return null;
-  return <AchievementsCard {...input} />;
+  return (
+    <AchievementsCard
+      certificates={certs?.certificates?.length ?? 0}
+      coursesCompleted={dash?.completedCount ?? 0}
+      cpdHours={dash?.cpdHours ?? 0}
+    />
+  );
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { clearAuth } from "@/lib/authClient";
+import { swrCache } from "@/lib/swr-cache";
 import { GraduationCap, LogOut, ArrowLeft, ChevronDown } from "lucide-react";
 import { navFor, departmentNav } from "@/lib/nav";
 import Avatar from "@/components/ui/Avatar";
@@ -49,7 +50,7 @@ export default function Sidebar({ user }: { user: SessionUser }) {
           </div>
         </div>
         <button
-          onClick={() => { clearAuth(); router.push("/login"); }}
+          onClick={() => { clearAuth(); swrCache.clear(); router.push("/login"); }}
           className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-[var(--muted)] transition-colors hover:bg-red-50 hover:text-red-600"
         >
           <LogOut className="h-4 w-4" />

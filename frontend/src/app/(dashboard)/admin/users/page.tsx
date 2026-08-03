@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Users, Search } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
-import { getToken } from "@/lib/authClient";
+import { useApi } from "@/lib/api";
+import { TableSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
 
 const roleConfig: Record<string, string> = {
   employee: "bg-blue-50 text-blue-700",
@@ -23,21 +24,11 @@ interface User { id: string; fullName: string; department: string; lastActive: s
 interface Data { total: number; active: number; pending: number; departmentCount: number; users: User[]; }
 
 export default function UserManagementPage() {
-  const [data, setData] = useState<Data | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data, error, isLoading, isRefreshing, refresh } = useApi<Data>("/api/admin/users");
   const [search, setSearch] = useState("");
 
-  useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/users`, {
-      headers: { Authorization: `Bearer ${getToken()}` },
-    })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, []);
-
-  if (loading) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
-  if (!data) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load users.</p></div>;
+  if (isLoading) return <TableSkeleton rows={8} />;
+  if (!data) return <ErrorPanel message={error?.message ?? "Could not load users."} onRetry={refresh} />;
 
   const filtered = data.users.filter((u) => u.fullName.toLowerCase().includes(search.toLowerCase()) || u.department.toLowerCase().includes(search.toLowerCase()));
 
@@ -54,7 +45,10 @@ export default function UserManagementPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[var(--ink)]">User Management</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-[var(--ink)]">User Management</h1>
+          <RefreshingBadge show={isRefreshing} />
+        </div>
         <p className="mt-1 text-sm text-[var(--muted)]">View and monitor all platform users, grouped by department. New users self-register and appear under Pending Approvals.</p>
       </div>
       <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">

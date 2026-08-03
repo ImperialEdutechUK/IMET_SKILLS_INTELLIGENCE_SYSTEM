@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { BookOpen, CheckCircle, BarChart3, Users, Search, Download, ChevronDown } from "lucide-react";
 import Stat3D from "@/components/dashboard/Stat3D";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
 import BackToReports from "@/components/dashboard/BackToReports";
-import { getToken } from "@/lib/authClient";
+import { useApi } from "@/lib/api";
+import { CardGridSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
 
 // Self-assessed levels, 0-based — the same scale as My Skills.
 const LEVELS = ["Not Started", "Beginner", "Intermediate", "Advanced", "Expert"];
@@ -33,28 +34,16 @@ interface Data {
   members: Member[];
 }
 
-const API = process.env.NEXT_PUBLIC_API_URL;
 
 export default function TeamLearningPage() {
-  const [data, setData] = useState<Data | null>(null);
+  const { data, error, isLoading, isRefreshing, refresh } = useApi<Data>("/api/manager/team-learning");
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true);
   const [openGaps, setOpenGaps] = useState<string | null>(null);
 
   // Deep link from Skills: /manager/team-learning?member=<id> opens that person's gaps.
   useEffect(() => {
     setOpenGaps(new URLSearchParams(window.location.search).get("member"));
   }, []);
-
-  const load = useCallback(() => {
-    setLoading(true);
-    fetch(`${API}/api/manager/team-learning`, { headers: { Authorization: `Bearer ${getToken()}` } })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
 
   const members = useMemo(() => {
     if (!data) return [];
@@ -88,16 +77,19 @@ export default function TeamLearningPage() {
         <div className="flex items-center gap-3">
           <Icon3D icon={BookOpen} tone={TONES.blue} />
           <div>
-            <h1 className="text-2xl font-bold text-[var(--ink)]">Team Learning</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-[var(--ink)]">Team Learning</h1>
+              <RefreshingBadge show={isRefreshing} />
+            </div>
             <p className="mt-1 text-sm text-[var(--muted)]">Track your team&apos;s learning progress and course activity.</p>
           </div>
         </div>
       </div>
 
-      {loading ? (
-        <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>
+      {isLoading ? (
+        <CardGridSkeleton />
       ) : !data ? (
-        <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load team learning.</p></div>
+        <ErrorPanel message={error?.message ?? "Could not load team learning."} onRetry={refresh} />
       ) : (
         <>
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

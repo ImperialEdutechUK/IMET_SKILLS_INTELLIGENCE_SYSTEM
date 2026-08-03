@@ -1,15 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft, Target, BookOpen, ScrollText, TrendingUp, Activity, Award, ExternalLink, FileText } from "lucide-react";
 import Icon3D, { TONES, type Icon3DTone } from "@/components/dashboard/Icon3D";
 import AchievementsBento from "@/components/gamification/AchievementsBento";
 import type { LucideIcon } from "lucide-react";
-import { getToken } from "@/lib/authClient";
+import { useApi } from "@/lib/api";
+import { PageSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
 
-const API = process.env.NEXT_PUBLIC_API_URL;
 const LEVELS = ["None", "Basic", "Intermediate", "Advanced", "Expert"];
 
 interface Skill { name: string; current: number; target: number; gap: number }
@@ -40,25 +39,22 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
 
 export default function EmployeeDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const [data, setData] = useState<EmpData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
+  const { data, error, isLoading, isRefreshing, refresh } = useApi<EmpData>(
+    id ? `/api/manager/employees/${id}` : null,
+    // Different employee = different person's data. Never show the last one's
+    // numbers under this one's name while the new request is in flight.
+    { keepPreviousData: false },
+  );
+  const notFound = error?.status === 404 || error?.status === 403;
 
-  useEffect(() => {
-    fetch(`${API}/api/manager/employees/${id}`, { headers: { Authorization: `Bearer ${getToken()}` } })
-      .then((r) => { if (r.status === 404 || r.status === 403) { setNotFound(true); return null; } return r.ok ? r.json() : null; })
-      .then((d) => { if (d) setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, [id]);
-
-  if (loading) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
+  if (isLoading) return <PageSkeleton />;
   if (notFound) return (
     <div>
       <BackLink />
       <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">This employee isn&apos;t in your department, or doesn&apos;t exist.</p></div>
     </div>
   );
-  if (!data) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load this employee.</p></div>;
+  if (!data) return <ErrorPanel message={error?.message ?? "Could not load this employee."} onRetry={refresh} />;
 
   const status = data.cpd.status ?? "on_track";
   const badge = STATUS_BADGE[status] ?? STATUS_BADGE.on_track;
@@ -75,7 +71,10 @@ export default function EmployeeDetailPage() {
             {data.fullName.split(" ").map((n) => n[0]).slice(0, 2).join("")}
           </span>
           <div>
-            <h1 className="text-2xl font-bold text-[var(--ink)]">{data.fullName}</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-[var(--ink)]">{data.fullName}</h1>
+              <RefreshingBadge show={isRefreshing} />
+            </div>
             <p className="text-sm text-[var(--muted)]">{data.position} · {data.department}</p>
             <p className="text-xs text-[var(--muted)]">{data.email}</p>
           </div>

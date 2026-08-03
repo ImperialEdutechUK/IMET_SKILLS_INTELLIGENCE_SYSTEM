@@ -1,15 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft, BookOpen, Target, Award, ExternalLink, FileText } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
 import AchievementsBento from "@/components/gamification/AchievementsBento";
-import { getToken } from "@/lib/authClient";
-
-const API = process.env.NEXT_PUBLIC_API_URL;
+import { useApi } from "@/lib/api";
+import { PageSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
 
 interface Course {
   id: string;
@@ -54,18 +52,14 @@ const importanceColor: Record<string, string> = {
 
 export default function AdminEmployeeDetailPage() {
   const { id } = useParams() as { id: string };
-  const [data, setData] = useState<EmployeeDetail | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data, error, isLoading, isRefreshing, refresh } = useApi<EmployeeDetail>(
+    id ? `/api/admin/employee/${id}` : null,
+    // Never show one employee's figures under another's name.
+    { keepPreviousData: false },
+  );
 
-  useEffect(() => {
-    fetch(`${API}/api/admin/employee/${id}`, { headers: { Authorization: `Bearer ${getToken()}` } })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, [id]);
-
-  if (loading) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
-  if (!data) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load this employee.</p></div>;
+  if (isLoading) return <PageSkeleton cards={3} />;
+  if (!data) return <ErrorPanel message={error?.message ?? "Could not load this employee."} onRetry={refresh} />;
 
   return (
     <div>
@@ -75,7 +69,10 @@ export default function AdminEmployeeDetailPage() {
       <div className="mb-6 flex items-center gap-4">
         <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-[var(--brand-tint)] text-sm font-semibold text-[var(--brand-dark)]">{data.fullName.split(" ").map((p) => p[0]).join("").toUpperCase()}</span>
         <div>
-          <h1 className="text-2xl font-bold text-[var(--ink)]">{data.fullName}</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-[var(--ink)]">{data.fullName}</h1>
+            <RefreshingBadge show={isRefreshing} />
+          </div>
           <p className="mt-0.5 text-sm text-[var(--muted)]">{data.department}{data.position ? ` · ${data.position}` : ""} · {data.email}</p>
         </div>
       </div>

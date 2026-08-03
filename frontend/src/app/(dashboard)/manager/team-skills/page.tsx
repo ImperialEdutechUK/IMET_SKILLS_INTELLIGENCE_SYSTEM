@@ -1,15 +1,13 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { Gauge, Star, AlertTriangle, Users, ArrowUpRight, BarChart3 } from "lucide-react";
 import Stat3D from "@/components/dashboard/Stat3D";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
 import BackToReports from "@/components/dashboard/BackToReports";
 import BarList from "@/components/charts/BarList";
-import { getToken } from "@/lib/authClient";
-
-const API = process.env.NEXT_PUBLIC_API_URL;
+import { useApi } from "@/lib/api";
+import { CardGridSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
 
 interface SkillOverview { skill: string; avgPercent: number }
 interface NeedImprovement { skill: string; membersNeedImprovement: number; avgGapPercent: number }
@@ -31,18 +29,7 @@ const prioBadge: Record<string, string> = {
 };
 
 export default function TeamSkillsPage() {
-  const [data, setData] = useState<Data | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const load = useCallback(() => {
-    setLoading(true);
-    fetch(`${API}/api/manager/team-skills`, { headers: { Authorization: `Bearer ${getToken()}` } })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
+  const { data, error, isLoading, isRefreshing, refresh } = useApi<Data>("/api/manager/team-skills");
 
   return (
     <div>
@@ -51,16 +38,19 @@ export default function TeamSkillsPage() {
         <div className="flex items-center gap-3">
           <Icon3D icon={Gauge} tone={TONES.emerald} />
           <div>
-            <h1 className="text-2xl font-bold text-[var(--ink)]">Team Skills</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-[var(--ink)]">Team Skills</h1>
+              <RefreshingBadge show={isRefreshing} />
+            </div>
             <p className="mt-1 text-sm text-[var(--muted)]">Overview of your team&apos;s skills and areas for improvement.</p>
           </div>
         </div>
       </div>
 
-      {loading ? (
-        <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>
+      {isLoading ? (
+        <CardGridSkeleton />
       ) : !data ? (
-        <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load team skills.</p></div>
+        <ErrorPanel message={error?.message ?? "Could not load team skills."} onRetry={refresh} />
       ) : (
         <>
           <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">

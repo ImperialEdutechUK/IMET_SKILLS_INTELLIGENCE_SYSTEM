@@ -1,11 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Sparkles, AlertTriangle, TrendingUp, Users, Building2 } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
-import { getToken } from "@/lib/authClient";
-
-const API = process.env.NEXT_PUBLIC_API_URL;
+import { useApi } from "@/lib/api";
+import { CardGridSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
 
 interface SkillGap { skill: string; employeesWithGap: number; avgGap: number; criticalGaps: number; priorityScore: number; }
 interface Dept { id: string; name: string; employeesWithGap: number; totalGaps: number; criticalGaps: number; }
@@ -16,22 +14,14 @@ interface Data {
 }
 
 export default function AdminRecommendationsPage() {
-  const [data, setData] = useState<Data | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data, error, isLoading, isRefreshing, refresh } = useApi<Data>("/api/admin/insights");
 
-  useEffect(() => {
-    fetch(`${API}/api/admin/insights`, { headers: { Authorization: `Bearer ${getToken()}` } })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, []);
-
-  if (loading) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
-  if (!data) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load insights.</p></div>;
+  if (isLoading) return <CardGridSkeleton />;
+  if (!data) return <ErrorPanel message={error?.message ?? "Could not load insights."} onRetry={refresh} />;
 
   return (
     <div>
-      <div className="mb-6"><div className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-[var(--brand)]" /><h1 className="text-2xl font-bold text-[var(--ink)]">AI Recommendations</h1></div><p className="mt-1 text-sm text-[var(--muted)]">System-wide skill-gap intelligence across all departments.</p></div>
+      <div className="mb-6"><div className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-[var(--brand)]" /><h1 className="text-2xl font-bold text-[var(--ink)]">AI Recommendations</h1><RefreshingBadge show={isRefreshing} /></div><p className="mt-1 text-sm text-[var(--muted)]">System-wide skill-gap intelligence across all departments.</p></div>
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-4">
         <StatCard icon={Users} label="Employees Analysed" value={data.totalEmployeesAnalysed} />

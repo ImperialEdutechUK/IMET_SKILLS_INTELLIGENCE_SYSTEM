@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Bell } from "lucide-react";
-import { getToken } from "@/lib/authClient";
+import { useApi, apiSend } from "@/lib/api";
 
 interface Note {
   id: string;
@@ -12,33 +12,22 @@ interface Note {
   createdAt: string;
 }
 
-const API = process.env.NEXT_PUBLIC_API_URL;
+interface NotificationsResponse {
+  notifications: Note[];
+  unreadCount: number;
+}
 
 export default function NotificationBell() {
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [unread, setUnread] = useState(0);
+  // SWR handles the poll (and pauses it when the tab is hidden), so the bell
+  // paints from cache instantly on every navigation and refreshes in the
+  // background.
+  const { data, mutate } = useApi<NotificationsResponse>("/api/notifications", {
+    refreshInterval: 60_000,
+  });
+  const notes = data?.notifications ?? [];
+  const unread = data?.unreadCount ?? 0;
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-
-  async function load() {
-    try {
-      const r = await fetch(`${API}/api/notifications`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
-      if (!r.ok) return;
-      const d = await r.json();
-      setNotes(d.notifications ?? []);
-      setUnread(d.unreadCount ?? 0);
-    } catch {
-      /* ignore — bell stays quiet if offline */
-    }
-  }
-
-  useEffect(() => {
-    load();
-    const id = setInterval(load, 60_000); // light poll
-    return () => clearInterval(id);
-  }, []);
 
   // Close on outside click.
   useEffect(() => {
@@ -53,16 +42,22 @@ export default function NotificationBell() {
     const next = !open;
     setOpen(next);
     if (next && unread > 0) {
-      // Opening the panel counts as seen → mark all read.
-      setUnread(0);
-      setNotes((prev) => prev.map((n) => ({ ...n, read: true })));
+      // Opening the panel counts as seen → mark all read. The badge clears
+      // instantly and rolls back if the server rejects it.
+      const seen: NotificationsResponse = {
+        notifications: notes.map((n) => ({ ...n, read: true })),
+        unreadCount: 0,
+      };
       try {
-        await fetch(`${API}/api/notifications`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${getToken()}` },
-        });
+        await mutate(
+          async () => {
+            await apiSend("/api/notifications", "POST");
+            return seen;
+          },
+          { optimisticData: seen, rollbackOnError: true, revalidate: false },
+        );
       } catch {
-        /* ignore */
+        /* ignore — badge is restored by the rollback */
       }
     }
   }

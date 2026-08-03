@@ -1,36 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { computeGamification, type GamInput } from "@/lib/gamification";
-import { getToken } from "@/lib/authClient";
-
-const API = process.env.NEXT_PUBLIC_API_URL;
+import { useApi } from "@/lib/api";
 
 // Always-on gamification widget for the top bar — keeps the player's level, XP
 // and current medal visible on every page of the app. Links to the full
 // Achievements view. Read-only; degrades to nothing if data can't load.
+//
+// It reads the same two endpoints the employee dashboard does. Both go through
+// SWR, so they share one cache entry and one in-flight request — mounting this
+// on every page costs nothing beyond the first fetch.
 export default function GamificationPill() {
-  const [input, setInput] = useState<GamInput | null>(null);
+  const { data: certs } = useApi<{ certificates: unknown[] }>("/api/me/certificates");
+  const { data: dash } = useApi<{ completedCount: number; cpdHours: number }>("/api/me/dashboard");
 
-  useEffect(() => {
-    const h = { headers: { Authorization: `Bearer ${getToken()}` } };
-    // Read already-deployed endpoints so the pill works without waiting on a
-    // backend redeploy; certificate count + completed courses + CPD hours.
-    Promise.all([
-      fetch(`${API}/api/me/certificates`, h).then((r) => (r.ok ? r.json() : null)).catch(() => null),
-      fetch(`${API}/api/me/dashboard`, h).then((r) => (r.ok ? r.json() : null)).catch(() => null),
-    ]).then(([certs, dash]) => {
-      if (!certs && !dash) return;
-      setInput({
-        certificates: certs?.certificates?.length ?? 0,
-        coursesCompleted: dash?.completedCount ?? 0,
-        cpdHours: dash?.cpdHours ?? 0,
-      });
-    });
-  }, []);
-
-  if (!input) return null;
+  if (!certs && !dash) return null;
+  const input: GamInput = {
+    certificates: certs?.certificates?.length ?? 0,
+    coursesCompleted: dash?.completedCount ?? 0,
+    cpdHours: dash?.cpdHours ?? 0,
+  };
   const g = computeGamification(input);
 
   return (

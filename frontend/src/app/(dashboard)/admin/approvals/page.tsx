@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { UserCheck, Check, X, Mail, Briefcase, Building2, Clock } from "lucide-react";
-import { getToken } from "@/lib/authClient";
+import { useApi, apiSend, invalidate } from "@/lib/api";
+import { TableSkeleton, RefreshingBadge } from "@/components/ui/DataState";
 
 interface Pending {
   id: string;
@@ -14,42 +15,30 @@ interface Pending {
 }
 
 export default function ApprovalsPage() {
-  const [pending, setPending] = useState<Pending[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading, isRefreshing, mutate } = useApi<Pending[]>("/api/admin/approvals");
+  const pending = Array.isArray(data) ? data : [];
   const [acting, setActing] = useState<string | null>(null);
-
-  async function load() {
-    setLoading(true);
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/approvals`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
-      const data = res.ok ? await res.json() : [];
-      setPending(Array.isArray(data) ? data : []);
-    } catch {
-      setPending([]);
-    }
-    setLoading(false);
-  }
-
-  useEffect(() => { load(); }, []);
 
   async function act(userId: string, action: "approve" | "reject") {
     setActing(userId);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/approvals`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getToken()}`,
+      // Drop the row straight away, then confirm against the server. If the
+      // request fails, SWR rolls the row back rather than leaving a lie on screen.
+      await mutate(
+        async () => {
+          await apiSend("/api/admin/approvals", "POST", { userId, action });
+          return pending.filter((p) => p.id !== userId);
         },
-        body: JSON.stringify({ userId, action }),
-      });
-      if (res.ok) {
-        setPending((prev) => prev.filter((p) => p.id !== userId));
-      }
+        {
+          optimisticData: pending.filter((p) => p.id !== userId),
+          rollbackOnError: true,
+          revalidate: true,
+        },
+      );
+      // An approval creates a real user and changes the headcount everywhere.
+      await invalidate("/api/admin/users", "/api/admin/dashboard");
     } catch {
-      // no-op; row stays if the request failed
+      // Row is restored by the rollback above.
     }
     setActing(null);
   }
@@ -57,14 +46,15 @@ export default function ApprovalsPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[var(--ink)]">Pending Approvals</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-[var(--ink)]">Pending Approvals</h1>
+          <RefreshingBadge show={isRefreshing} />
+        </div>
         <p className="mt-1 text-sm text-[var(--muted)]">Review and approve new employee registrations before they can sign in.</p>
       </div>
 
-      {loading ? (
-        <div className="rounded-2xl border border-[var(--border)] bg-white p-6">
-          <p className="text-sm text-[var(--muted)]">Loading…</p>
-        </div>
+      {isLoading ? (
+        <TableSkeleton rows={3} />
       ) : pending.length === 0 ? (
         <div className="rounded-2xl border border-[var(--border)] bg-white p-8 text-center">
           <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[var(--brand-tint)] text-[var(--brand-dark)]">

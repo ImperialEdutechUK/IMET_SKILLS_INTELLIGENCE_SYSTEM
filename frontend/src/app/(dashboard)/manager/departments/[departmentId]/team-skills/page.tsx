@@ -1,24 +1,21 @@
 "use client";
-import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Target } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import BarList from "@/components/charts/BarList";
-import { getToken } from "@/lib/authClient";
-const API = process.env.NEXT_PUBLIC_API_URL;
+import { useApi } from "@/lib/api";
+import { CardGridSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
 export default function DeptTeamSkillsPage() {
   const { departmentId } = useParams() as { departmentId: string };
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    fetch(`${API}/api/manager/team-skills?departmentId=${departmentId}`, { headers: { Authorization: `Bearer ${getToken()}` } })
-      .then((r) => (r.ok ? r.json() : null)).then((d) => { setData(d); setLoading(false); }).catch(() => setLoading(false));
-  }, [departmentId]);
-  if (loading) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
-  if (!data) return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Could not load team skills.</p></div>;
+  const { data, error, isLoading, isRefreshing, refresh } = useApi<any>(
+    departmentId ? `/api/manager/team-skills?departmentId=${departmentId}` : null,
+    { keepPreviousData: false },
+  );
+  if (isLoading) return <CardGridSkeleton cards={3} />;
+  if (!data) return <ErrorPanel message={error?.message ?? "Could not load team skills."} onRetry={refresh} />;
   return (
     <div>
-      <div className="mb-6"><h1 className="text-2xl font-bold text-[var(--ink)]">Skills</h1><p className="mt-1 text-sm text-[var(--muted)]">Skill levels and gaps for this department.</p></div>
+      <div className="mb-6"><div className="flex items-center gap-3"><h1 className="text-2xl font-bold text-[var(--ink)]">Skills</h1><RefreshingBadge show={isRefreshing} /></div><p className="mt-1 text-sm text-[var(--muted)]">Skill levels and gaps for this department.</p></div>
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard icon={Target} label="Skills Tracked" value={data.skillsTracked} />
         <StatCard icon={Target} label="Avg Team Level" value={`${data.avgTeamLevel}/5`} sub="Across all skills" />

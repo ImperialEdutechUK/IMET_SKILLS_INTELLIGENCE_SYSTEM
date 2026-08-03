@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import LearnAreaChart from "@/components/charts/LearnAreaChart";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
 import LearnBarChart from "@/components/charts/LearnBarChart";
 import BarList from "@/components/charts/BarList";
-import { getToken } from "@/lib/authClient";
+import { useApi } from "@/lib/api";
+import { PageSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
 
-const API = process.env.NEXT_PUBLIC_API_URL;
 const CATEGORY_COLORS = ["#2e7d5b", "#3b82f6", "#8b5cf6", "#f59e0b", "#f43f5e", "#0ea5e9", "#64748b", "#e11d48"];
 
 interface Cat { name: string; value: number }
@@ -30,22 +30,16 @@ interface Data {
 }
 
 export default function AdminAnalyticsDashboard() {
-  const [data, setData] = useState<Data | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data, error, isLoading, isRefreshing, refresh } = useApi<Data>("/api/admin/dashboard");
   const [deptId, setDeptId] = useState<string | null>(null); // null = whole organisation
 
-  useEffect(() => {
-    fetch(`${API}/api/admin/dashboard`, { headers: { Authorization: `Bearer ${getToken()}` } })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, []);
-
+  // Re-resolved against whatever the latest response says. If a background
+  // revalidation removes the selected department, this falls back to null and
+  // the page reads org-wide rather than rendering a stale department.
   const dept = useMemo(() => (data && deptId ? data.departments.find((d) => d.id === deptId) ?? null : null), [data, deptId]);
 
-  if (loading || !data) {
-    return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">{loading ? "Loading…" : "Could not load dashboard."}</p></div>;
-  }
+  if (isLoading) return <PageSkeleton cards={6} />;
+  if (!data) return <ErrorPanel message={error?.message ?? "Could not load dashboard."} onRetry={refresh} />;
 
   const sum = (f: (d: Dept) => number) => data.departments.reduce((s, d) => s + f(d), 0);
   const scopeLabel = dept ? dept.name : "Whole organisation";
@@ -85,7 +79,10 @@ export default function AdminAnalyticsDashboard() {
     <div>
       {/* Header + department filter chips */}
       <div className="mb-5">
-        <h1 className="text-2xl font-bold text-[var(--ink)]">Organisation analytics</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-[var(--ink)]">Organisation analytics</h1>
+          <RefreshingBadge show={isRefreshing} />
+        </div>
         <p className="mt-1 text-sm text-[var(--muted)]">{scopeLabel} · {data.orgHealth.departments} departments · {data.totalEmployees} employees</p>
       </div>
 

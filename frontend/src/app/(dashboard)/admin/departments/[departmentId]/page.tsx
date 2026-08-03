@@ -1,16 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft, Users, BookOpen, BarChart3, ChevronDown, ArrowUpRight } from "lucide-react";
-import { getToken } from "@/lib/authClient";
+import { useApi } from "@/lib/api";
+import { PageSkeleton, RefreshingBadge } from "@/components/ui/DataState";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
 import StatCard from "@/components/dashboard/StatCard";
 import AttentionList from "@/components/dashboard/AttentionList";
 import ActivityFeed from "@/components/dashboard/ActivityFeed";
 
-const API = process.env.NEXT_PUBLIC_API_URL;
 const CATEGORY_COLORS = ["#2e7d5b", "#3b82f6", "#8b5cf6", "#f59e0b", "#f43f5e", "#64748b"];
 
 interface MemberCourse {
@@ -50,22 +50,14 @@ interface DeptData {
 export default function AdminDepartmentDetailPage() {
   const params = useParams();
   const departmentId = params.departmentId as string;
-  const [data, setData] = useState<DeptData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading, isRefreshing } = useApi<DeptData>(
+    departmentId ? `/api/admin/departments/${departmentId}` : null,
+    // Switching department must not show the previous one's members.
+    { keepPreviousData: false },
+  );
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetch(`${API}/api/admin/departments/${departmentId}`, {
-      headers: { Authorization: `Bearer ${getToken()}` },
-    })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, [departmentId]);
-
-  if (loading) {
-    return <div className="rounded-2xl border border-[var(--border)] bg-white p-6"><p className="text-sm text-[var(--muted)]">Loading…</p></div>;
-  }
+  if (isLoading) return <PageSkeleton cards={3} />;
   if (!data) {
     return (
       <div>
@@ -91,7 +83,10 @@ export default function AdminDepartmentDetailPage() {
     <div>
       <BackLink />
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[var(--ink)]">{department.name}</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-[var(--ink)]">{department.name}</h1>
+          <RefreshingBadge show={isRefreshing} />
+        </div>
         <p className="mt-1 text-sm text-[var(--muted)]">Learning, skills, badges and certificates for this department.</p>
       </div>
 

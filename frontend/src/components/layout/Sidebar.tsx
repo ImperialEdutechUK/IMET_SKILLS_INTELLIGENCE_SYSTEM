@@ -90,13 +90,14 @@ function NavGroup({ section, pathname, className }: { section: NavSection; pathn
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  aria-current={active ? "page" : undefined}
+                  className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors ${
                     active
-                      ? "bg-[var(--brand-tint)] text-[var(--brand-dark)]"
-                      : "text-[var(--muted)] hover:bg-slate-50 hover:text-[var(--ink)]"
+                      ? "bg-[var(--brand-tint)] font-semibold text-[var(--brand-dark)]"
+                      : "font-medium text-[var(--muted)] hover:bg-slate-50 hover:text-[var(--ink)]"
                   }`}
                 >
-                  <Icon className="h-4 w-4 shrink-0" />
+                  <Icon className={`h-4 w-4 shrink-0 ${active ? "text-[var(--brand)]" : ""}`} />
                   {item.label}
                 </Link>
               </li>

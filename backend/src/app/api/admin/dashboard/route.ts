@@ -10,7 +10,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
-  const [employees, activeCourses, certificatesEarned, departments, allEnrollments, allCpd, userSkills, activities, deptSummaries] =
+  const [employees, activeCourses, certificatesEarned, departments, allEnrollments, allCpd, userSkills, activities, deptSummaries, allCerts] =
     await Promise.all([
       prisma.user.count({ where: { role: "employee" } }),
       prisma.course.count({ where: { status: "published" } }),
@@ -23,7 +23,16 @@ export async function GET(req: Request) {
       // Per-department roll-up (members, at-risk, avg CPD/skill, completions) — reused
       // for the department grid + drill-down, so HR/Director reads the same figures.
       getAllDepartmentSummaries(),
+      // Certificates tagged with their owner's department, for the per-department KPI.
+      prisma.certificate.findMany({ select: { user: { select: { departmentId: true } } } }),
     ]);
+
+  // Certificates per department id.
+  const certsByDept = new Map<string, number>();
+  for (const c of allCerts) {
+    const d = c.user?.departmentId;
+    if (d) certsByDept.set(d, (certsByDept.get(d) ?? 0) + 1);
+  }
 
   // 6-month learning activity (completions by month)
   const now = new Date();
@@ -62,10 +71,9 @@ export async function GET(req: Request) {
     a.count += 1;
   }
   const skillsGap = Array.from(gapAgg.entries())
-    .map(([name, a]) => ({ name, gap: a.sumGap / a.count }))
+    .map(([name, a]) => ({ name, gap: Math.round((a.sumGap / a.count) * 10) / 10 }))
     .sort((x, y) => y.gap - x.gap)
-    .slice(0, 8)
-    .map((s) => ({ name: s.name }));
+    .slice(0, 8);
 
   // CPD compliance (on-track vs at-risk across all employees)
   let onTrack = 0, atRisk = 0;
@@ -89,7 +97,8 @@ export async function GET(req: Request) {
     ? Math.round((withMembers.reduce((s, d) => s + d.avgSkillLevel, 0) / withMembers.length) * 10) / 10
     : 0;
 
-  // Compact per-department cards for the grid (drop heavy category arrays).
+  // Per-department cards for the grid + analytics filter (category kept so the
+  // donut can re-scope to a single department when its chip is selected).
   const departmentsData = deptSummaries.map((d) => ({
     id: d.id,
     name: d.name,
@@ -101,7 +110,18 @@ export async function GET(req: Request) {
     attention: d.attention,
     avgCpd: d.avgCpd,
     avgSkillLevel: d.avgSkillLevel,
+    certificates: certsByDept.get(d.id) ?? 0,
+    categoryBreakdown: d.categoryBreakdown,
   }));
+
+  // Org-wide learning-by-category (sum of every department's breakdown).
+  const orgCatTally = new Map<string, number>();
+  for (const d of deptSummaries) {
+    for (const c of d.categoryBreakdown) orgCatTally.set(c.name, (orgCatTally.get(c.name) ?? 0) + c.value);
+  }
+  const categoryBreakdown = Array.from(orgCatTally.entries())
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value);
 
   return NextResponse.json({
     totalEmployees: employees,
@@ -117,6 +137,7 @@ export async function GET(req: Request) {
       departments: deptSummaries.length,
     },
     departments: departmentsData,
+    categoryBreakdown,
     learningActivity: months,
     departmentPerformance,
     skillsGap,

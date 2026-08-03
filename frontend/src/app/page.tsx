@@ -1,8 +1,9 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { LucideIcon } from "lucide-react";
 import {
   GraduationCap, Menu, ArrowRight, ArrowDownRight, ArrowDown,
-  Sparkles, Award, BarChart3, ImageIcon,
+  Sparkles, Award, BarChart3,
 } from "lucide-react";
 
 const features: { icon: LucideIcon; title: string; desc: string }[] = [
@@ -83,15 +84,9 @@ export default function LandingPage() {
               <div className="ml-auto mt-3 h-8 w-px bg-[var(--border)]" />
             </div>
 
-            {/* Portrait image frame — drop a real photo here (object-cover). */}
-            <div className="absolute right-2 top-16 h-[420px] w-[340px] overflow-hidden rounded-[2rem] border border-[var(--border)] shadow-[0_30px_60px_-30px_rgba(15,27,45,.3)]" style={{ background: "linear-gradient(160deg, var(--brand-tint), #ffffff)" }}>
-              <div className="grid h-full w-full place-items-center">
-                <div className="flex flex-col items-center gap-2 text-center">
-                  <span className="grid h-14 w-14 place-items-center rounded-2xl bg-white shadow-sm"><ImageIcon className="h-6 w-6 text-[var(--muted)]" /></span>
-                  <p className="text-sm font-medium">Add your photo</p>
-                  <p className="max-w-[10rem] text-xs text-[var(--muted)]">Portrait, ~3:4</p>
-                </div>
-              </div>
+            {/* Hero image */}
+            <div className="absolute right-2 top-16 h-[420px] w-[340px] overflow-hidden rounded-[2rem] border border-[var(--border)] shadow-[0_30px_60px_-30px_rgba(15,27,45,.3)]">
+              <Image src="/hero-team.png" alt="A team using LearnSmart AI's skills intelligence platform" fill sizes="340px" priority className="object-cover" />
             </div>
 
             {/* Overlapping info card */}

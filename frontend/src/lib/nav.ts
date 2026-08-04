@@ -20,18 +20,19 @@ export const navConfig: Record<Role, NavSection[]> = {
 
   manager: [
     {
-      title: "Team Statistics",
+      title: "My team",
       items: [
         { label: "Dashboard", href: "/manager/dashboard", icon: LayoutDashboard },
-        { label: "Team Learning", href: "/manager/team-learning", icon: BookOpen },
-        { label: "Skills", href: "/manager/team-skills", icon: Target },
+        { label: "Team courses", href: "/manager/team-learning", icon: BookOpen },
+        { label: "Team skills", href: "/manager/team-skills", icon: Target },
         { label: "Leaderboard", href: "/manager/leaderboard", icon: Trophy },
         { label: "Reports", href: "/manager/reports", icon: ScrollText },
       ],
     },
     {
-      // Managers learn too: the same personal pages employees get.
-      title: "My Learning",
+      // Managers learn too: the same personal pages employees get. Section header
+      // must not repeat the "My Learning" item label below it.
+      title: "Personal",
       items: [
         { label: "My Learning", href: "/me/learning", icon: BookOpen },
         { label: "My Skills", href: "/me/skills", icon: Target },
@@ -53,7 +54,8 @@ export const navConfig: Record<Role, NavSection[]> = {
     },
     {
       // Admins learn too: the same personal pages employees and managers get.
-      title: "My Learning",
+      // Section header must not repeat the "My Learning" item label below it.
+      title: "Personal",
       items: [
         { label: "My Learning", href: "/me/learning", icon: BookOpen },
         { label: "My Skills", href: "/me/skills", icon: Target },

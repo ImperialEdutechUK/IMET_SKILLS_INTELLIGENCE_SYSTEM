@@ -25,6 +25,19 @@ interface Member {
   skillsTracked: number;
   skillGaps: Gap[];
   lastActive: string;
+  lastActiveAt: string;
+}
+
+// Relative time as the primary label; the absolute date rides along in the tooltip.
+function relativeDay(iso: string): string {
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+  if (days <= 0) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 30) return `${days} days ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return months === 1 ? "1 month ago" : `${months} months ago`;
+  const years = Math.floor(days / 365);
+  return years === 1 ? "1 year ago" : `${years} years ago`;
 }
 interface Data {
   totalMembers: number;
@@ -123,7 +136,7 @@ export default function TeamLearningPage() {
                       <th className="px-5 py-3">Courses In Progress</th>
                       <th className="px-5 py-3">Completed Courses</th>
                       <th className="px-5 py-3">Skill Gaps</th>
-                      <th className="px-5 py-3">Last Active</th>
+                      <th className="px-5 py-3">Last active</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--border)]">
@@ -157,7 +170,7 @@ export default function TeamLearningPage() {
                             </button>
                           )}
                         </td>
-                        <td className="px-5 py-3.5 text-[var(--muted)]">{m.lastActive}</td>
+                        <td className="px-5 py-3.5 text-[var(--muted)]"><time dateTime={m.lastActiveAt} title={m.lastActive}>{relativeDay(m.lastActiveAt)}</time></td>
                       </tr>
                       {isOpen && m.skillGaps.length > 0 && (
                         <tr className="bg-slate-50/70">

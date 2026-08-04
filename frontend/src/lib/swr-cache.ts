@@ -9,10 +9,24 @@
  * cold start can paint last-known data immediately while the real request is
  * still in flight.
  *
- * Two rules keep stale bytes from ever being mistaken for the truth:
+ * Three rules keep stale bytes from ever being mistaken for the truth:
  *   1. Everything hydrated from disk is *always* revalidated (see useApi).
  *   2. The cache is bucketed per user id and wiped on logout, so one account can
  *      never paint another account's data.
+ *   3. Every persisted entry carries the schema version it was written under.
+ *      A version mismatch means the API's response shape may have changed
+ *      since this entry was cached — rather than paint a payload the current
+ *      frontend code wasn't written against (e.g. missing a field it now
+ *      reads unconditionally), the whole bucket is dropped and the page
+ *      starts cold, same as a first-ever visit.
+ *
+ * BUMP CACHE_SCHEMA_VERSION whenever you change what an existing `/api/*`
+ * response contains in a way older cached data wouldn't satisfy — a field
+ * added, renamed, removed, or repurposed. This is deliberately coarse: one
+ * bump clears every endpoint's cache for every user (a one-time loading
+ * flash), which is a much smaller cost than a per-field guard someone forgot
+ * to add. It is NOT a substitute for typing new fields as optional in the
+ * frontend interface — do both.
  */
 
 import type { Cache, State } from "swr";
@@ -24,7 +38,16 @@ const MAX_AGE_MS = 12 * 60 * 60 * 1000;
 const MAX_BYTES = 1_500_000;
 const FLUSH_DELAY_MS = 400;
 
-type Persisted = Record<string, { d: unknown; t: number }>;
+/**
+ * Bump this whenever an existing API response's shape changes in a way old
+ * cached entries wouldn't satisfy. See the file header for what that covers.
+ * Last bumped: manager dashboard / team-skills / team-learning gained a
+ * `definitions` field (metric-explanation strings).
+ */
+const CACHE_SCHEMA_VERSION = 1;
+
+type Entries = Record<string, { d: unknown; t: number }>;
+type Persisted = { v: number; entries: Entries };
 
 /** Only real API responses are worth persisting — SWR's internal bookkeeping keys are not. */
 function isPersistable(key: string) {
@@ -125,8 +148,13 @@ class PersistentCache implements Cache<unknown> {
     } catch {
       return; // corrupt or unreadable — start cold rather than guess
     }
+    // A schema-version mismatch means these entries were written by older
+    // frontend code against a possibly-different response shape — painting
+    // them could crash the very code that no longer expects that shape.
+    // Drop the whole bucket and start cold instead of guessing per-key.
+    if (!parsed || parsed.v !== CACHE_SCHEMA_VERSION || !parsed.entries) return;
     const cutoff = Date.now() - MAX_AGE_MS;
-    for (const [key, entry] of Object.entries(parsed)) {
+    for (const [key, entry] of Object.entries(parsed.entries)) {
       if (!entry || typeof entry.t !== "number" || entry.t < cutoff) continue;
       // isLoading/isValidating stay false: this is a real (if stale) value, and
       // useApi reports staleness separately via `isStale`.
@@ -147,7 +175,7 @@ class PersistentCache implements Cache<unknown> {
     if (typeof window === "undefined" || !this.userId) return;
     // Newest first, so the budget trim below drops the least useful entries.
     const entries = [...this.stamps.entries()].sort((a, b) => b[1] - a[1]);
-    const out: Persisted = {};
+    const out: Entries = {};
     let bytes = 0;
     for (const [key, t] of entries) {
       const state = this.map.get(key);
@@ -162,8 +190,9 @@ class PersistentCache implements Cache<unknown> {
       if (bytes > MAX_BYTES) break;
       out[key] = { d: state.data, t };
     }
+    const persisted: Persisted = { v: CACHE_SCHEMA_VERSION, entries: out };
     try {
-      localStorage.setItem(bucketKey(this.userId), JSON.stringify(out));
+      localStorage.setItem(bucketKey(this.userId), JSON.stringify(persisted));
     } catch {
       // Quota exceeded or storage disabled. Drop our bucket so we fail cold
       // rather than half-written.

@@ -34,7 +34,7 @@ interface Data {
   completed: number;
   avgCpdProgress: number;
   avgCompletion: number;
-  definitions: { avgCpdProgress: string };
+  definitions?: { avgCpdProgress: string };
   members: Member[];
 }
 
@@ -94,7 +94,7 @@ export default function TeamLearningPage() {
             <KpiCard icon={Users} label="Total members" value={data.totalMembers} sublabel={`${data.activeLearners} active learners`} />
             <KpiCard icon={BookOpen} label="Courses in progress" value={data.inProgress} />
             <KpiCard icon={CheckCircle} label="Completed courses" value={data.completed} />
-            <KpiCard icon={BarChart3} label="Average CPD progress" value={`${data.avgCpdProgress}%`} sublabel="Vs annual target" definition={data.definitions.avgCpdProgress} />
+            <KpiCard icon={BarChart3} label="Average CPD progress" value={`${data.avgCpdProgress}%`} sublabel="Vs annual target" definition={data.definitions?.avgCpdProgress} />
           </div>
 
           {/* data-tour: onboarding-tour anchor only — no behaviour change. */}

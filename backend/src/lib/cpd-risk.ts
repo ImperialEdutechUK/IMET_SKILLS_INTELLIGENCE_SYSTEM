@@ -24,8 +24,15 @@ export interface CpdRisk {
   status: CpdAttentionStatus;
 }
 
-const AT_RISK_PACE = 0.5;
-const ATTENTION_PACE = 0.75;
+// Pace bands are configurable via env (no schema, no hard-code) so a manager's
+// "expected pace" can be tuned per deployment. Defaults mirror the old 50%/75%.
+export const AT_RISK_PACE = Number(process.env.CPD_AT_RISK_PACE ?? 0.5);
+export const ATTENTION_PACE = Number(process.env.CPD_ATTENTION_PACE ?? 0.75);
+
+/** Hours per week a member must average to stay on the annual target. */
+export function expectedWeeklyHours(targetHours: number): number {
+  return Math.round((targetHours / 52) * 10) / 10;
+}
 
 export function cpdRiskStatus(
   cpdHours: number,

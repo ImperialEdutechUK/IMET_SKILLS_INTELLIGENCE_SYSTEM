@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import { TONES, type Icon3DTone } from "./Icon3D";
+import MetricInfo from "@/components/ui/MetricInfo";
 
 // Colourful Bento stat tile. Tints itself from the given tone so every page that
 // uses it becomes part of the bento look with no call-site changes.
@@ -11,6 +12,7 @@ export default function Stat3D({
   value,
   sub,
   href,
+  definition,
 }: {
   icon: LucideIcon;
   tone?: Icon3DTone;
@@ -18,6 +20,8 @@ export default function Stat3D({
   value: string | number;
   sub?: string;
   href?: string;
+  /** When present, renders an accessible info affordance next to the label. */
+  definition?: string;
 }) {
   const inner = (
     <>
@@ -26,7 +30,10 @@ export default function Stat3D({
       </span>
       <div className="mt-3">
         <p className="text-[2rem] font-extrabold leading-none" style={{ color: tone.to }}>{value}</p>
-        <p className="mt-1.5 text-sm font-medium" style={{ color: tone.to, opacity: 0.85 }}>{label}</p>
+        <p className="mt-1.5 flex items-center gap-1.5 text-sm font-medium" style={{ color: tone.to, opacity: 0.85 }}>
+          {label}
+          {definition && <MetricInfo label={typeof label === "string" ? label : "Metric"} definition={definition} />}
+        </p>
         {sub && <p className="mt-0.5 text-xs" style={{ color: tone.to, opacity: 0.7 }}>{sub}</p>}
       </div>
     </>

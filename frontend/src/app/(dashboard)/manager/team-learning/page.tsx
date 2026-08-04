@@ -27,10 +27,14 @@ interface Member {
   lastActive: string;
 }
 interface Data {
+  totalMembers: number;
   teamMembers: number;
+  activeLearners: number;
   inProgress: number;
   completed: number;
+  avgCpdProgress: number;
   avgCompletion: number;
+  definitions: { avgCpdProgress: string };
   members: Member[];
 }
 
@@ -93,10 +97,10 @@ export default function TeamLearningPage() {
       ) : (
         <>
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Stat3D icon={Users} tone={TONES.indigo} label="Total Team Members" value={data.teamMembers} />
-            <Stat3D icon={BookOpen} tone={TONES.blue} label="Courses In Progress" value={data.inProgress} />
-            <Stat3D icon={CheckCircle} tone={TONES.emerald} label="Completed Courses" value={data.completed} />
-            <Stat3D icon={BarChart3} tone={TONES.amber} label="Average Progress" value={`${data.avgCompletion}%`} />
+            <Stat3D icon={Users} tone={TONES.indigo} label="Total members" value={data.totalMembers} sub={`${data.activeLearners} active learners`} />
+            <Stat3D icon={BookOpen} tone={TONES.blue} label="Courses in progress" value={data.inProgress} />
+            <Stat3D icon={CheckCircle} tone={TONES.emerald} label="Completed courses" value={data.completed} />
+            <Stat3D icon={BarChart3} tone={TONES.amber} label="Average CPD progress" value={`${data.avgCpdProgress}%`} sub="Vs annual target" definition={data.definitions.avgCpdProgress} />
           </div>
 
           {/* data-tour: onboarding-tour anchor only — no behaviour change. */}

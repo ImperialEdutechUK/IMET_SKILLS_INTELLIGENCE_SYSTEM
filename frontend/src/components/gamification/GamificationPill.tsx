@@ -27,12 +27,13 @@ export default function GamificationPill() {
     <Link
       data-tour="topbar-level"
       href="/me/learning?tab=certificates"
-      title={`${g.title} · Level ${g.level} · ${g.xp} XP`}
+      aria-label={`Your personal learning progress: ${g.title}, level ${g.level}, ${g.xp} XP`}
       className="hidden items-center gap-2 rounded-full border border-[var(--brand)]/20 bg-[var(--brand-tint)] py-1 pl-1.5 pr-3 transition hover:shadow-sm sm:flex"
     >
       <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white text-sm shadow-sm">{g.current?.emoji ?? "🌱"}</span>
       <span className="leading-tight">
         <span className="flex items-center gap-1.5">
+          <span className="text-[9px] font-semibold uppercase tracking-wide text-[var(--brand)]/70">You</span>
           <span className="text-xs font-bold text-[var(--brand-dark)]">Lv {g.level}</span>
           <span className="text-[10px] font-semibold text-[var(--brand)]">{g.xp} XP</span>
         </span>

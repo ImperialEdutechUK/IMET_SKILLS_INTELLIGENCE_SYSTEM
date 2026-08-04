@@ -13,13 +13,17 @@ interface SkillOverview { skill: string; avgPercent: number }
 interface NeedImprovement { skill: string; membersNeedImprovement: number; avgGapPercent: number }
 interface MemberNeed { id: string; fullName: string; position: string | null; avgLevelPercent: number; skills: string[]; priority: string }
 interface Data {
-  teamMembers: number;
   avgTeamLevel: number;
+  avgSkillTracked: number;
+  avgSkillTotal: number;
+  totalMembers: number;
+  membersWithTrackedSkills: number;
   strongSkills: number;
   skillsToImprove: number;
   skillOverview: SkillOverview[];
   needImprovement: NeedImprovement[];
   memberNeeds: MemberNeed[];
+  definitions: { avgSkillLevel: string };
 }
 
 const prioBadge: Record<string, string> = {
@@ -54,10 +58,10 @@ export default function TeamSkillsPage() {
       ) : (
         <>
           <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <Stat3D icon={Gauge} tone={TONES.emerald} label="Average Skill Level" value={`${data.avgTeamLevel}%`} sub="Across your team" />
-            <Stat3D icon={Star} tone={TONES.blue} label="Strong Skills" value={data.strongSkills} sub="At a good level" />
-            <Stat3D icon={AlertTriangle} tone={TONES.amber} label="Skills to Improve" value={data.skillsToImprove} sub="Needs attention" />
-            <Stat3D icon={Users} tone={TONES.indigo} label="Team Members" value={data.teamMembers} sub="With tracked skills" />
+            <Stat3D icon={Gauge} tone={TONES.emerald} label="Average skill level" value={`${data.avgTeamLevel}%`} sub={`${data.avgSkillTracked} of ${data.avgSkillTotal} members tracked`} definition={data.definitions.avgSkillLevel} />
+            <Stat3D icon={Star} tone={TONES.blue} label="Strong skills" value={data.strongSkills} sub="At a good level" />
+            <Stat3D icon={AlertTriangle} tone={TONES.amber} label="Skills to improve" value={data.skillsToImprove} sub="Have an average gap" />
+            <Stat3D icon={Users} tone={TONES.indigo} label="Members with tracked skills" value={data.membersWithTrackedSkills} sub={`of ${data.totalMembers} on the team`} />
           </div>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

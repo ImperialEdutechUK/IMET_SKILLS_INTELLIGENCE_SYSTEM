@@ -20,7 +20,8 @@ const INSIGHT_TABS: { key: InsightTab; label: string; icon: typeof BarChart3 }[]
 
 
 interface ReportData {
-  stats: { totalMembers: number; totalCpdHours: number; coursesCompleted: number; coursesInProgress: number; avgProgress: number };
+  stats: { totalMembers: number; totalCpdHours: number; coursesCompleted: number; coursesInProgress: number; avgProgress: number; avgCpdProgress: number };
+  definitions?: { avgCpdProgress: string };
   trend: { label: string; avgProgress: number; cpdHours: number }[];
   progress: { learningProgress: number; cpdProgress: number; completionRate: number };
   recentReports: { name: string; generatedOn: string; format: string }[];
@@ -45,7 +46,7 @@ export default function ManagerReportsPage() {
       `Total Members,${data.stats.totalMembers}`,
       `Courses In Progress,${data.stats.coursesInProgress}`,
       `Completed Courses,${data.stats.coursesCompleted}`,
-      `Average Progress,${data.stats.avgProgress}%`,
+      `Average CPD progress,${data.stats.avgProgress}%`,
       "",
       "Week,Progress %",
       ...data.trend.map((t) => `${t.label},${t.avgProgress}`),
@@ -101,10 +102,10 @@ export default function ManagerReportsPage() {
       ) : (
         <>
           <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-            <Stat3D icon={Users} tone={TONES.indigo} label="Total Members" value={data.stats.totalMembers} />
-            <Stat3D icon={BookOpen} tone={TONES.blue} label="Courses In Progress" value={data.stats.coursesInProgress} />
-            <Stat3D icon={Award} tone={TONES.emerald} label="Completed Courses" value={data.stats.coursesCompleted} />
-            <Stat3D icon={TrendingUp} tone={TONES.violet} label="Average Progress" value={`${data.stats.avgProgress}%`} />
+            <Stat3D icon={Users} tone={TONES.indigo} label="Total members" value={data.stats.totalMembers} />
+            <Stat3D icon={BookOpen} tone={TONES.blue} label="Courses in progress" value={data.stats.coursesInProgress} />
+            <Stat3D icon={Award} tone={TONES.emerald} label="Completed courses" value={data.stats.coursesCompleted} />
+            <Stat3D icon={TrendingUp} tone={TONES.violet} label="Average CPD progress" value={`${data.stats.avgProgress}%`} sub="Vs annual target" definition={data.definitions?.avgCpdProgress} />
           </div>
 
           {/* One engaging view at a time — tap a tab to switch. Keeps the page

@@ -3,6 +3,8 @@ import { prisma } from "@/lib/db";
 import { verifyToken } from "@/lib/verifyToken";
 import { getCpdTargetHours } from "@/lib/cpd-target";
 import { cpdRiskStatus } from "@/lib/cpd-risk";
+import { excludeTestAccounts } from "@/lib/test-accounts";
+import { type MetricMember, avgCpdProgressPct } from "@/lib/metrics/teamMetrics";
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
@@ -21,11 +23,13 @@ export async function GET(req: Request) {
   // Managers are locked to their own department, server-side (ignores any client param).
   const departmentId = authUser.departmentId;
 
-  const users = await prisma.user.findMany({
+  const rawUsers = await prisma.user.findMany({
     where: { role: "employee", ...(departmentId ? { departmentId } : {}) },
     include: { enrollments: true, cpdRecords: true, department: true },
     orderBy: { fullName: "asc" },
   });
+  // Exclude seeded test/onboarding accounts from every reported figure.
+  const users = excludeTestAccounts(rawUsers);
 
   // Per-department CPD target cache (used to compute each member's cpdProgress).
   const targetCache = new Map<string | null, number>();
@@ -34,27 +38,34 @@ export async function GET(req: Request) {
     return targetCache.get(deptId)!;
   }
 
-  const members = await Promise.all(
+  const mm: MetricMember[] = await Promise.all(
     users.map(async (u) => {
       const targetHours = await target(u.departmentId);
       const cpdHours = u.cpdRecords.reduce((s, r) => s + r.hours, 0);
-      const { cpdProgress } = cpdRiskStatus(cpdHours, targetHours);
+      const { cpdProgress, status } = cpdRiskStatus(cpdHours, targetHours);
       return {
+        id: u.id,
+        fullName: u.fullName,
+        email: u.email,
+        userSkills: [],
+        enrollmentsCount: u.enrollments.length,
+        coursesCompleted: u.enrollments.filter((e) => e.status === "completed").length,
+        coursesInProgress: u.enrollments.filter((e) => e.status === "in_progress").length,
         cpdHours,
+        cpdRecordsCount: u.cpdRecords.length,
         cpdProgress,
-        completed: u.enrollments.filter((e) => e.status === "completed").length,
-        inProgress: u.enrollments.filter((e) => e.status === "in_progress").length,
+        riskStatus: status,
       };
     })
   );
 
-  const totalMembers = members.length;
-  const totalCpdHours = round1(members.reduce((s, m) => s + m.cpdHours, 0));
-  const coursesCompleted = members.reduce((s, m) => s + m.completed, 0);
-  const coursesInProgress = members.reduce((s, m) => s + m.inProgress, 0);
-  const avgProgress = totalMembers
-    ? Math.round(members.reduce((s, m) => s + m.cpdProgress, 0) / totalMembers)
-    : 0;
+  const totalMembers = mm.length;
+  const totalCpdHours = round1(mm.reduce((s, m) => s + m.cpdHours, 0));
+  const coursesCompleted = mm.reduce((s, m) => s + m.coursesCompleted, 0);
+  const coursesInProgress = mm.reduce((s, m) => s + m.coursesInProgress, 0);
+  // Canonical metric (single implementation): mean CPD progress vs annual target.
+  const avgCpd = avgCpdProgressPct(mm);
+  const avgProgress = avgCpd.value;
 
   // ---- Trend: last 8 weeks ----
   const allEnrollments = users.flatMap((u) => u.enrollments);
@@ -101,7 +112,9 @@ export async function GET(req: Request) {
       coursesCompleted,
       coursesInProgress,
       avgProgress,
+      avgCpdProgress: avgProgress,
     },
+    definitions: { avgCpdProgress: avgCpd.definition },
     trend,
     progress: {
       learningProgress: avgProgress,

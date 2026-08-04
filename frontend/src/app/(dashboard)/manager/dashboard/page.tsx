@@ -79,12 +79,12 @@ export default function ManagerDashboardPage() {
 
   // The single verdict a manager reads first — same language as the admin view.
   const verdict = stats.teamMembers === 0
-    ? { tone: "text-slate-500", word: "No team yet", line: `No employees in ${data.departmentName} yet.` }
+    ? { tone: "text-slate-500", dot: "bg-slate-400", word: "No team yet", line: `No employees in ${data.departmentName} yet.` }
     : stats.atRisk > 0
-      ? { tone: "text-rose-600", word: "Needs attention", line: `${behind} of ${stats.teamMembers} ${behind === 1 ? "person is" : "people are"} behind on their learning — a reminder now gives them time to catch up.` }
+      ? { tone: "text-rose-600", dot: "bg-rose-500", word: "Needs attention", line: `${behind} of ${stats.teamMembers} ${behind === 1 ? "person is" : "people are"} behind on their learning — a reminder now gives them time to catch up.` }
       : stats.attention > 0
-        ? { tone: "text-amber-600", word: "Mostly on track", line: `${behind} of ${stats.teamMembers} ${behind === 1 ? "person needs" : "people need"} a nudge to stay on pace.` }
-        : { tone: "text-emerald-600", word: "On track", line: `All ${stats.teamMembers} team members are on pace with their learning.` };
+        ? { tone: "text-amber-600", dot: "bg-amber-500", word: "Mostly on track", line: `${behind} of ${stats.teamMembers} ${behind === 1 ? "person needs" : "people need"} a nudge to stay on pace.` }
+        : { tone: "text-emerald-600", dot: "bg-emerald-500", word: "On track", line: `All ${stats.teamMembers} team members are on pace with their learning.` };
 
   return (
     <div className="-m-6 min-h-full bg-white p-6 lg:p-8">
@@ -105,32 +105,29 @@ export default function ManagerDashboardPage() {
 
         {/* Verdict — the answer, first. data-tour anchor kept for the onboarding tour. */}
         <section data-tour="mgr-health" className={`${CARD} mb-8 p-6 sm:p-7`}>
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="max-w-lg">
+          {/* Status headline with a matching status dot */}
+          <div className="flex items-start gap-3">
+            <span className={`mt-2 h-2.5 w-2.5 shrink-0 rounded-full ${verdict.dot}`} aria-hidden />
+            <div className="max-w-2xl">
               <p className={`text-2xl font-bold tracking-tight ${verdict.tone}`}>{verdict.word}</p>
               <p className="mt-1.5 text-[15px] leading-relaxed text-[var(--muted)]">{remindMsg || verdict.line}</p>
             </div>
-            <div className="flex gap-8">
-              <Figure value={`${stats.activeLearners}/${stats.teamMembers}`} label="Active learners" />
-              <Figure value={stats.coursesCompleted} label="Courses done" />
-              <Figure value={`${stats.avgSkillLevel}%`} label="Avg skill" />
-            </div>
           </div>
 
-          {/* Single glanceable health bar */}
+          {/* Clear breakdown — a proportion bar plus three labelled counts */}
           {stats.teamMembers > 0 && (
-            <div className="mt-6">
-              <div className="flex h-3 w-full overflow-hidden rounded-full bg-slate-100">
+            <>
+              <div className="mt-6 flex h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
                 <span className="h-full bg-emerald-500 transition-[width] duration-700 ease-out" style={{ width: `${filled ? pct(onTrack) : 0}%` }} />
                 <span className="h-full bg-amber-500 transition-[width] duration-700 ease-out" style={{ width: `${filled ? pct(stats.attention) : 0}%` }} />
                 <span className="h-full bg-rose-500 transition-[width] duration-700 ease-out" style={{ width: `${filled ? pct(stats.atRisk) : 0}%` }} />
               </div>
-              <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1.5 text-[13px]">
-                <Legend color="bg-emerald-500" label="On track" value={onTrack} />
-                <Legend color="bg-amber-500" label="Behind pace" value={stats.attention} />
-                <Legend color="bg-rose-500" label="At risk" value={stats.atRisk} />
+              <div className="mt-4 grid grid-cols-3 gap-3">
+                <StatusStat tone="emerald" label="On track" value={onTrack} total={stats.teamMembers} />
+                <StatusStat tone="amber" label="Behind pace" value={stats.attention} total={stats.teamMembers} />
+                <StatusStat tone="rose" label="At risk" value={stats.atRisk} total={stats.teamMembers} />
               </div>
-            </div>
+            </>
           )}
 
           {/* Manager actions */}
@@ -245,21 +242,26 @@ export default function ManagerDashboardPage() {
   );
 }
 
-function Figure({ value, label }: { value: string | number; label: string }) {
-  return (
-    <div>
-      <p className="nums-tabular text-[1.55rem] font-bold leading-none tracking-tight text-[var(--ink)]">{value}</p>
-      <p className="mt-1 text-xs text-[var(--muted)]">{label}</p>
-    </div>
-  );
-}
+const STATUS_TONE: Record<"emerald" | "amber" | "rose", { bg: string; dot: string; num: string; label: string }> = {
+  emerald: { bg: "bg-emerald-50", dot: "bg-emerald-500", num: "text-emerald-700", label: "text-emerald-700/80" },
+  amber: { bg: "bg-amber-50", dot: "bg-amber-500", num: "text-amber-700", label: "text-amber-700/80" },
+  rose: { bg: "bg-rose-50", dot: "bg-rose-500", num: "text-rose-700", label: "text-rose-700/80" },
+};
 
-function Legend({ color, label, value }: { color: string; label: string; value: number }) {
+// One labelled status count — big number over a coloured, named chip so the
+// on-track / behind / at-risk split reads at a glance instead of a tiny legend.
+function StatusStat({ tone, label, value, total }: { tone: "emerald" | "amber" | "rose"; label: string; value: number; total: number }) {
+  const t = STATUS_TONE[tone];
   return (
-    <span className="inline-flex items-center gap-1.5 text-[var(--muted)]">
-      <span className={`h-2 w-2 rounded-full ${color}`} />
-      <span className="font-medium text-[var(--ink)]">{value}</span> {label}
-    </span>
+    <div className={`rounded-xl ${t.bg} px-4 py-3`}>
+      <div className="flex items-center gap-2">
+        <span className={`h-2 w-2 shrink-0 rounded-full ${t.dot}`} />
+        <span className={`text-xs font-semibold ${t.label}`}>{label}</span>
+      </div>
+      <p className={`nums-tabular mt-1.5 text-2xl font-bold leading-none ${t.num}`}>
+        {value}<span className="text-sm font-medium opacity-60"> / {total}</span>
+      </p>
+    </div>
   );
 }
 

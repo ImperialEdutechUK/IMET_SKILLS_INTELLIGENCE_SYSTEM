@@ -52,8 +52,9 @@ export default function UserManagementPage() {
         </div>
         <p className="mb-6 text-sm text-[var(--muted)]">Everyone on the platform, grouped by department. New people self-register and wait under Pending approvals.</p>
 
-        {/* Lean summary — figures, not a wall of icon cards. Pending is actionable. */}
-        <div className={`${CARD} mb-7 flex flex-wrap items-center gap-x-10 gap-y-4 px-6 py-5`}>
+        {/* Lean summary — figures, not a wall of icon cards. Pending is actionable.
+            data-tour: onboarding-tour anchor only — no behaviour change. */}
+        <div data-tour="adm-users-summary" className={`${CARD} mb-7 flex flex-wrap items-center gap-x-10 gap-y-4 px-6 py-5`}>
           <Figure value={data.total} label="Total users" />
           <Figure value={data.active} label="Active" />
           {data.pending > 0 ? (
@@ -79,7 +80,7 @@ export default function UserManagementPage() {
         </div>
 
         {/* Roster */}
-        <div className={`${CARD} overflow-hidden`}>
+        <div data-tour="adm-users-roster" className={`${CARD} overflow-hidden`}>
           {filtered.length === 0 ? (
             <p className="p-6 text-sm text-[var(--muted)]">No users match your search.</p>
           ) : (

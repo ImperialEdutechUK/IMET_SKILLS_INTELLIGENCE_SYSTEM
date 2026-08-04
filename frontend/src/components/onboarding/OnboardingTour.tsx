@@ -20,7 +20,7 @@ import type { Placement, TourStep } from "@/lib/onboarding";
  * The step advances on that click, so the user learns by doing.
  *
  * Presentation only. Deciding who sees the tour and remembering the outcome is
- * the caller's job (see EmployeeOnboarding).
+ * the caller's job (see OnboardingLauncher).
  */
 
 const CARD_WIDTH = 348;

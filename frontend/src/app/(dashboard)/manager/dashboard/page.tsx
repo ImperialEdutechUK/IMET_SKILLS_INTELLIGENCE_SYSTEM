@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Users, BookOpen, Award, TrendingUp, Download, ChevronRight, ArrowRight, AlertTriangle, CheckCircle2, BarChart3, PieChart, Activity, Clock } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { Users, BookOpen, Award, TrendingUp, Download, ChevronRight, ArrowRight, AlertTriangle, CheckCircle2, LayoutDashboard, BarChart3, PieChart, Activity, Clock } from "lucide-react";
 import LearnAreaChart from "@/components/charts/LearnAreaChart";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
 import Dropdown from "@/components/dashboard/Dropdown";
@@ -11,13 +10,18 @@ import CollapsibleCard from "@/components/dashboard/CollapsibleCard";
 import { TONES } from "@/components/dashboard/Icon3D";
 import { useApi, apiSend, ApiError } from "@/lib/api";
 import { PageSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
+import MetricInfo from "@/components/ui/MetricInfo";
+import PageHeader from "@/components/ui/PageHeader";
+import KpiCard from "@/components/ui/KpiCard";
+import StatusPill, { type Status } from "@/components/ui/StatusPill";
 
 interface DashData {
   fullName: string;
   departmentName: string;
-  stats: { teamMembers: number; activeLearners: number; coursesInProgress: number; coursesCompleted: number; notStarted: number; cpdCompletion: number; cpdHoursTotal: number; teamTarget: number; avgSkillLevel: number; atRisk: number; attention: number };
+  stats: { teamMembers: number; activeLearners: number; coursesInProgress: number; coursesCompleted: number; notStarted: number; cpdCompletion: number; cpdHoursTotal: number; teamTarget: number; avgSkillLevel: number; avgSkillTracked: number; avgSkillTotal: number; onTrack: number; atRisk: number; attention: number; expectedWeeklyHours: number };
+  definitions: { avgSkillLevel: string; avgCpdProgress: string; pace: string };
   progressOverTime: { label: string; hours: number }[];
-  attention: { id: string; fullName: string; reason: string; status: "at_risk" | "attention" | "inactive" }[];
+  attention: { id: string; fullName: string; reason: string; status: "at_risk" | "attention" | "not_started" }[];
   recentActivity: { id: string; user: string; action: string; type: string; time: string }[];
   categoryBreakdown: { name: string; value: number; color: string }[];
   cpdStatusBreakdown: { name: string; value: number; color: string }[];
@@ -26,13 +30,6 @@ interface DashData {
 // One calm card surface on a white page — the same token the admin dashboard and
 // the landing cards use, so every surface reads as one product.
 const CARD = "rounded-2xl border border-[var(--border)] bg-white shadow-[0_1px_2px_rgba(15,27,45,.04),0_10px_26px_-14px_rgba(15,27,45,.12)]";
-
-const STATUS: Record<string, { label: string; cls: string }> = {
-  at_risk: { label: "At risk", cls: "bg-rose-50 text-rose-700" },
-  attention: { label: "Behind target", cls: "bg-amber-50 text-amber-700" },
-  inactive: { label: "No activity", cls: "bg-slate-100 text-slate-600" },
-  on_track: { label: "On track", cls: "bg-emerald-50 text-emerald-700" },
-};
 
 export default function ManagerDashboardPage() {
   const { data, error, isLoading, isRefreshing, refresh } = useApi<DashData>("/api/manager/dashboard");
@@ -67,7 +64,10 @@ export default function ManagerDashboardPage() {
 
   const { stats } = data;
   const behind = stats.atRisk + stats.attention;
-  const onTrack = Math.max(0, stats.teamMembers - behind);
+  // "Not started" (no courses, no hours) is a separate population — never counted
+  // as behind. On-track comes straight from the server's 4-way pace breakdown.
+  const onTrack = stats.onTrack;
+  const notStarted = stats.notStarted;
   const totalCourses = stats.coursesInProgress + stats.coursesCompleted;
   const thisWeek = data.progressOverTime.length ? data.progressOverTime[data.progressOverTime.length - 1].hours : 0;
   const trend = data.progressOverTime.slice(-trendWeeks);
@@ -80,25 +80,28 @@ export default function ManagerDashboardPage() {
       ? { icon: AlertTriangle, iconWrap: "bg-rose-50 text-rose-600", accent: "from-rose-50/70", word: "Needs attention", line: `${behind} of ${stats.teamMembers} ${behind === 1 ? "person is" : "people are"} behind on their learning — a reminder now gives them time to catch up.` }
       : stats.attention > 0
         ? { icon: AlertTriangle, iconWrap: "bg-amber-50 text-amber-600", accent: "from-amber-50/70", word: "Mostly on track", line: `${behind} of ${stats.teamMembers} ${behind === 1 ? "person needs" : "people need"} a nudge to stay on pace.` }
-        : { icon: CheckCircle2, iconWrap: "bg-emerald-50 text-emerald-600", accent: "from-emerald-50/70", word: "On track", line: `All ${stats.teamMembers} team members are on pace with their learning.` };
+        : notStarted > 0
+          ? { icon: BookOpen, iconWrap: "bg-slate-100 text-slate-500", accent: "from-slate-50", word: "Ready to begin", line: `Everyone active is on pace. ${notStarted} of ${stats.teamMembers} ${notStarted === 1 ? "person hasn't" : "people haven't"} started yet.` }
+          : { icon: CheckCircle2, iconWrap: "bg-emerald-50 text-emerald-600", accent: "from-emerald-50/70", word: "On track", line: `All ${stats.teamMembers} team members are on pace with their learning.` };
   const VerdictIcon = verdict.icon;
 
   return (
     <div className="-m-6 min-h-full bg-white p-6 lg:p-8">
       <div className="mx-auto max-w-6xl">
         {/* Header */}
-        <div className="mb-7 flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <h1 className="text-[1.65rem] font-bold tracking-tight text-[var(--ink)]">Team dashboard</h1>
+        <PageHeader
+          icon={LayoutDashboard}
+          title="Team dashboard"
+          meta={<span>{today} · {data.departmentName} · {stats.teamMembers} total member{stats.teamMembers === 1 ? "" : "s"}</span>}
+          action={
+            <>
               <RefreshingBadge show={isRefreshing} />
-            </div>
-            <p className="mt-1 text-sm text-[var(--muted)]">{today} · {data.departmentName} · {stats.teamMembers} team member{stats.teamMembers === 1 ? "" : "s"}</p>
-          </div>
-          <Link href="/manager/reports" className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-2.5 text-sm font-semibold text-[var(--ink)] transition-colors hover:bg-slate-50">
-            <Download className="h-4 w-4" /> Export report
-          </Link>
-        </div>
+              <Link href="/manager/reports" className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-2.5 text-sm font-semibold text-[var(--ink)] transition-colors hover:bg-slate-50">
+                <Download className="h-4 w-4" /> Export report
+              </Link>
+            </>
+          }
+        />
 
         {/* Verdict — the answer, first. data-tour anchor kept for the onboarding tour. */}
         <section data-tour="mgr-health" className={`${CARD} relative mb-8 overflow-hidden`}>
@@ -116,13 +119,21 @@ export default function ManagerDashboardPage() {
               </div>
             </div>
 
-            {/* Breakdown — one refined panel, three divided stats */}
+            {/* Breakdown — one refined panel, four divided populations. "Not
+                started" is separated from "at risk" so no-data is not triaged. */}
             {stats.teamMembers > 0 && (
-              <div className="mt-6 grid grid-cols-3 divide-x divide-[var(--border)] overflow-hidden rounded-2xl border border-[var(--border)] bg-white/70">
-                <BreakdownStat tone="emerald" label="On track" value={onTrack} total={stats.teamMembers} />
-                <BreakdownStat tone="amber" label="Behind pace" value={stats.attention} total={stats.teamMembers} />
-                <BreakdownStat tone="rose" label="At risk" value={stats.atRisk} total={stats.teamMembers} />
-              </div>
+              <>
+                <div className="mt-6 grid grid-cols-2 divide-[var(--border)] overflow-hidden rounded-2xl border border-[var(--border)] bg-white/70 sm:grid-cols-4 sm:divide-x">
+                  <BreakdownStat tone="emerald" label="On track" value={onTrack} total={stats.teamMembers} />
+                  <BreakdownStat tone="amber" label="Behind pace" value={stats.attention} total={stats.teamMembers} />
+                  <BreakdownStat tone="rose" label="At risk" value={stats.atRisk} total={stats.teamMembers} />
+                  <BreakdownStat tone="slate" label="Not started" value={notStarted} total={stats.teamMembers} />
+                </div>
+                <p className="mt-3 flex items-center gap-1.5 text-xs text-[var(--muted)]">
+                  Expected pace: about {stats.expectedWeeklyHours}h per week to stay on the annual CPD target.
+                  <MetricInfo label="How pace is judged" definition={data.definitions.pace} />
+                </p>
+              </>
             )}
 
             {/* Manager actions */}
@@ -155,13 +166,12 @@ export default function ManagerDashboardPage() {
             ) : (
               <ul className="divide-y divide-[var(--border)]">
                 {data.attention.map((a) => {
-                  const st = STATUS[a.status] ?? STATUS.attention;
                   return (
                     <li key={a.id}>
                       <Link href={`/manager/employees/${a.id}`} className="group flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-slate-50/80">
                         <Avatar name={a.fullName} />
                         <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium text-[var(--ink)]">{a.fullName}</p><p className="truncate text-xs text-[var(--muted)]">{a.reason}</p></div>
-                        <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${st.cls}`}>{st.label}</span>
+                        <span className="shrink-0"><StatusPill status={a.status as Status} /></span>
                         <span className="hidden shrink-0 items-center gap-1 text-xs font-semibold text-[var(--brand)] transition-colors group-hover:text-[var(--brand-dark)] sm:inline-flex">
                           View profile <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                         </span>
@@ -178,10 +188,10 @@ export default function ManagerDashboardPage() {
         {/* Key numbers — clean, light, clickable tiles */}
         <p className="mb-3 text-sm font-semibold text-[var(--ink)]">Key numbers</p>
         <div data-tour="mgr-kpis" className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <StatCard href="/manager/team-learning" icon={Users} label="Active learners" value={`${stats.activeLearners} of ${stats.teamMembers}`} sub="Enrolled in a course" />
-          <StatCard href="/manager/team-learning" icon={BookOpen} label="Courses in progress" value={stats.coursesInProgress} sub={`${stats.coursesCompleted} completed`} />
-          <StatCard href="/manager/team-learning" icon={Award} label="Courses completed" value={stats.coursesCompleted} sub="Across the team" />
-          <StatCard href="/manager/team-skills" icon={TrendingUp} label="Avg skill level" value={`${stats.avgSkillLevel}%`} sub="Across the team" />
+          <KpiCard href="/manager/team-learning" icon={Users} label="Active learners" value={`${stats.activeLearners} of ${stats.teamMembers}`} sublabel="Enrolled in a course" />
+          <KpiCard href="/manager/team-learning" icon={BookOpen} label="Courses in progress" value={stats.coursesInProgress} sublabel={`${stats.coursesCompleted} completed`} />
+          <KpiCard href="/manager/team-learning" icon={Award} label="Courses completed" value={stats.coursesCompleted} sublabel="Across the team" />
+          <KpiCard href="/manager/team-skills" icon={TrendingUp} label="Avg skill level" value={`${stats.avgSkillLevel}%`} sublabel={`${stats.avgSkillTracked} of ${stats.avgSkillTotal} tracked`} definition={data.definitions.avgSkillLevel} />
         </div>
 
         {/* Detail behind dropdowns — keeps the main view clear, detail one click away */}
@@ -239,16 +249,18 @@ export default function ManagerDashboardPage() {
   );
 }
 
-const STATUS_TONE: Record<"emerald" | "amber" | "rose", { dot: string; num: string }> = {
+type BreakdownTone = "emerald" | "amber" | "rose" | "slate";
+const STATUS_TONE: Record<BreakdownTone, { dot: string; num: string }> = {
   emerald: { dot: "bg-emerald-500", num: "text-[var(--ink)]" },
   amber: { dot: "bg-amber-500", num: "text-[var(--ink)]" },
   rose: { dot: "bg-rose-500", num: "text-rose-600" },
+  slate: { dot: "bg-slate-400", num: "text-[var(--ink)]" },
 };
 
 // One status column inside the breakdown panel: a coloured dot + micro-label,
 // a big neutral count, and its share of the team. Clean and quiet — the colour
 // lives in the dot, not a filled block, so the row reads as one refined unit.
-function BreakdownStat({ tone, label, value, total }: { tone: "emerald" | "amber" | "rose"; label: string; value: number; total: number }) {
+function BreakdownStat({ tone, label, value, total }: { tone: BreakdownTone; label: string; value: number; total: number }) {
   const t = STATUS_TONE[tone];
   const share = total ? Math.round((value / total) * 100) : 0;
   return (
@@ -262,19 +274,6 @@ function BreakdownStat({ tone, label, value, total }: { tone: "emerald" | "amber
       </p>
       <p className="nums-tabular mt-1.5 text-xs text-[var(--muted)]">{share}% of team</p>
     </div>
-  );
-}
-
-function StatCard({ href, icon: Icon, label, value, sub }: { href: string; icon: LucideIcon; label: string; value: string | number; sub?: string }) {
-  return (
-    <Link href={href} className={`${CARD} group flex flex-col p-5 transition hover:-translate-y-0.5 hover:shadow-[0_1px_2px_rgba(15,27,45,.04),0_18px_38px_-18px_rgba(15,27,45,.22)]`}>
-      <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[var(--brand-tint)] text-[var(--brand-dark)] transition-transform group-hover:scale-105">
-        <Icon className="h-5 w-5" strokeWidth={2} />
-      </span>
-      <p className="nums-tabular mt-4 text-[1.8rem] font-bold leading-none tracking-tight text-[var(--ink)]">{value}</p>
-      <p className="mt-1.5 text-sm font-medium text-[var(--muted)]">{label}</p>
-      {sub && <p className="mt-0.5 text-xs text-[var(--muted)]/80">{sub}</p>}
-    </Link>
   );
 }
 

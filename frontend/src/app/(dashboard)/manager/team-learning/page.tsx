@@ -3,8 +3,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { BookOpen, CheckCircle, BarChart3, Users, Search, Download, ChevronDown } from "lucide-react";
-import Stat3D from "@/components/dashboard/Stat3D";
-import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
+import PageHeader from "@/components/ui/PageHeader";
+import KpiCard from "@/components/ui/KpiCard";
 import BackToReports from "@/components/dashboard/BackToReports";
 import { useApi } from "@/lib/api";
 import { CardGridSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
@@ -27,10 +27,14 @@ interface Member {
   lastActive: string;
 }
 interface Data {
+  totalMembers: number;
   teamMembers: number;
+  activeLearners: number;
   inProgress: number;
   completed: number;
+  avgCpdProgress: number;
   avgCompletion: number;
+  definitions: { avgCpdProgress: string };
   members: Member[];
 }
 
@@ -73,18 +77,12 @@ export default function TeamLearningPage() {
   return (
     <div>
       <BackToReports />
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Icon3D icon={BookOpen} tone={TONES.blue} />
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-[var(--ink)]">Team Learning</h1>
-              <RefreshingBadge show={isRefreshing} />
-            </div>
-            <p className="mt-1 text-sm text-[var(--muted)]">Track your team&apos;s learning progress and course activity.</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        icon={BookOpen}
+        title="Team courses"
+        subtitle="Your team's course activity and CPD progress."
+        meta={<RefreshingBadge show={isRefreshing} />}
+      />
 
       {isLoading ? (
         <CardGridSkeleton />
@@ -93,10 +91,10 @@ export default function TeamLearningPage() {
       ) : (
         <>
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Stat3D icon={Users} tone={TONES.indigo} label="Total Team Members" value={data.teamMembers} />
-            <Stat3D icon={BookOpen} tone={TONES.blue} label="Courses In Progress" value={data.inProgress} />
-            <Stat3D icon={CheckCircle} tone={TONES.emerald} label="Completed Courses" value={data.completed} />
-            <Stat3D icon={BarChart3} tone={TONES.amber} label="Average Progress" value={`${data.avgCompletion}%`} />
+            <KpiCard icon={Users} label="Total members" value={data.totalMembers} sublabel={`${data.activeLearners} active learners`} />
+            <KpiCard icon={BookOpen} label="Courses in progress" value={data.inProgress} />
+            <KpiCard icon={CheckCircle} label="Completed courses" value={data.completed} />
+            <KpiCard icon={BarChart3} label="Average CPD progress" value={`${data.avgCpdProgress}%`} sublabel="Vs annual target" definition={data.definitions.avgCpdProgress} />
           </div>
 
           {/* data-tour: onboarding-tour anchor only — no behaviour change. */}
@@ -109,7 +107,7 @@ export default function TeamLearningPage() {
               </div>
               <button data-tour="mgr-learning-export" onClick={exportCsv} disabled={members.length === 0}
                 className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--ink)] hover:bg-slate-50 disabled:opacity-60">
-                <Download className="h-4 w-4" /> Export
+                <Download className="h-4 w-4" /> Export report
               </button>
             </div>
 

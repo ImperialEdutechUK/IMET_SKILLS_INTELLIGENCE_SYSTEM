@@ -3,7 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { TrendingUp, Star, Target, PlusCircle, CheckCircle2, ArrowUpRight, Plus, X, PieChart, Pencil } from "lucide-react";
-import Stat3D from "@/components/dashboard/Stat3D";
+import PageHeader from "@/components/ui/PageHeader";
+import KpiCard from "@/components/ui/KpiCard";
+import EmptyState from "@/components/ui/EmptyState";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
 import { useApi, apiSend, ApiError } from "@/lib/api";
@@ -123,21 +125,17 @@ export default function MySkillsPage() {
 
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Icon3D icon={Target} tone={TONES.emerald} />
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-[var(--ink)]">My Skills</h1>
-              <RefreshingBadge show={isRefreshing} />
-            </div>
-            <p className="mt-1 text-sm text-[var(--muted)]">Track your skills, see your progress and plan what to improve next.</p>
-          </div>
-        </div>
-        <button data-tour="skills-add" onClick={openAdd} className="inline-flex items-center gap-2 rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-dark)]">
-          <Plus className="h-4 w-4" /> Add Skill
-        </button>
-      </div>
+      <PageHeader
+        icon={Target}
+        title="My skills"
+        subtitle="Track your skills, see your progress and plan what to improve next."
+        meta={<RefreshingBadge show={isRefreshing} />}
+        action={
+          <button data-tour="skills-add" onClick={openAdd} className="inline-flex items-center gap-2 rounded-full bg-[var(--brand)] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--brand-dark)]">
+            <Plus className="h-4 w-4" /> Add skill
+          </button>
+        }
+      />
 
       {notice && (
         <div className="mb-6 flex items-start gap-3 rounded-2xl border border-[var(--brand)]/30 bg-[var(--brand-tint)] p-4">
@@ -207,8 +205,21 @@ export default function MySkillsPage() {
         </div>
       )}
 
+      {data.overview.total === 0 ? (
+        <EmptyState
+          icon={Target}
+          heading="No skills yet"
+          message="Add the skills you're working on to track your level and see what to improve next."
+          action={
+            <button onClick={openAdd} className="inline-flex items-center gap-2 rounded-full bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--brand-dark)]">
+              <Plus className="h-4 w-4" /> Add skill
+            </button>
+          }
+        />
+      ) : (
+      <>
       <div data-tour="skills-tabs" className="mb-6 flex flex-wrap gap-6 border-b border-[var(--border)]">
-        {([["overview", "Overview"], ["improve", "Skills to Improve"]] as [Tab, string][]).map(([k, l]) => (
+        {([["overview", "Overview"], ["improve", "Skills to improve"]] as [Tab, string][]).map(([k, l]) => (
           <button key={k} onClick={() => setTab(k)}
             className={`-mb-px border-b-2 pb-2.5 text-sm font-medium transition-colors ${tab === k ? "border-[var(--brand)] text-[var(--brand)]" : "border-transparent text-[var(--muted)] hover:text-[var(--ink)]"}`}>{l}</button>
         ))}
@@ -217,10 +228,10 @@ export default function MySkillsPage() {
       {tab === "overview" && (
         <>
           <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <Stat3D icon={TrendingUp} tone={TONES.blue} label="Overall Skills" value={data.overview.total} sub="Skills added" />
-            <Stat3D icon={Star} tone={TONES.emerald} label="Strengths" value={data.overview.strengths} sub="Strong skills" />
-            <Stat3D icon={Target} tone={TONES.amber} label="Skills to Improve" value={data.overview.toImprove} sub="Needs attention" />
-            <Stat3D icon={PlusCircle} tone={TONES.violet} label="New Skills" value={data.overview.newSkills} sub="Recently added" />
+            <KpiCard icon={TrendingUp} label="Total skills" value={data.overview.total} sublabel="Tracked by you" />
+            <KpiCard icon={Star} label="Strengths" value={data.overview.strengths} sublabel="At a strong level" />
+            <KpiCard icon={Target} label="Skills to improve" value={data.overview.toImprove} sublabel="Below target" />
+            <KpiCard icon={PlusCircle} label="New skills" value={data.overview.newSkills} sublabel="Recently added" />
           </div>
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <div className="lg:col-span-2 rounded-2xl border border-[var(--border)] bg-white">
@@ -261,7 +272,7 @@ export default function MySkillsPage() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 rounded-2xl border border-[var(--border)] bg-white">
             <div className="flex items-center gap-3 border-b border-[var(--border)] p-5"><Icon3D icon={Target} tone={TONES.amber} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Skills to Improve</h3></div>
-            {data.toImprove.length === 0 ? <p className="p-5 text-sm text-[var(--muted)]">You&apos;re on target across your skills. Nice work!</p> : (
+            {data.toImprove.length === 0 ? <p className="p-5 text-sm text-[var(--muted)]">You&apos;re on target across your tracked skills.</p> : (
               <ul className="divide-y divide-[var(--border)]">
                 {visibleImprove.map((s) => (
                   <li key={s.id} className="px-5 py-4">
@@ -303,6 +314,8 @@ export default function MySkillsPage() {
             </div>
           </div>
         </div>
+      )}
+      </>
       )}
 
     </div>

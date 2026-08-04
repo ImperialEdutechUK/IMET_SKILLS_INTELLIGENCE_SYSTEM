@@ -2,10 +2,12 @@ import { prisma } from "@/lib/db";
 
 import { getCpdTargetHours } from "@/lib/cpd-target";
 import { cpdRiskStatus } from "@/lib/cpd-risk";
+import { excludeTestAccounts } from "@/lib/test-accounts";
+import { type MetricMember, avgSkillLevelPct } from "@/lib/metrics/teamMetrics";
 
 export async function getTeamMembers(departmentId: string) {
   const targetHours = await getCpdTargetHours(departmentId);
-  const members = await prisma.user.findMany({
+  const rawMembers = await prisma.user.findMany({
     where: { departmentId, role: "employee" },
     include: {
       enrollments: { include: { course: { include: { category: true } } } },
@@ -14,6 +16,8 @@ export async function getTeamMembers(departmentId: string) {
     },
     orderBy: { fullName: "asc" },
   });
+  // Exclude seeded test/onboarding accounts from every department roll-up.
+  const members = excludeTestAccounts(rawMembers);
 
   return members.map((m) => {
     const completed = m.enrollments.filter((e) => e.status === "completed");
@@ -35,6 +39,10 @@ export async function getTeamMembers(departmentId: string) {
       cpdProgress,
       avgSkillLevel,
       attentionStatus,
+      // Carried for the canonical team average (see getTeamSummary).
+      userSkills: m.userSkills.map((us) => ({ currentLevel: us.currentLevel, targetLevel: us.targetLevel })),
+      enrollmentsCount: m.enrollments.length,
+      cpdRecordsCount: m.cpdRecords.length,
       enrollments: [...completed, ...inProgress],
     };
   });
@@ -65,9 +73,9 @@ export async function getTeamSummary(departmentId: string) {
     avgCpd: members.length
       ? Math.round(members.reduce((s, m) => s + m.cpdProgress, 0) / members.length)
       : 0,
-    avgSkillLevel: members.length
-      ? Math.round((members.reduce((s, m) => s + m.avgSkillLevel, 0) / members.length) * 10) / 10
-      : 0,
+    // Canonical average skill level: member-weighted, skilled members only, as a
+    // percentage of the maximum level (single implementation in teamMetrics).
+    avgSkillLevel: avgSkillLevelPct(members as unknown as MetricMember[]).value,
     categoryBreakdown: Array.from(categoryTally.entries()).map(([name, value]) => ({ name, value })),
   };
 }

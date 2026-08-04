@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BookOpen, Clock, CheckCircle2, ChevronRight, PlayCircle, Plus, ExternalLink, X, History, Award } from "lucide-react";
-import Stat3D from "@/components/dashboard/Stat3D";
+import PageHeader from "@/components/ui/PageHeader";
+import KpiCard from "@/components/ui/KpiCard";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
 import AchievementsBento from "@/components/gamification/AchievementsBento";
 import CertificateProofModal, { CertificateFileField } from "@/components/certificates/CertificateProofModal";
@@ -129,27 +130,19 @@ export default function MyLearningPage() {
 
   return (
     <div>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Icon3D icon={BookOpen} tone={TONES.blue} />
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-[var(--ink)]">My Learning</h1>
-              <RefreshingBadge show={isRefreshing} />
-            </div>
-            <p className="mt-1 text-sm text-[var(--muted)]">
-              {tab === "certificates"
-                ? "Your certificates and badges — earned as you complete courses."
-                : "Log the hours you spend — progress is calculated from them."}
-            </p>
-          </div>
-        </div>
-        {tab !== "certificates" && (
-          <button data-tour="learning-add" onClick={() => setShowAdd(true)} className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-dark)]">
-            <Plus className="h-4 w-4" /> Add Course
+      <PageHeader
+        icon={BookOpen}
+        title="My learning"
+        subtitle={tab === "certificates"
+          ? "Your certificates and badges — earned as you complete courses."
+          : "Log the hours you spend — progress is calculated from them."}
+        meta={<RefreshingBadge show={isRefreshing} />}
+        action={tab !== "certificates" && (
+          <button data-tour="learning-add" onClick={() => setShowAdd(true)} className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[var(--brand)] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--brand-dark)]">
+            <Plus className="h-4 w-4" /> Add course
           </button>
         )}
-      </div>
+      />
 
       {/* Tabs — counts live in the labels, so no separate stat card row is needed */}
       <div data-tour="learning-tabs" className="mb-6 flex flex-wrap gap-6 border-b border-[var(--border)]">
@@ -173,7 +166,7 @@ export default function MyLearningPage() {
           Hidden on the Certificates tab, where the trophy shelf carries the stats. */}
       {tab !== "certificates" && (
         <div className="mb-6 max-w-xs">
-          <Stat3D icon={Clock} tone={TONES.amber} label="Hours Spent" value={`${data.stats.hoursThisMonth}h`} sub="This month" />
+          <KpiCard icon={Clock} label="Hours logged" value={`${data.stats.hoursThisMonth}h`} sublabel="This month" />
         </div>
       )}
 

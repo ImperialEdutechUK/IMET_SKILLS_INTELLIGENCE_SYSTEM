@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { verifyToken } from "@/lib/verifyToken";
+import { excludeTestAccounts } from "@/lib/test-accounts";
+import { type MetricMember, avgSkillLevelPct } from "@/lib/metrics/teamMetrics";
+
+const PRIO_RANK: Record<string, number> = { High: 0, Medium: 1, Low: 2 };
 
 export async function GET(req: Request) {
   const authUser = verifyToken(req);
@@ -11,25 +15,31 @@ export async function GET(req: Request) {
   // Managers are locked to their own department, server-side (ignores any client param).
   const departmentId = authUser.departmentId;
 
-  const userSkills = await prisma.userSkill.findMany({
-    where: { user: { role: "employee", ...(departmentId ? { departmentId } : {}) } },
-    include: { skill: true, user: true },
+  // Fetch the team as members (so we know the TOTAL, including members with no
+  // tracked skills) — then exclude seeded test/onboarding accounts.
+  const rawUsers = await prisma.user.findMany({
+    where: { role: "employee", ...(departmentId ? { departmentId } : {}) },
+    include: { userSkills: { include: { skill: true } } },
+    orderBy: { fullName: "asc" },
   });
+  const users = excludeTestAccounts(rawUsers);
 
   // ---- Per-skill aggregation ----
   const skillAgg = new Map<
     string,
     { name: string; sumCurrent: number; sumGap: number; count: number; membersBelow: number }
   >();
-  for (const us of userSkills) {
-    const key = us.skill.name;
-    if (!skillAgg.has(key))
-      skillAgg.set(key, { name: key, sumCurrent: 0, sumGap: 0, count: 0, membersBelow: 0 });
-    const a = skillAgg.get(key)!;
-    a.sumCurrent += us.currentLevel;
-    a.sumGap += Math.max(0, us.targetLevel - us.currentLevel);
-    a.count += 1;
-    if (us.currentLevel < us.targetLevel) a.membersBelow += 1;
+  for (const u of users) {
+    for (const us of u.userSkills) {
+      const key = us.skill.name;
+      if (!skillAgg.has(key))
+        skillAgg.set(key, { name: key, sumCurrent: 0, sumGap: 0, count: 0, membersBelow: 0 });
+      const a = skillAgg.get(key)!;
+      a.sumCurrent += us.currentLevel;
+      a.sumGap += Math.max(0, us.targetLevel - us.currentLevel);
+      a.count += 1;
+      if (us.currentLevel < us.targetLevel) a.membersBelow += 1;
+    }
   }
 
   const skills = Array.from(skillAgg.values()).map((a) => {
@@ -38,46 +48,48 @@ export async function GET(req: Request) {
     return { name: a.name, avgLevel, avgGap, count: a.count, membersBelow: a.membersBelow };
   });
 
-  // ---- Per-member aggregation ----
-  const memberAgg = new Map<
-    string,
-    {
-      id: string;
-      fullName: string;
-      position: string | null;
-      sumCurrent: number;
-      count: number;
-      improveSkills: string[];
-      maxGap: number;
-    }
-  >();
-  for (const us of userSkills) {
-    const u = us.user;
-    if (!memberAgg.has(u.id))
-      memberAgg.set(u.id, {
+  // ---- Per-member aggregation (for the "needs improvement" table) ----
+  const memberNeeds = users
+    .map((u) => {
+      const improve: string[] = [];
+      let sumCurrent = 0;
+      let maxGap = 0;
+      for (const us of u.userSkills) {
+        sumCurrent += us.currentLevel;
+        const gap = us.targetLevel - us.currentLevel;
+        if (gap > 0) {
+          improve.push(us.skill.name);
+          if (gap > maxGap) maxGap = gap;
+        }
+      }
+      return {
         id: u.id,
         fullName: u.fullName,
         position: u.position,
-        sumCurrent: 0,
-        count: 0,
-        improveSkills: [],
-        maxGap: 0,
-      });
-    const m = memberAgg.get(u.id)!;
-    m.sumCurrent += us.currentLevel;
-    m.count += 1;
-    const gap = us.targetLevel - us.currentLevel;
-    if (gap > 0) {
-      m.improveSkills.push(us.skill.name);
-      if (gap > m.maxGap) m.maxGap = gap;
-    }
-  }
+        avgLevelPercent: u.userSkills.length ? Math.round((sumCurrent / u.userSkills.length / 4) * 100) : 0,
+        skills: improve,
+        priority: maxGap >= 2 ? "High" : maxGap === 1 ? "Medium" : "Low",
+        needsImprovement: improve.length >= 1,
+      };
+    })
+    .filter((m) => m.needsImprovement)
+    .sort((a, b) => (PRIO_RANK[a.priority] ?? 3) - (PRIO_RANK[b.priority] ?? 3));
 
-  const teamMembers = memberAgg.size;
-
-  const avgTeamLevel = userSkills.length
-    ? Math.round((userSkills.reduce((s, us) => s + us.currentLevel, 0) / userSkills.length / 4) * 100)
-    : 0;
+  // ---- Canonical average skill level (member-weighted, skilled members only) ----
+  const mm: MetricMember[] = users.map((u) => ({
+    id: u.id,
+    fullName: u.fullName,
+    email: u.email,
+    userSkills: u.userSkills.map((us) => ({ currentLevel: us.currentLevel, targetLevel: us.targetLevel })),
+    enrollmentsCount: 0,
+    coursesCompleted: 0,
+    coursesInProgress: 0,
+    cpdHours: 0,
+    cpdRecordsCount: 0,
+    cpdProgress: 0,
+    riskStatus: null,
+  }));
+  const avgSkill = avgSkillLevelPct(mm);
 
   const strongSkills = skills.filter((s) => s.avgLevel >= 3).length;
   const skillsToImprove = skills.filter((s) => s.avgGap >= 1).length;
@@ -94,29 +106,22 @@ export async function GET(req: Request) {
     .map((s) => ({
       skill: s.name,
       membersNeedImprovement: s.membersBelow,
+      // Gap size as a percentage of the maximum level: a LONGER bar means a
+      // BIGGER gap (worse), consistent with the label on the frontend.
       avgGapPercent: Math.round((s.avgGap / 4) * 100),
     }));
 
-  const prioRank: Record<string, number> = { High: 0, Medium: 1, Low: 2 };
-  const memberNeeds = Array.from(memberAgg.values())
-    .filter((m) => m.improveSkills.length >= 1)
-    .map((m) => ({
-      id: m.id,
-      fullName: m.fullName,
-      position: m.position,
-      avgLevelPercent: m.count ? Math.round((m.sumCurrent / m.count / 4) * 100) : 0,
-      skills: m.improveSkills,
-      priority: m.maxGap >= 2 ? "High" : m.maxGap === 1 ? "Medium" : "Low",
-    }))
-    .sort((a, b) => prioRank[a.priority] - prioRank[b.priority]);
-
   return NextResponse.json({
-    teamMembers,
-    avgTeamLevel,
+    avgTeamLevel: avgSkill.value,
+    avgSkillTracked: avgSkill.tracked,
+    avgSkillTotal: avgSkill.total,
+    totalMembers: avgSkill.total,
+    membersWithTrackedSkills: avgSkill.tracked,
     strongSkills,
     skillsToImprove,
     skillOverview,
     needImprovement,
     memberNeeds,
+    definitions: { avgSkillLevel: avgSkill.definition },
   });
 }

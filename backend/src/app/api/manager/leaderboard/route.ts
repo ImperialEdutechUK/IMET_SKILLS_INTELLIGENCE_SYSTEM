@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { verifyToken } from "@/lib/verifyToken";
+import { excludeTestAccounts } from "@/lib/test-accounts";
 
 // Read-only team XP leaderboard. Tallies each employee's gamification inputs
 // (certificates, completed courses, CPD hours) into XP and ranks them. It only
@@ -21,17 +22,20 @@ export async function GET(req: Request) {
 
   const departmentId = authUser.departmentId;
 
-  const members = await prisma.user.findMany({
+  const rawMembers = await prisma.user.findMany({
     where: { role: "employee", ...(departmentId ? { departmentId } : {}) },
     select: {
       id: true,
       fullName: true,
+      email: true,
       position: true,
       _count: { select: { certificates: true } },
       enrollments: { where: { status: "completed" }, select: { id: true } },
       cpdRecords: { select: { hours: true } },
     },
   });
+  // Seeded test/onboarding accounts never appear on the leaderboard.
+  const members = excludeTestAccounts(rawMembers);
 
   const rows = members
     .map((m) => {

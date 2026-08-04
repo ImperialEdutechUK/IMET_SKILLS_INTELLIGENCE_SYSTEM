@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Trophy, Zap, ChevronRight, GraduationCap, BookOpen } from "lucide-react";
-import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
+import PageHeader from "@/components/ui/PageHeader";
 import { useApi } from "@/lib/api";
 import { TableSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
 
@@ -30,16 +30,12 @@ export default function LeaderboardPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center gap-3">
-        <Icon3D icon={Trophy} tone={TONES.amber} />
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-[var(--ink)]">Team Leaderboard</h1>
-            <RefreshingBadge show={isRefreshing} />
-          </div>
-          <p className="mt-1 text-sm text-[var(--muted)]">Who&apos;s earning the most XP — certificates and completed courses all count.</p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Trophy}
+        title="Team leaderboard"
+        subtitle="Who's earning the most XP — certificates and completed courses all count."
+        meta={<RefreshingBadge show={isRefreshing} />}
+      />
 
       {isLoading ? (
         <TableSkeleton />

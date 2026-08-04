@@ -97,7 +97,7 @@ export default function DepartmentDetailPage() {
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard icon={Users} label="Members" value={summary.teamMembers} />
         <StatCard icon={BookOpen} label="Courses in Progress" value={summary.coursesInProgress} />
-        <StatCard icon={BarChart3} label="Average Skill Level" value={`${summary.avgSkillLevel}/5`} />
+        <StatCard icon={BarChart3} label="Average skill level" value={`${summary.avgSkillLevel}%`} />
       </div>
       <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="rounded-2xl border border-[var(--border)] bg-white p-5 lg:col-span-2">

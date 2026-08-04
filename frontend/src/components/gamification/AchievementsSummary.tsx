@@ -1,6 +1,6 @@
 "use client";
 
-import { Zap } from "lucide-react";
+import { Lock, Zap } from "lucide-react";
 import { computeGamification, type GamInput, type BadgeTier } from "@/lib/gamification";
 
 // Condensed counterpart to AchievementsBento. A manager reviewing one employee
@@ -35,17 +35,31 @@ export default function AchievementsSummary(input: GamInput) {
         </div>
       </div>
 
-      {/* Trophy badge — current tier + what's next */}
+      {/* Trophy badge — the tier actually EARNED, plus honest progress to the next
+          one. A locked tier never gets a medal here, so a manager can't read
+          "working toward Bronze" as "holds Bronze". */}
       <div className="flex items-center gap-4 rounded-2xl border border-[var(--border)] bg-white p-5">
-        {g.current ? <Medal badge={g.current} /> : <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-slate-100 text-2xl opacity-40">🏅</div>}
-        <div className="min-w-0">
+        {g.current ? (
+          <Medal badge={g.current} />
+        ) : (
+          <div className="relative grid h-14 w-14 shrink-0 place-items-center rounded-full bg-slate-100">
+            <span className="text-2xl opacity-30 grayscale">🏅</span>
+            <span className="absolute bottom-0 right-0 grid h-5 w-5 place-items-center rounded-full bg-slate-400 text-white ring-2 ring-white"><Lock className="h-2.5 w-2.5" /></span>
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)]">Trophy badge</p>
           <p className="text-lg font-bold leading-tight text-[var(--ink)]">{g.current ? g.current.label : "No badge yet"}</p>
           <p className="text-xs text-[var(--muted)]">
             {g.next
-              ? `${g.toNext} more certificate${g.toNext === 1 ? "" : "s"} to ${g.next.label}`
+              ? `${g.certCount} of ${g.next.need} certificates to ${g.next.label}`
               : "All badges unlocked"}
           </p>
+          {g.next && (
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
+              <div className="h-full rounded-full bg-[var(--brand)]" style={{ width: `${g.nextProgressPct}%` }} />
+            </div>
+          )}
         </div>
       </div>
 

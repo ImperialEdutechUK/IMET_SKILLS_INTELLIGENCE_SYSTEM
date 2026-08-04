@@ -10,8 +10,9 @@ import { computeGamification, type GamInput, type BadgeTier } from "@/lib/gamifi
 // medals keep their metal colours so bronze→platinum is obvious.
 export default function AchievementsBento(input: GamInput) {
   const g = computeGamification(input);
-  const maxNeed = g.badges[g.badges.length - 1].need;
-  const trackPct = Math.min(100, Math.round((g.certCount / maxNeed) * 100));
+  // Rail fill comes from the engine (`g.trackPct`), which is anchored to the
+  // medal centres — so the fill can never contradict the medals: it stops short
+  // of a lock and reaches a medal only once that tier is actually earned.
 
   return (
     <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -51,9 +52,16 @@ export default function AchievementsBento(input: GamInput) {
       <div className="flex flex-col justify-center gap-1 rounded-2xl p-4" style={{ background: "#c7e0d3" }}>
         {g.next ? (
           <>
-            <span className="text-2xl">{g.next.emoji}</span>
+            {/* Greyed + locked: this medal is the target, not something already won. */}
+            <span className="relative w-fit">
+              <span className="block text-2xl opacity-40 grayscale">{g.next.emoji}</span>
+              <Lock className="absolute -bottom-0.5 -right-1.5 h-3 w-3 text-[var(--brand-dark)]/60" />
+            </span>
             <p className="text-sm font-bold text-[var(--brand-dark)]">Next: {g.next.label}</p>
-            <p className="text-xs text-[var(--brand-dark)]/80">{g.toNext} more certificate{g.toNext === 1 ? "" : "s"}</p>
+            <p className="text-xs text-[var(--brand-dark)]/80">{g.toNext} more certificate{g.toNext === 1 ? "" : "s"} ({g.certCount} of {g.next.need})</p>
+            <div className="h-1.5 overflow-hidden rounded-full bg-white/60">
+              <div className="gam-fill h-full rounded-full bg-[var(--brand-dark)]/70" style={{ width: `${g.nextProgressPct}%` }} />
+            </div>
             <p className="text-[11px] font-medium text-amber-600">⏱ {g.next.days}-day challenge</p>
           </>
         ) : (
@@ -71,18 +79,25 @@ export default function AchievementsBento(input: GamInput) {
           <h3 className="font-semibold text-[var(--ink)]">Trophy shelf</h3>
           <span className="text-xs text-[var(--muted)]">· {g.earned.length} of {g.badges.length} unlocked</span>
         </div>
-        <div className="relative px-4">
-          <div className="absolute left-8 right-8 top-9 h-1.5 rounded-full bg-slate-100" />
-          <div className="gam-fill absolute left-8 top-9 h-1.5 rounded-full bg-[var(--brand)]" style={{ width: `calc((100% - 4rem) * ${trackPct / 100})` }} />
+        <div className="px-4">
+          {/* The rail lives INSIDE the medal grid, so its % offsets resolve against
+              the same box the medals are laid out in — the only way the fill and
+              the medals can agree on where "Bronze" is. */}
           <div className="relative grid grid-cols-4 gap-2">
+            <div className="pointer-events-none absolute inset-x-0 top-9 h-1.5 rounded-full bg-slate-100" />
+            <div className="gam-fill pointer-events-none absolute left-0 top-9 h-1.5 rounded-full bg-[var(--brand)]" style={{ width: `${g.trackPct}%` }} />
             {g.badges.map((b, i) => {
               const earned = g.certCount >= b.need;
+              const isNext = g.next?.key === b.key;
               return (
-                <div key={b.key} className="gam-pop flex flex-col items-center gap-2 text-center" style={{ animationDelay: `${i * 80}ms` }}>
-                  <Medal badge={b} earned={earned} size={64} pulse={g.next?.key === b.key} />
-                  {g.current?.key === b.key && <span className="rounded-full bg-[var(--brand)] px-2 py-0.5 text-[9px] font-bold text-white">NEW</span>}
+                <div key={b.key} className="gam-pop relative flex flex-col items-center gap-2 text-center" style={{ animationDelay: `${i * 80}ms` }}>
+                  <Medal badge={b} earned={earned} size={64} pulse={isNext} />
+                  {g.current?.key === b.key && <span className="rounded-full bg-[var(--brand)] px-2 py-0.5 text-[9px] font-bold text-white">CURRENT</span>}
+                  {isNext && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-bold text-amber-700">IN PROGRESS</span>}
                   <p className={`text-xs font-bold ${earned ? "text-[var(--ink)]" : "text-[var(--muted)]"}`}>{b.label}</p>
-                  <p className="text-[10px] text-[var(--muted)]">{earned ? "Earned ✓" : `${b.need} certs`}</p>
+                  <p className="text-[10px] text-[var(--muted)]">
+                    {earned ? "Earned ✓" : isNext ? `${g.certCount} / ${b.need} certs` : `${b.need} certs`}
+                  </p>
                   <p className="text-[10px] font-medium text-amber-600">⏱ {b.days}-day challenge</p>
                 </div>
               );

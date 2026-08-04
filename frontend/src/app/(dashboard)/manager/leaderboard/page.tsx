@@ -12,11 +12,13 @@ interface Row {
   certCount: number; coursesCompleted: number; cpdHours: number;
 }
 
-// Metal colours for the top three.
+// Metal colours for the top three. The podium is ORDINAL — rank badge + XP value
+// carry the quantity; there are no proportional-looking bars that would imply a
+// spread the heights don't actually encode.
 const PODIUM = [
-  { from: "#ffdf6e", to: "#e0a005", ring: "#eab308", h: "h-28" }, // 1st gold
-  { from: "#dfe6ec", to: "#9aa7b4", ring: "#94a3b8", h: "h-20" }, // 2nd silver
-  { from: "#e8b06b", to: "#a9691f", ring: "#b7791f", h: "h-16" }, // 3rd bronze
+  { from: "#ffdf6e", to: "#e0a005", ring: "#eab308" }, // 1st gold
+  { from: "#dfe6ec", to: "#9aa7b4", ring: "#94a3b8" }, // 2nd silver
+  { from: "#e8b06b", to: "#a9691f", ring: "#b7791f" }, // 3rd bronze
 ];
 
 export default function LeaderboardPage() {
@@ -60,7 +62,7 @@ export default function LeaderboardPage() {
                     </div>
                     <p className="w-full truncate text-center text-sm font-semibold text-white group-hover:underline">{m.fullName}</p>
                     <p className="inline-flex items-center gap-1 text-xs font-bold text-lime-200"><Zap className="h-3 w-3 fill-current" />{m.xp} XP</p>
-                    <div className={`mt-2 w-full rounded-t-xl ${style.h}`} style={{ background: `linear-gradient(180deg, ${style.from}55, ${style.to}22)` }} />
+                    <p className="text-[11px] text-white/70">Level {m.level} · {m.title}</p>
                   </Link>
                 );
               })}
@@ -70,7 +72,12 @@ export default function LeaderboardPage() {
           {/* Ranked list */}
           <div className="rounded-2xl border border-[var(--border)] bg-white">
             <div className="hidden gap-3 border-b border-[var(--border)] bg-slate-50/60 px-5 py-2.5 text-xs font-semibold uppercase tracking-wide text-[var(--ink)] sm:grid sm:grid-cols-[auto_2fr_1fr_auto]">
-              <span className="w-8">#</span><span>Member</span><span>Breakdown</span><span className="text-right">XP</span>
+              <span className="w-8">#</span><span>Member</span>
+              <span className="inline-flex items-center gap-3">
+                <span className="inline-flex items-center gap-1"><GraduationCap className="h-3.5 w-3.5" aria-hidden /> Certificates</span>
+                <span className="inline-flex items-center gap-1"><BookOpen className="h-3.5 w-3.5" aria-hidden /> Courses</span>
+              </span>
+              <span className="text-right">XP</span>
             </div>
             <ul className="divide-y divide-[var(--border)]">
               {(rest.length ? rest : []).length === 0 && rows.length <= 3 && (
@@ -88,8 +95,8 @@ export default function LeaderboardPage() {
                       </div>
                     </div>
                     <div className="hidden items-center gap-3 text-xs text-[var(--muted)] sm:flex">
-                      <span className="inline-flex items-center gap-1"><GraduationCap className="h-3.5 w-3.5" />{m.certCount}</span>
-                      <span className="inline-flex items-center gap-1"><BookOpen className="h-3.5 w-3.5" />{m.coursesCompleted}</span>
+                      <span className="inline-flex items-center gap-1" aria-label={`${m.certCount} certificate${m.certCount === 1 ? "" : "s"}`}><GraduationCap className="h-3.5 w-3.5" aria-hidden />{m.certCount}</span>
+                      <span className="inline-flex items-center gap-1" aria-label={`${m.coursesCompleted} completed course${m.coursesCompleted === 1 ? "" : "s"}`}><BookOpen className="h-3.5 w-3.5" aria-hidden />{m.coursesCompleted}</span>
                     </div>
                     <span className="flex items-center justify-end gap-2">
                       <span className="inline-flex items-center gap-1 text-sm font-bold text-[var(--brand)]"><Zap className="h-3.5 w-3.5 fill-current" />{m.xp}</span>

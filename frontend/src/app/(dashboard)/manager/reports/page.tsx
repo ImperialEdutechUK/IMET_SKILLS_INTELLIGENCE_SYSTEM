@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Users, BookOpen, Award, TrendingUp, Download, ArrowRight, ArrowLeft, GraduationCap, Target, CheckCircle2, ScrollText, BarChart3 } from "lucide-react";
+import { TrendingUp, Download, ArrowRight, GraduationCap, Target, CheckCircle2, ScrollText, BarChart3 } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
-import KpiCard from "@/components/ui/KpiCard";
 import Icon3D, { TONES, type Icon3DTone } from "@/components/dashboard/Icon3D";
 import LearnAreaChart from "@/components/charts/LearnAreaChart";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
@@ -61,9 +60,6 @@ export default function ManagerReportsPage() {
 
   return (
     <div>
-      <Link href="/manager/dashboard" className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--muted)] hover:text-[var(--ink)]">
-        <ArrowLeft className="h-4 w-4" /> Back to dashboard
-      </Link>
       <PageHeader
         icon={ScrollText}
         title="Reports"
@@ -84,7 +80,7 @@ export default function ManagerReportsPage() {
             <h3 className="mt-3 font-semibold text-[var(--ink)]">{c.title}</h3>
             <p className="mt-1 flex-1 text-sm text-[var(--muted)]">{c.desc}</p>
             <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-[var(--brand)] group-hover:underline">
-              View Report <ArrowRight className="h-4 w-4" />
+              View report <ArrowRight className="h-4 w-4" />
             </span>
           </Link>
         ))}
@@ -96,13 +92,9 @@ export default function ManagerReportsPage() {
         <ErrorPanel message={error?.message ?? "Could not load reports."} onRetry={refresh} />
       ) : (
         <>
-          <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-            <KpiCard icon={Users} label="Total members" value={data.stats.totalMembers} />
-            <KpiCard icon={BookOpen} label="Courses in progress" value={data.stats.coursesInProgress} />
-            <KpiCard icon={Award} label="Completed courses" value={data.stats.coursesCompleted} />
-            <KpiCard icon={TrendingUp} label="Average CPD progress" value={`${data.stats.avgProgress}%`} sublabel="Vs annual target" definition={data.definitions?.avgCpdProgress} />
-          </div>
-
+          {/* Reports focuses on export and period comparison. Present-state
+              headline figures live on the dashboard and Team courses, not here,
+              to avoid showing the same numbers twice. */}
           {/* One engaging view at a time — tap a tab to switch. Keeps the page
               uncluttered instead of stacking every chart on screen at once. */}
           <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
@@ -114,13 +106,13 @@ export default function ManagerReportsPage() {
                   <p className="text-xs text-[var(--muted)]">{INSIGHT_TABS.find((t) => t.key === tab)?.label} view · tap to switch</p>
                 </div>
               </div>
-              <div className="inline-flex rounded-xl bg-[var(--brand-tint)] p-1">
+              <div role="tablist" aria-label="Team insights view" className="flex max-w-full overflow-x-auto rounded-xl bg-[var(--brand-tint)] p-1">
                 {INSIGHT_TABS.map((t) => {
                   const Icon = t.icon;
                   const active = tab === t.key;
                   return (
-                    <button key={t.key} onClick={() => setTab(t.key)}
-                      className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition ${active ? "bg-white text-[var(--brand-dark)] shadow-sm" : "text-[var(--brand-dark)]/70 hover:text-[var(--brand-dark)]"}`}>
+                    <button key={t.key} role="tab" aria-selected={active} onClick={() => setTab(t.key)}
+                      className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition ${active ? "bg-white text-[var(--brand-dark)] shadow-sm" : "text-[var(--brand-dark)]/70 hover:text-[var(--brand-dark)]"}`}>
                       <Icon className="h-4 w-4" /> {t.label}
                     </button>
                   );

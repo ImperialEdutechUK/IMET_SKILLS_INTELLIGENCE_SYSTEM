@@ -70,21 +70,21 @@ export default function LoginPage() {
     >
       {/* Right: sign-in card */}
       <div className="w-full max-w-md">
-        <div className="rounded-3xl border border-[var(--border)] bg-white p-8 shadow-sm">
+        <div className="rounded-3xl border border-[var(--border)] bg-white p-8 shadow-[0_1px_2px_rgba(15,27,45,.04),0_20px_50px_-24px_rgba(15,27,45,.25)]">
           <Link
             href="/"
-            className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--muted)] hover:text-[var(--ink)]"
+            className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--muted)] transition-colors hover:text-[var(--ink)]"
           >
-            <ArrowLeft className="h-4 w-4" /> Back to Home
+            <ArrowLeft className="h-4 w-4" /> Back to home
           </Link>
-          <div className="text-center">
-            <span className="gam-float mx-auto grid h-14 w-14 place-items-center rounded-2xl text-white shadow-sm" style={{ background: "linear-gradient(135deg,#5cb891,#3f9d75)" }}>
+          <div>
+            <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[var(--brand)] text-white">
               <GraduationCap className="h-6 w-6" />
             </span>
-            <h1 className="mt-4 text-2xl font-bold text-[var(--ink)]">
-              Welcome Back
+            <h1 className="mt-5 font-black tracking-[-0.02em] text-[var(--ink)]" style={{ fontSize: "clamp(1.6rem,3vw,1.9rem)" }}>
+              Welcome back
             </h1>
-            <p className="mt-1 text-sm text-[var(--muted)]">
+            <p className="mt-1.5 text-[15px] text-[var(--muted)]">
               Sign in to continue your learning journey.
             </p>
           </div>
@@ -102,7 +102,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
-                  className="w-full rounded-lg border border-[var(--border)] bg-white py-2.5 pl-10 pr-3 text-sm text-[var(--ink)] outline-none placeholder:text-slate-400 focus:border-[var(--brand)]"
+                  className="w-full rounded-xl border border-[var(--border)] bg-white py-3 pl-10 pr-3 text-sm text-[var(--ink)] outline-none transition-colors placeholder:text-slate-400 focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/15"
                 />
               </div>
             </div>
@@ -119,7 +119,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
-                  className="w-full rounded-lg border border-[var(--border)] bg-white py-2.5 pl-10 pr-10 text-sm text-[var(--ink)] outline-none placeholder:text-slate-400 focus:border-[var(--brand)]"
+                  className="w-full rounded-xl border border-[var(--border)] bg-white py-3 pl-10 pr-10 text-sm text-[var(--ink)] outline-none transition-colors placeholder:text-slate-400 focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/15"
                 />
                 <button
                   type="button"
@@ -154,10 +154,10 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--brand)] py-3 text-sm font-medium text-white hover:bg-[var(--brand-dark)] disabled:opacity-60"
+              className="group flex w-full items-center justify-center gap-2 rounded-full bg-[var(--brand)] py-3.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--brand-dark)] disabled:opacity-60"
             >
-              <ArrowRight className="h-4 w-4" />
-              {loading ? "Signing in..." : "Login"}
+              {loading ? "Signing in…" : "Sign in"}
+              {!loading && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />}
             </button>
           </form>
           <p className="mt-6 text-center text-sm text-[var(--muted)]">

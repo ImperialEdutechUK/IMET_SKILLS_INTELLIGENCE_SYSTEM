@@ -2,11 +2,31 @@
 
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
-import { GraduationCap, Sparkles, Zap, Trophy, BookOpen, Award, TrendingUp } from "lucide-react";
+import { GraduationCap, Sparkles, BarChart3, Award } from "lucide-react";
 
-// Shared auth layout: a gamified Bento brand panel on the left, the form card on
-// the right. Soft, easy-on-the-eye tints (the app palette) with a few interactive
-// tiles so signing in / registering feels like stepping into the game.
+// A radial sunburst of thin lines — the same quiet texture the landing hero uses,
+// so the auth screens read as the same product.
+function Sunburst({ size = 128, lines = 44 }: { size?: number; lines?: number }) {
+  const c = size / 2, r1 = size * 0.07, r2 = size * 0.46;
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden>
+      {Array.from({ length: lines }).map((_, i) => {
+        const a = (i / lines) * Math.PI * 2;
+        const dx = Math.cos(a), dy = Math.sin(a);
+        return <line key={i} x1={c + dx * r1} y1={c + dy * r1} x2={c + dx * r2} y2={c + dy * r2} stroke="var(--brand)" strokeWidth="1" />;
+      })}
+    </svg>
+  );
+}
+
+const panelFeatures: { icon: LucideIcon; title: string; desc: string }[] = [
+  { icon: Sparkles, title: "AI-recommended learning", desc: "Matched to your real skill gaps and role." },
+  { icon: BarChart3, title: "Skills, measured", desc: "Watch gaps close on clear, live dashboards." },
+  { icon: Award, title: "CPD, certificates & badges", desc: "Track hours, earn certificates as you grow." },
+];
+
+// Shared auth layout: the landing page's brand panel on the left, the form card on
+// the right — same palette, font and sunburst texture as the home hero.
 export default function AuthShell({
   title,
   subtitle,
@@ -17,7 +37,7 @@ export default function AuthShell({
   children: ReactNode;
 }) {
   return (
-    <main className="grid min-h-screen bg-[var(--page)] lg:grid-cols-2">
+    <main className="grid min-h-screen bg-white lg:grid-cols-2">
       <BrandPanel title={title} subtitle={subtitle} />
       <div className="flex items-center justify-center px-6 py-12">{children}</div>
     </main>
@@ -26,61 +46,53 @@ export default function AuthShell({
 
 function BrandPanel({ title, subtitle }: { title: ReactNode; subtitle: string }) {
   return (
-    <div className="relative hidden flex-col justify-center overflow-hidden px-12 py-14 lg:flex" style={{ background: "linear-gradient(160deg,#eef7f2 0%,#e9f1fb 100%)" }}>
-      {/* Logo */}
-      <div className="flex items-center gap-2">
-        <span className="grid h-9 w-9 place-items-center rounded-lg bg-[var(--brand)] text-white">
+    <div
+      className="relative hidden flex-col justify-center overflow-hidden border-r border-[var(--border)] px-12 py-14 lg:flex"
+      style={{ background: "linear-gradient(160deg,#ffffff 0%, var(--brand-tint) 120%)" }}
+    >
+      {/* Quiet sunburst textures, same as the hero */}
+      <div className="pointer-events-none absolute -right-16 -top-16 opacity-[0.12]"><Sunburst size={320} lines={72} /></div>
+      <div className="pointer-events-none absolute -bottom-10 -left-10 opacity-[0.08]"><Sunburst size={200} lines={56} /></div>
+
+      {/* Logo — matches the landing nav */}
+      <div className="relative flex items-center gap-2.5">
+        <span className="grid h-9 w-9 place-items-center rounded-full bg-[var(--brand)] text-white">
           <GraduationCap className="h-5 w-5" />
         </span>
-        <div className="leading-tight">
-          <p className="text-sm font-semibold text-[var(--ink)]">LearnSmart <span className="text-[var(--brand)]">AI</span></p>
-          <p className="text-[11px] text-[var(--muted)]">Empower. Learn. Grow.</p>
-        </div>
+        <p className="text-xl font-extrabold tracking-tight">LearnSmart <span className="text-[var(--brand)]">AI</span></p>
       </div>
 
-      <div className="mt-12 max-w-md">
-        <h2 className="text-3xl font-bold leading-tight text-[var(--ink)]">{title}</h2>
-        <div className="mt-5 h-1 w-16 rounded-full bg-[var(--brand)]" />
-        <p className="mt-5 max-w-sm text-sm text-[var(--muted)]">{subtitle}</p>
-
-        {/* Bento showcase — interactive gamified tiles */}
-        <div className="mt-9 grid max-w-md grid-cols-2 gap-3">
-          {/* Hero tile (wide) — soft green gradient with a floating spark + XP bar */}
-          <div className="group relative col-span-2 flex items-center gap-4 overflow-hidden rounded-2xl p-5 text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md" style={{ background: "linear-gradient(135deg,#5cb891,#3f9d75)" }}>
-            <span className="gam-float grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-white/20">
-              <Sparkles className="h-6 w-6" />
-            </span>
-            <div className="min-w-0">
-              <p className="text-sm font-bold">AI-recommended learning</p>
-              <p className="mt-0.5 text-xs text-white/85">Matched to your skill gaps &amp; role</p>
-              <div className="mt-2 h-1.5 w-32 overflow-hidden rounded-full bg-white/25">
-                <div className="gam-fill h-full rounded-full" style={{ width: "72%", background: "linear-gradient(90deg,#bef264,#a7f3d0)" }} />
-              </div>
-            </div>
-          </div>
-
-          <Tile icon={Zap} tint="#e8f0fd" fg="#2456c8" value="Earn XP" label="Every course levels you up" />
-          <Tile icon={Trophy} tint="#fbf1de" fg="#b06a12" value="Badges" label="Bronze → Platinum" />
-          <Tile icon={BookOpen} tint="#e0f2ec" fg="#14806f" value="27,000+" label="Real courses" />
-          <Tile icon={Award} tint="#f0edfc" fg="#6d3fd6" value="Certs" label="Earn certificates" />
+      <div className="relative mt-14 max-w-md">
+        <div className="flex items-center gap-4">
+          <span className="h-px w-8 bg-[var(--brand)]" />
+          <span className="grid h-9 w-9 place-items-center rounded-full border border-[var(--brand)] text-[var(--brand)]"><Sparkles className="h-4 w-4" /></span>
+          <p className="text-[15px] text-[var(--muted)]">AI-powered <span className="font-semibold text-[var(--ink)]">skills intelligence</span></p>
         </div>
 
-        <p className="mt-8 inline-flex items-center gap-2 text-xs font-medium text-[var(--muted)]">
-          <TrendingUp className="h-4 w-4 text-[var(--brand)]" /> Trusted by 100+ employees to learn and grow
-        </p>
-      </div>
-    </div>
-  );
-}
+        <h2 className="mt-8 font-black leading-[0.98] tracking-[-0.03em] text-[var(--ink)]" style={{ fontSize: "clamp(2.25rem,3.6vw,3.25rem)" }}>{title}</h2>
+        <p className="mt-5 max-w-sm text-[15px] leading-relaxed text-[var(--muted)]">{subtitle}</p>
 
-function Tile({ icon: Icon, tint, fg, value, label }: { icon: LucideIcon; tint: string; fg: string; value: string; label: string }) {
-  return (
-    <div className="flex flex-col gap-2 rounded-2xl p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md" style={{ background: tint }}>
-      <span className="grid h-9 w-9 place-items-center rounded-lg bg-white/70">
-        <Icon className="h-4.5 w-4.5" style={{ width: 18, height: 18, color: fg }} />
-      </span>
-      <p className="text-base font-extrabold leading-none" style={{ color: fg }}>{value}</p>
-      <p className="text-[11px] font-medium" style={{ color: fg, opacity: 0.8 }}>{label}</p>
+        {/* Clean feature rows — brand green, no rainbow tiles */}
+        <ul className="mt-10 space-y-5">
+          {panelFeatures.map((f) => {
+            const Icon = f.icon;
+            return (
+              <li key={f.title} className="flex items-start gap-4">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[var(--brand)] text-white"><Icon className="h-5 w-5" strokeWidth={2} /></span>
+                <div>
+                  <p className="text-[15px] font-bold tracking-tight text-[var(--ink)]">{f.title}</p>
+                  <p className="mt-0.5 text-sm leading-relaxed text-[var(--muted)]">{f.desc}</p>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+
+        <div className="mt-10 inline-flex items-center gap-2.5 rounded-2xl border border-[var(--border)] bg-white/80 px-4 py-2.5 text-sm shadow-[0_20px_40px_-24px_rgba(15,27,45,.3)] backdrop-blur">
+          <span className="text-2xl font-extrabold tracking-tight text-[var(--ink)]">27k<span className="text-[var(--brand)]">+</span></span>
+          <span className="text-[var(--muted)]">real courses, matched to you</span>
+        </div>
+      </div>
     </div>
   );
 }

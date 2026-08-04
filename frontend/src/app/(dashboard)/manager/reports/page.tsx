@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Users, BookOpen, Award, TrendingUp, Download, ArrowRight, ArrowLeft, GraduationCap, Target, CheckCircle2, ScrollText, BarChart3 } from "lucide-react";
-import Stat3D from "@/components/dashboard/Stat3D";
+import PageHeader from "@/components/ui/PageHeader";
+import KpiCard from "@/components/ui/KpiCard";
 import Icon3D, { TONES, type Icon3DTone } from "@/components/dashboard/Icon3D";
 import LearnAreaChart from "@/components/charts/LearnAreaChart";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
@@ -63,23 +64,17 @@ export default function ManagerReportsPage() {
       <Link href="/manager/dashboard" className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--muted)] hover:text-[var(--ink)]">
         <ArrowLeft className="h-4 w-4" /> Back to dashboard
       </Link>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Icon3D icon={ScrollText} tone={TONES.blue} />
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-[var(--ink)]">Reports</h1>
-              <RefreshingBadge show={isRefreshing} />
-            </div>
-            <p className="mt-1 text-sm text-[var(--muted)]">View and export key reports to track your team&apos;s learning performance.</p>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <button onClick={exportCsv} disabled={!data} className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--ink)] hover:bg-slate-50 disabled:opacity-50">
-            <Download className="h-4 w-4" /> Export All Reports
+      <PageHeader
+        icon={ScrollText}
+        title="Reports"
+        subtitle="View and export key reports on your team's learning performance."
+        meta={<RefreshingBadge show={isRefreshing} />}
+        action={
+          <button onClick={exportCsv} disabled={!data} className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-2.5 text-sm font-semibold text-[var(--ink)] transition-colors hover:bg-slate-50 disabled:opacity-50">
+            <Download className="h-4 w-4" /> Export report
           </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* data-tour: onboarding-tour anchor only — no behaviour change. */}
       <div data-tour="mgr-report-cards" className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -102,10 +97,10 @@ export default function ManagerReportsPage() {
       ) : (
         <>
           <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-            <Stat3D icon={Users} tone={TONES.indigo} label="Total members" value={data.stats.totalMembers} />
-            <Stat3D icon={BookOpen} tone={TONES.blue} label="Courses in progress" value={data.stats.coursesInProgress} />
-            <Stat3D icon={Award} tone={TONES.emerald} label="Completed courses" value={data.stats.coursesCompleted} />
-            <Stat3D icon={TrendingUp} tone={TONES.violet} label="Average CPD progress" value={`${data.stats.avgProgress}%`} sub="Vs annual target" definition={data.definitions?.avgCpdProgress} />
+            <KpiCard icon={Users} label="Total members" value={data.stats.totalMembers} />
+            <KpiCard icon={BookOpen} label="Courses in progress" value={data.stats.coursesInProgress} />
+            <KpiCard icon={Award} label="Completed courses" value={data.stats.coursesCompleted} />
+            <KpiCard icon={TrendingUp} label="Average CPD progress" value={`${data.stats.avgProgress}%`} sublabel="Vs annual target" definition={data.definitions?.avgCpdProgress} />
           </div>
 
           {/* One engaging view at a time — tap a tab to switch. Keeps the page

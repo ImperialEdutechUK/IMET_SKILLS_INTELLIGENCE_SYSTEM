@@ -19,7 +19,7 @@ interface DashData {
   fullName: string;
   departmentName: string;
   stats: { teamMembers: number; activeLearners: number; coursesInProgress: number; coursesCompleted: number; notStarted: number; cpdCompletion: number; cpdHoursTotal: number; teamTarget: number; avgSkillLevel: number; avgSkillTracked: number; avgSkillTotal: number; onTrack: number; atRisk: number; attention: number; expectedWeeklyHours: number };
-  definitions: { avgSkillLevel: string; avgCpdProgress: string; pace: string };
+  definitions?: { avgSkillLevel: string; avgCpdProgress: string; pace: string };
   progressOverTime: { label: string; hours: number }[];
   attention: { id: string; fullName: string; reason: string; status: "at_risk" | "attention" | "not_started" }[];
   recentActivity: { id: string; user: string; action: string; type: string; time: string }[];
@@ -131,7 +131,7 @@ export default function ManagerDashboardPage() {
                 </div>
                 <p className="mt-3 flex items-center gap-1.5 text-xs text-[var(--muted)]">
                   Expected pace: about {stats.expectedWeeklyHours}h per week to stay on the annual CPD target.
-                  <MetricInfo label="How pace is judged" definition={data.definitions.pace} />
+                  {data.definitions?.pace && <MetricInfo label="How pace is judged" definition={data.definitions.pace} />}
                 </p>
               </>
             )}
@@ -191,7 +191,7 @@ export default function ManagerDashboardPage() {
           <KpiCard href="/manager/team-learning" icon={Users} label="Active learners" value={`${stats.activeLearners} of ${stats.teamMembers}`} sublabel="Enrolled in a course" />
           <KpiCard href="/manager/team-learning" icon={BookOpen} label="Courses in progress" value={stats.coursesInProgress} sublabel={`${stats.coursesCompleted} completed`} />
           <KpiCard href="/manager/team-learning" icon={Award} label="Courses completed" value={stats.coursesCompleted} sublabel="Across the team" />
-          <KpiCard href="/manager/team-skills" icon={TrendingUp} label="Avg skill level" value={`${stats.avgSkillLevel}%`} sublabel={`${stats.avgSkillTracked} of ${stats.avgSkillTotal} tracked`} definition={data.definitions.avgSkillLevel} />
+          <KpiCard href="/manager/team-skills" icon={TrendingUp} label="Avg skill level" value={`${stats.avgSkillLevel}%`} sublabel={`${stats.avgSkillTracked} of ${stats.avgSkillTotal} tracked`} definition={data.definitions?.avgSkillLevel} />
         </div>
 
         {/* Detail behind dropdowns — keeps the main view clear, detail one click away */}

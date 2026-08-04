@@ -23,7 +23,7 @@ interface Data {
   skillOverview: SkillOverview[];
   needImprovement: NeedImprovement[];
   memberNeeds: MemberNeed[];
-  definitions: { avgSkillLevel: string };
+  definitions?: { avgSkillLevel: string };
 }
 
 const prioBadge: Record<string, string> = {
@@ -54,7 +54,7 @@ export default function TeamSkillsPage() {
       ) : (
         <>
           <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <KpiCard icon={Gauge} label="Average skill level" value={`${data.avgTeamLevel}%`} sublabel={`${data.avgSkillTracked} of ${data.avgSkillTotal} members tracked`} definition={data.definitions.avgSkillLevel} />
+            <KpiCard icon={Gauge} label="Average skill level" value={`${data.avgTeamLevel}%`} sublabel={`${data.avgSkillTracked} of ${data.avgSkillTotal} members tracked`} definition={data.definitions?.avgSkillLevel} />
             <KpiCard icon={Star} label="Strong skills" value={data.strongSkills} sublabel="At a good level" />
             <KpiCard icon={AlertTriangle} label="Skills to improve" value={data.skillsToImprove} sublabel="Have an average gap" />
             <KpiCard icon={Users} label="Members with tracked skills" value={data.membersWithTrackedSkills} sublabel={`of ${data.totalMembers} on the team`} />

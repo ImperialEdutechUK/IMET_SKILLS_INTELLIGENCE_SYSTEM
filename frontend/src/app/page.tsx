@@ -120,16 +120,48 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-[var(--border)]">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 py-8 sm:flex-row lg:px-10">
-          <div className="flex items-center gap-2.5">
-            <span className="grid h-7 w-7 place-items-center rounded-full bg-[var(--brand)] text-white"><GraduationCap className="h-4 w-4" /></span>
-            <p className="font-extrabold tracking-tight">LearnSmart <span className="text-[var(--brand)]">AI</span></p>
+      <footer className="relative overflow-hidden border-t border-[var(--border)] bg-[var(--brand-tint)]/40">
+        <div className="pointer-events-none absolute -right-10 -top-16 opacity-[0.10]"><Sunburst size={260} lines={64} /></div>
+        <div className="relative mx-auto max-w-7xl px-6 py-16 lg:px-10">
+          <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
+            {/* Brand */}
+            <div className="lg:col-span-2 lg:pr-10">
+              <div className="flex items-center gap-2.5">
+                <span className="grid h-9 w-9 place-items-center rounded-full bg-[var(--brand)] text-white"><GraduationCap className="h-5 w-5" /></span>
+                <p className="text-xl font-extrabold tracking-tight">LearnSmart <span className="text-[var(--brand)]">AI</span></p>
+              </div>
+              <p className="mt-4 max-w-sm text-[15px] leading-relaxed text-[var(--muted)]">
+                AI-powered skills intelligence for iMET — track skills, close gaps, and match every employee to the right learning.
+              </p>
+              <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-3.5 py-1.5 text-sm">
+                <span className="font-extrabold tracking-tight">27k<span className="text-[var(--brand)]">+</span></span>
+                <span className="text-[var(--muted)]">courses matched to real skill gaps</span>
+              </div>
+            </div>
+
+            {/* Explore */}
+            <div>
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)]">Explore</h3>
+              <ul className="mt-4 space-y-3 text-[15px]">
+                <li><a href="#features" className="text-[var(--ink)] transition-colors hover:text-[var(--brand)]">Features</a></li>
+                <li><a href="#how" className="text-[var(--ink)] transition-colors hover:text-[var(--brand)]">How it works</a></li>
+              </ul>
+            </div>
+
+            {/* Account */}
+            <div>
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)]">Get started</h3>
+              <ul className="mt-4 space-y-3 text-[15px]">
+                <li><Link href="/login" className="text-[var(--ink)] transition-colors hover:text-[var(--brand)]">Sign in</Link></li>
+                <li><Link href="/register" className="text-[var(--ink)] transition-colors hover:text-[var(--brand)]">Create an account</Link></li>
+              </ul>
+            </div>
           </div>
-          <p className="text-xs text-[var(--muted)]">© 2026 iMET · Imperial Edutech</p>
-          <div className="flex items-center gap-5 text-sm text-[var(--muted)]">
-            <Link href="/login" className="transition-opacity hover:opacity-60">Sign in</Link>
-            <Link href="/register" className="transition-opacity hover:opacity-60">Register</Link>
+
+          {/* Bottom bar */}
+          <div className="mt-14 flex flex-col items-center justify-between gap-3 border-t border-[var(--border)] pt-6 sm:flex-row">
+            <p className="text-xs text-[var(--muted)]">© {new Date().getFullYear()} iMET · Imperial Edutech. All rights reserved.</p>
+            <p className="text-xs font-medium text-[var(--muted)]">Empower. Learn. Grow.</p>
           </div>
         </div>
       </footer>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Users, BookOpen, Award, TrendingUp, Download, ChevronRight, AlertTriangle, BarChart3, PieChart, Activity, Clock } from "lucide-react";
+import { Users, BookOpen, Award, TrendingUp, Download, ChevronRight, ArrowRight, AlertTriangle, CheckCircle2, BarChart3, PieChart, Activity, Clock } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import LearnAreaChart from "@/components/charts/LearnAreaChart";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
@@ -75,12 +75,13 @@ export default function ManagerDashboardPage() {
 
   // The single verdict a manager reads first — same language as the admin view.
   const verdict = stats.teamMembers === 0
-    ? { tone: "text-slate-500", dot: "bg-slate-400", word: "No team yet", line: `No employees in ${data.departmentName} yet.` }
+    ? { icon: Users, iconWrap: "bg-slate-100 text-slate-500", accent: "from-slate-50", word: "No team yet", line: `No employees in ${data.departmentName} yet.` }
     : stats.atRisk > 0
-      ? { tone: "text-rose-600", dot: "bg-rose-500", word: "Needs attention", line: `${behind} of ${stats.teamMembers} ${behind === 1 ? "person is" : "people are"} behind on their learning — a reminder now gives them time to catch up.` }
+      ? { icon: AlertTriangle, iconWrap: "bg-rose-50 text-rose-600", accent: "from-rose-50/70", word: "Needs attention", line: `${behind} of ${stats.teamMembers} ${behind === 1 ? "person is" : "people are"} behind on their learning — a reminder now gives them time to catch up.` }
       : stats.attention > 0
-        ? { tone: "text-amber-600", dot: "bg-amber-500", word: "Mostly on track", line: `${behind} of ${stats.teamMembers} ${behind === 1 ? "person needs" : "people need"} a nudge to stay on pace.` }
-        : { tone: "text-emerald-600", dot: "bg-emerald-500", word: "On track", line: `All ${stats.teamMembers} team members are on pace with their learning.` };
+        ? { icon: AlertTriangle, iconWrap: "bg-amber-50 text-amber-600", accent: "from-amber-50/70", word: "Mostly on track", line: `${behind} of ${stats.teamMembers} ${behind === 1 ? "person needs" : "people need"} a nudge to stay on pace.` }
+        : { icon: CheckCircle2, iconWrap: "bg-emerald-50 text-emerald-600", accent: "from-emerald-50/70", word: "On track", line: `All ${stats.teamMembers} team members are on pace with their learning.` };
+  const VerdictIcon = verdict.icon;
 
   return (
     <div className="-m-6 min-h-full bg-white p-6 lg:p-8">
@@ -100,36 +101,43 @@ export default function ManagerDashboardPage() {
         </div>
 
         {/* Verdict — the answer, first. data-tour anchor kept for the onboarding tour. */}
-        <section data-tour="mgr-health" className={`${CARD} mb-8 p-6 sm:p-7`}>
-          {/* Status headline with a matching status dot */}
-          <div className="flex items-start gap-3">
-            <span className={`mt-2 h-2.5 w-2.5 shrink-0 rounded-full ${verdict.dot}`} aria-hidden />
-            <div className="max-w-2xl">
-              <p className={`text-2xl font-bold tracking-tight ${verdict.tone}`}>{verdict.word}</p>
-              <p className="mt-1.5 text-[15px] leading-relaxed text-[var(--muted)]">{remindMsg || verdict.line}</p>
+        <section data-tour="mgr-health" className={`${CARD} relative mb-8 overflow-hidden`}>
+          {/* Soft status wash — a quiet tint bleeding from the corner, keyed to health. */}
+          <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${verdict.accent} to-transparent to-40%`} aria-hidden />
+          <div className="relative p-6 sm:p-7">
+            {/* Header — status icon tile + headline */}
+            <div className="flex items-start gap-4">
+              <span className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl ${verdict.iconWrap}`}>
+                <VerdictIcon className="h-6 w-6" strokeWidth={2} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-xl font-bold tracking-tight text-[var(--ink)] sm:text-[1.4rem]">{verdict.word}</h2>
+                <p className="mt-1 max-w-xl text-[15px] leading-relaxed text-[var(--muted)]">{remindMsg || verdict.line}</p>
+              </div>
             </div>
+
+            {/* Breakdown — one refined panel, three divided stats */}
+            {stats.teamMembers > 0 && (
+              <div className="mt-6 grid grid-cols-3 divide-x divide-[var(--border)] overflow-hidden rounded-2xl border border-[var(--border)] bg-white/70">
+                <BreakdownStat tone="emerald" label="On track" value={onTrack} total={stats.teamMembers} />
+                <BreakdownStat tone="amber" label="Behind pace" value={stats.attention} total={stats.teamMembers} />
+                <BreakdownStat tone="rose" label="At risk" value={stats.atRisk} total={stats.teamMembers} />
+              </div>
+            )}
+
+            {/* Manager actions */}
+            {behind > 0 && (
+              <div className="mt-6 flex flex-wrap gap-3">
+                <button data-tour="mgr-remind" onClick={sendReminders} disabled={reminding} className="group inline-flex items-center gap-2 rounded-full bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--brand-dark)] disabled:opacity-60">
+                  {reminding ? "Sending…" : remindMsg ? "Send again" : `Send reminders to all ${behind}`}
+                  {!reminding && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />}
+                </button>
+                <button onClick={() => setShowAtRisk((v) => !v)} className="rounded-full border border-[var(--border)] bg-white px-5 py-2.5 text-sm font-semibold text-[var(--ink)] transition-colors hover:bg-slate-50">
+                  {showAtRisk ? "Hide at-risk" : `View at-risk (${behind})`}
+                </button>
+              </div>
+            )}
           </div>
-
-          {/* Clear breakdown — three labelled status counts */}
-          {stats.teamMembers > 0 && (
-            <div className="mt-6 grid grid-cols-3 gap-3">
-              <StatusStat tone="emerald" label="On track" value={onTrack} total={stats.teamMembers} />
-              <StatusStat tone="amber" label="Behind pace" value={stats.attention} total={stats.teamMembers} />
-              <StatusStat tone="rose" label="At risk" value={stats.atRisk} total={stats.teamMembers} />
-            </div>
-          )}
-
-          {/* Manager actions */}
-          {behind > 0 && (
-            <div className="mt-6 flex flex-wrap gap-3">
-              <button data-tour="mgr-remind" onClick={sendReminders} disabled={reminding} className="rounded-full bg-[var(--brand)] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--brand-dark)] disabled:opacity-60">
-                {reminding ? "Sending…" : remindMsg ? "Send again" : `Send reminders to all ${behind}`}
-              </button>
-              <button onClick={() => setShowAtRisk((v) => !v)} className="rounded-full border border-[var(--border)] bg-white px-5 py-2.5 text-sm font-semibold text-[var(--ink)] transition-colors hover:bg-slate-50">
-                {showAtRisk ? "Hide at-risk" : `View at-risk (${behind})`}
-              </button>
-            </div>
-          )}
         </section>
 
         {/* At-risk list — hidden by default, revealed by the "View at-risk" button. */}
@@ -231,29 +239,28 @@ export default function ManagerDashboardPage() {
   );
 }
 
-const STATUS_TONE: Record<"emerald" | "amber" | "rose", { bg: string; dot: string; num: string; label: string }> = {
-  emerald: { bg: "bg-emerald-50", dot: "bg-emerald-500", num: "text-emerald-700", label: "text-emerald-700/80" },
-  amber: { bg: "bg-amber-50", dot: "bg-amber-500", num: "text-amber-700", label: "text-amber-700/80" },
-  rose: { bg: "bg-rose-50", dot: "bg-rose-500", num: "text-rose-700", label: "text-rose-700/80" },
+const STATUS_TONE: Record<"emerald" | "amber" | "rose", { dot: string; num: string }> = {
+  emerald: { dot: "bg-emerald-500", num: "text-[var(--ink)]" },
+  amber: { dot: "bg-amber-500", num: "text-[var(--ink)]" },
+  rose: { dot: "bg-rose-500", num: "text-rose-600" },
 };
 
-// One labelled status count — big number + share-of-team over a coloured, named
-// chip, so the on-track / behind / at-risk split reads at a glance.
-function StatusStat({ tone, label, value, total }: { tone: "emerald" | "amber" | "rose"; label: string; value: number; total: number }) {
+// One status column inside the breakdown panel: a coloured dot + micro-label,
+// a big neutral count, and its share of the team. Clean and quiet — the colour
+// lives in the dot, not a filled block, so the row reads as one refined unit.
+function BreakdownStat({ tone, label, value, total }: { tone: "emerald" | "amber" | "rose"; label: string; value: number; total: number }) {
   const t = STATUS_TONE[tone];
   const share = total ? Math.round((value / total) * 100) : 0;
   return (
-    <div className={`rounded-xl ${t.bg} px-4 py-3.5`}>
-      <div className="flex items-center justify-between gap-2">
-        <span className="flex items-center gap-2">
-          <span className={`h-2 w-2 shrink-0 rounded-full ${t.dot}`} />
-          <span className={`text-xs font-semibold ${t.label}`}>{label}</span>
-        </span>
-        <span className={`nums-tabular text-xs font-semibold ${t.label}`}>{share}%</span>
+    <div className="px-5 py-4">
+      <div className="flex items-center gap-2">
+        <span className={`h-2 w-2 shrink-0 rounded-full ${t.dot}`} />
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)]">{label}</span>
       </div>
-      <p className={`nums-tabular mt-2 text-2xl font-bold leading-none ${t.num}`}>
-        {value}<span className="text-sm font-medium opacity-60"> / {total}</span>
+      <p className={`nums-tabular mt-2.5 text-[1.75rem] font-bold leading-none tracking-tight ${t.num}`}>
+        {value}<span className="text-base font-medium text-[var(--muted)]"> / {total}</span>
       </p>
+      <p className="nums-tabular mt-1.5 text-xs text-[var(--muted)]">{share}% of team</p>
     </div>
   );
 }

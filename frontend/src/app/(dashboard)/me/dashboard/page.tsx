@@ -69,7 +69,7 @@ export default function EmployeeDashboardPage() {
 
   // KPI cards — Welter style: colored left accent, big number, tinted icon square.
   const kpis = [
-    { label: "Certificates earned", value: certCount, sub: g.next ? `${g.toNext} XP to ${g.next.label}` : "all badges earned", icon: ScrollText, accent: "#16a34a", tint: "bg-emerald-50 text-emerald-600", href: "/me/learning?tab=certificates" },
+    { label: "Certificates earned", value: certCount, sub: g.next ? `${g.toNext} more certificate${g.toNext === 1 ? "" : "s"} to ${g.next.label}` : "all badges earned", icon: ScrollText, accent: "#16a34a", tint: "bg-emerald-50 text-emerald-600", href: "/me/learning?tab=certificates" },
     { label: "Courses in progress", value: data.inProgressCount, sub: data.notStartedCount > 0 ? `${data.notStartedCount} not started` : "keep it going", icon: BookOpen, accent: "#0284c7", tint: "bg-sky-50 text-sky-600", href: "/me/learning" },
     { label: "Courses completed", value: data.completedCount, sub: data.completedCount > 0 ? "nice work" : "add a course to start", icon: Award, accent: "#7c3aed", tint: "bg-violet-50 text-violet-600", href: "/me/learning" },
     { label: "Skill gaps", value: data.gapCount, sub: data.topGap ? `top: ${data.topGap.skill}` : "on target", icon: Target, accent: "#d97706", tint: "bg-amber-50 text-amber-600", href: "/me/skills" },

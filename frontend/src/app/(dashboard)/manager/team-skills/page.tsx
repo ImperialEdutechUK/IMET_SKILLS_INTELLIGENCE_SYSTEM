@@ -70,7 +70,8 @@ export default function TeamSkillsPage() {
               )}
             </div>
 
-            <div className="rounded-2xl border border-[var(--border)] bg-white p-5">
+            {/* data-tour: onboarding-tour anchor only — no behaviour change. */}
+            <div data-tour="mgr-skills-gaps" className="rounded-2xl border border-[var(--border)] bg-white p-5">
               <div className="mb-4 flex items-center gap-3"><Icon3D icon={AlertTriangle} tone={TONES.amber} size="sm" /><h3 className="font-semibold text-[var(--ink)]">Skills That Need Improvement</h3></div>
               {data.needImprovement.length === 0 ? (
                 <p className="text-sm text-[var(--muted)]">No skill gaps in this view. Nice work!</p>

@@ -80,7 +80,8 @@ export default function ManagerReportsPage() {
         </div>
       </div>
 
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {/* data-tour: onboarding-tour anchor only — no behaviour change. */}
+      <div data-tour="mgr-report-cards" className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {REPORT_CARDS.map((c) => (
           <Link key={c.title} href={c.href} className="group flex h-full flex-col rounded-2xl border border-[var(--border)] bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-md">
             <Icon3D icon={c.icon} tone={c.tone} />

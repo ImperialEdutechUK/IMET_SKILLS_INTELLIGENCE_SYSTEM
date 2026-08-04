@@ -56,7 +56,9 @@ export default function ApprovalsPage() {
       {isLoading ? (
         <TableSkeleton rows={3} />
       ) : pending.length === 0 ? (
-        <div className="rounded-2xl border border-[var(--border)] bg-white p-8 text-center">
+        // data-tour on both branches: the onboarding tour points at whichever
+        // one is on screen. No behaviour change.
+        <div data-tour="adm-approvals" className="rounded-2xl border border-[var(--border)] bg-white p-8 text-center">
           <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-[var(--brand-tint)] text-[var(--brand-dark)]">
             <UserCheck className="h-6 w-6" />
           </span>
@@ -64,7 +66,7 @@ export default function ApprovalsPage() {
           <p className="mt-1 text-sm text-[var(--muted)]">New employee registrations will appear here for approval.</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div data-tour="adm-approvals" className="space-y-3">
           {pending.map((p) => (
             <div key={p.id} className="rounded-2xl border border-[var(--border)] bg-white p-5">
               <div className="flex flex-wrap items-start justify-between gap-4">

@@ -100,32 +100,35 @@ export default function ManagerDashboardPage() {
         </Link>
       </div>
 
-      {/* At-a-glance health — THE hero: the one ring a manager should read first */}
-      <HeroRing
-        percent={stats.teamMembers ? Math.round((onTrack / stats.teamMembers) * 100) : 0}
-        ringColor={ringColor}
-        ringLabel={`${onTrack}/${stats.teamMembers}`}
-        ringSublabel="on track"
-        accent={healthAccent}
-        title={health.word}
-        subtitle={remindMsg || health.line}
-        metrics={[
-          { label: "Active learners", value: `${stats.activeLearners}/${stats.teamMembers}`, color: "#0284c7" },
-          { label: "Courses done", value: String(stats.coursesCompleted), color: "#16a34a" },
-          { label: "Avg skill", value: `${stats.avgSkillLevel}%`, color: "#7c3aed" },
-        ]}
-      >
-        {behind > 0 && (
-          <>
-            <button onClick={sendReminders} disabled={reminding} className="rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--brand-dark)] disabled:opacity-60">
-              {reminding ? "Sending…" : remindMsg ? "Send again" : `Send reminders to all ${behind}`}
-            </button>
-            <button onClick={() => setShowAtRisk((v) => !v)} className="rounded-lg border border-[var(--border)] bg-white px-4 py-2 text-sm font-semibold text-[var(--ink)] hover:bg-slate-50">
-              {showAtRisk ? "Hide at-risk" : `View at-risk (${behind})`}
-            </button>
-          </>
-        )}
-      </HeroRing>
+      {/* At-a-glance health — THE hero: the one ring a manager should read first.
+          data-tour: onboarding-tour anchor only — no behaviour change. */}
+      <div data-tour="mgr-health">
+        <HeroRing
+          percent={stats.teamMembers ? Math.round((onTrack / stats.teamMembers) * 100) : 0}
+          ringColor={ringColor}
+          ringLabel={`${onTrack}/${stats.teamMembers}`}
+          ringSublabel="on track"
+          accent={healthAccent}
+          title={health.word}
+          subtitle={remindMsg || health.line}
+          metrics={[
+            { label: "Active learners", value: `${stats.activeLearners}/${stats.teamMembers}`, color: "#0284c7" },
+            { label: "Courses done", value: String(stats.coursesCompleted), color: "#16a34a" },
+            { label: "Avg skill", value: `${stats.avgSkillLevel}%`, color: "#7c3aed" },
+          ]}
+        >
+          {behind > 0 && (
+            <>
+              <button data-tour="mgr-remind" onClick={sendReminders} disabled={reminding} className="rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--brand-dark)] disabled:opacity-60">
+                {reminding ? "Sending…" : remindMsg ? "Send again" : `Send reminders to all ${behind}`}
+              </button>
+              <button onClick={() => setShowAtRisk((v) => !v)} className="rounded-lg border border-[var(--border)] bg-white px-4 py-2 text-sm font-semibold text-[var(--ink)] hover:bg-slate-50">
+                {showAtRisk ? "Hide at-risk" : `View at-risk (${behind})`}
+              </button>
+            </>
+          )}
+        </HeroRing>
+      </div>
 
       {/* At-risk list — hidden by default, revealed by the "View at-risk" button. */}
       {showAtRisk && behind > 0 && (
@@ -161,7 +164,7 @@ export default function ManagerDashboardPage() {
 
       {/* Key numbers — clickable, live tiles */}
       <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">Key numbers</p>
-      <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div data-tour="mgr-kpis" className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatTile index={0} href="/manager/team-learning" icon={Users} tone="green" label="Active learners" value={`${stats.activeLearners} of ${stats.teamMembers}`} sub="Enrolled in a course" />
         <StatTile index={1} href="/manager/team-learning" icon={BookOpen} tone="sky" label="Courses in progress" value={stats.coursesInProgress} sub={`${stats.coursesCompleted} completed`} />
         <StatTile index={2} href="/manager/team-learning" icon={Award} tone="teal" label="Courses completed" value={stats.coursesCompleted} sub="Across the team" />

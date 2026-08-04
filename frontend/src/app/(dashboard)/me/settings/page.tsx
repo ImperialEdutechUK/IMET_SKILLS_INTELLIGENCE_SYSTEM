@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { User, Lock, Bell, Compass } from "lucide-react";
 import { getUser } from "@/lib/authClient";
-import { requestTourReplay } from "@/lib/onboarding";
+import { requestTourReplay, tourFor } from "@/lib/onboarding";
 import { useApi, apiSend, ApiError } from "@/lib/api";
 
 interface Profile { fullName: string; email: string; department: string }
@@ -28,10 +28,14 @@ export default function SettingsPage() {
   const [savingPw, setSavingPw] = useState(false);
   const [pwMsg, setPwMsg] = useState("");
   const [pwErr, setPwErr] = useState(false);
-  const [isEmployee, setIsEmployee] = useState(false);
+  // Employees, managers and admins each have their own tour; authors have none,
+  // so they get no replay card. Read after mount because the session only exists
+  // in the browser.
+  const [hasTour, setHasTour] = useState(false);
 
   useEffect(() => {
-    setIsEmployee(getUser()?.role === "employee");
+    const u = getUser();
+    setHasTour(!!u && !!tourFor(u));
   }, []);
 
   const saveName = async () => {
@@ -61,12 +65,15 @@ export default function SettingsPage() {
     setSavingPw(false);
   };
 
-  // Queue the welcome tour and send the user to the screen it explains.
+  // Queue the welcome tour and send the user to the screen it starts on, which
+  // differs by role — the tour only ever opens on its own dashboard.
   const replayTour = () => {
     const u = getUser();
     if (!u) return;
+    const plan = tourFor(u);
+    if (!plan) return;
     requestTourReplay(u.id);
-    router.push("/me/dashboard");
+    router.push(plan.startPath);
   };
 
   return (
@@ -96,7 +103,7 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
-        {isEmployee && (
+        {hasTour && (
           <div className="rounded-2xl border border-[var(--border)] bg-white p-6">
             <div className="mb-4 flex items-center gap-2"><Compass className="h-4 w-4 text-[var(--brand)]" /><h3 className="font-semibold text-[var(--ink)]">Getting started</h3></div>
             <p className="mb-3 text-sm text-[var(--muted)]">Run the guided tour again to see what each part of your dashboard is for.</p>

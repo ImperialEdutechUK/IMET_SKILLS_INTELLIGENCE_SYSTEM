@@ -88,8 +88,9 @@ export default function AdminAnalyticsDashboard() {
           <RefreshingBadge show={isRefreshing} />
         </div>
 
-        {/* Verdict — the answer, first */}
-        <section className={`${CARD} mb-8 p-6 sm:p-7`}>
+        {/* Verdict — the answer, first.
+            data-tour: onboarding-tour anchor only — no behaviour change. */}
+        <section data-tour="adm-verdict" className={`${CARD} mb-8 p-6 sm:p-7`}>
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="max-w-lg">
               <p className={`text-2xl font-bold tracking-tight ${verdict.tone}`}>{headline}</p>
@@ -125,7 +126,7 @@ export default function AdminAnalyticsDashboard() {
           <h2 className="text-sm font-semibold text-[var(--ink)]">Departments</h2>
           <span className="text-xs text-[var(--muted)]">Sorted by who needs attention · open one to see people</span>
         </div>
-        <div className={`${CARD} mb-8 overflow-hidden`}>
+        <div data-tour="adm-departments" className={`${CARD} mb-8 overflow-hidden`}>
           {staffed.length === 0 ? (
             <p className="p-6 text-sm text-[var(--muted)]">No departments have employees yet.</p>
           ) : (
@@ -165,7 +166,7 @@ export default function AdminAnalyticsDashboard() {
         </div>
 
         {/* Two quiet supporting insights */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div data-tour="adm-insights" className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <section className={`${CARD} p-5`}>
             <div className="mb-4 flex items-center gap-2 text-[var(--ink)]">
               <TrendingUp className="h-4 w-4 text-[var(--brand)]" />

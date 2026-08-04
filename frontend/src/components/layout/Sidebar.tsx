@@ -37,7 +37,15 @@ export default function Sidebar({ user }: { user: SessionUser }) {
       )}
       <nav data-tour="sidebar-nav" className="flex-1 overflow-y-auto p-3">
         {sections.map((section, si) => (
-          <NavGroup key={section.title ?? si} section={section} pathname={pathname} className={si > 0 ? "mt-4" : ""} />
+          <NavGroup
+            key={section.title ?? si}
+            section={section}
+            pathname={pathname}
+            className={si > 0 ? "mt-4" : ""}
+            // Anchor for the manager/admin tours, which point at the personal
+            // learning group to say "these pages are yours too".
+            dataTour={section.title === "My Learning" ? "sidebar-personal" : undefined}
+          />
         ))}
       </nav>
 
@@ -63,13 +71,13 @@ export default function Sidebar({ user }: { user: SessionUser }) {
 
 // A nav section. Titled sections collapse (open by default) so a manager can fold
 // away the group they aren't using; untitled sections are always shown.
-function NavGroup({ section, pathname, className }: { section: NavSection; pathname: string; className: string }) {
+function NavGroup({ section, pathname, className, dataTour }: { section: NavSection; pathname: string; className: string; dataTour?: string }) {
   const [open, setOpen] = useState(true);
   const collapsible = !!section.title;
   const showItems = !collapsible || open;
 
   return (
-    <div className={className}>
+    <div className={className} data-tour={dataTour}>
       {section.title && (
         <button
           type="button"

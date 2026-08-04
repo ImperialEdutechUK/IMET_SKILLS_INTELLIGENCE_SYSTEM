@@ -99,14 +99,15 @@ export default function TeamLearningPage() {
             <Stat3D icon={BarChart3} tone={TONES.amber} label="Average Progress" value={`${data.avgCompletion}%`} />
           </div>
 
-          <div className="rounded-2xl border border-[var(--border)] bg-white">
+          {/* data-tour: onboarding-tour anchor only — no behaviour change. */}
+          <div data-tour="mgr-learning-table" className="rounded-2xl border border-[var(--border)] bg-white">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] p-5">
               <div className="relative w-full max-w-xs">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search team members..."
                   className="w-full rounded-lg border border-[var(--border)] py-2 pl-9 pr-3 text-sm outline-none focus:border-[var(--brand)]" />
               </div>
-              <button onClick={exportCsv} disabled={members.length === 0}
+              <button data-tour="mgr-learning-export" onClick={exportCsv} disabled={members.length === 0}
                 className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--ink)] hover:bg-slate-50 disabled:opacity-60">
                 <Download className="h-4 w-4" /> Export
               </button>

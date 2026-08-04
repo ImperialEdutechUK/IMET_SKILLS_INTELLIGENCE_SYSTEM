@@ -19,7 +19,15 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     where: { id },
     include: {
       department: true,
-      enrollments: { include: { course: { include: { category: true } } }, orderBy: { updatedAt: "desc" } },
+      enrollments: {
+        include: {
+          course: { include: { category: true } },
+          // What the employee actually banked for this course, so the manager reads
+          // the CPD ledger rather than the catalogue's scraped estimate.
+          cpdRecord: { select: { hours: true } },
+        },
+        orderBy: { updatedAt: "desc" },
+      },
       cpdRecords: { orderBy: { loggedAt: "desc" } },
       userSkills: { include: { skill: true } },
       certificates: true,
@@ -71,7 +79,12 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       daysSinceActivity: e.lastActivityAt
         ? Math.floor((Date.now() - e.lastActivityAt.getTime()) / 86_400_000)
         : null,
+      // The catalogue's estimate — kept for context only.
       cpdHours: e.course.cpdHours,
+      // The CPD this course actually contributed to the employee's total. This is the
+      // figure that reconciles with the CPD ring above; a completed course carries its
+      // full length, which is usually more than the hours they journalled.
+      cpdCredited: Math.round((e.cpdRecord?.hours ?? 0) * 10) / 10,
     };
   };
   const courses = {

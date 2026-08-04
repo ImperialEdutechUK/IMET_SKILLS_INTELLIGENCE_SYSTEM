@@ -17,6 +17,9 @@ export async function GET(req: Request) {
         // Most recent slice of the append-only trail — enough to show the learner
         // (and, on the manager view, an auditor) how the hours accumulated.
         events: { orderBy: { createdAt: "desc" }, take: 6 },
+        // The CPD this course actually contributes. Read, never recomputed: a
+        // completed course banks its full length, so this differs from hoursLogged.
+        cpdRecord: { select: { hours: true } },
       },
       orderBy: { updatedAt: "desc" },
     }),
@@ -58,6 +61,11 @@ export async function GET(req: Request) {
       catalogueHours: e.course.durationHours ?? (e.course.cpdHours > 0 ? e.course.cpdHours : null),
       targetHoursOverride: e.targetHoursOverride,
       hoursLogged: Math.round(e.hoursLogged * 10) / 10,
+      // CPD banked for this course. For a completed course this is its full length
+      // (the learner's corrected figure when they set one), which is normally MORE
+      // than the hours they journalled — the two are shown side by side rather than
+      // one standing in for the other.
+      cpdCredited: Math.round((e.cpdRecord?.hours ?? 0) * 10) / 10,
       status: e.status,
       externalUrl: e.course.externalUrl ?? null,
       createdAt: fmtDate(e.createdAt),
@@ -81,14 +89,34 @@ export async function GET(req: Request) {
   const notStarted = enrollments.filter((e) => e.status === "not_started").map(mapCourse);
   const completed = enrollments.filter((e) => e.status === "completed").map(mapCourse);
 
-  // Hours spent this month (from CPD records logged in the current calendar month).
+  // Hours spent this month.
+  //
+  // This CANNOT be read off CpdRecord.loggedAt. A course keeps ONE CpdRecord that is
+  // topped up in place as the learner logs more time, and loggedAt stays at the date
+  // the record was first created — so hours logged this month sat in an earlier
+  // month's bucket, and "Hours Spent · This month" never moved when someone logged
+  // time against a course they had started before.
+  //
+  // The append-only EnrollmentEvent trail is the right source: every event carries the
+  // CPD hours IT added (logged time, a completion top-up, a re-credit, or a negative
+  // give-back on reopen), stamped with the moment it happened. Standalone CPD records
+  // (manual entries and certificate uploads, which have no enrollment and so no trail)
+  // are added by their own loggedAt, which for those rows is accurate.
   const now = new Date();
-  const hoursThisMonth = cpdRecords
-    .filter((r) => {
-      const d = new Date(r.loggedAt);
-      return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
-    })
+  const inThisMonth = (d: Date) =>
+    d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const eventHours = await prisma.enrollmentEvent.aggregate({
+    _sum: { hours: true },
+    where: { enrollment: { userId: authUser.id }, createdAt: { gte: monthStart } },
+  });
+
+  const standaloneHours = cpdRecords
+    .filter((r) => r.enrollmentId === null && inThisMonth(new Date(r.loggedAt)))
     .reduce((s, r) => s + r.hours, 0);
+
+  const hoursThisMonth = Math.max(0, (eventHours._sum.hours ?? 0) + standaloneHours);
 
   const completedCourseIds = new Set(enrollments.filter((e) => e.status === "completed").map((e) => e.courseId));
 

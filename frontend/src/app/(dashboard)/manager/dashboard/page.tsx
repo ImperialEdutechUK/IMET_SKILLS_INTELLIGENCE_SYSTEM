@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Users, BookOpen, Award, TrendingUp, Download, ChevronRight, AlertTriangle, BarChart3, PieChart, Activity, Clock } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -40,9 +40,6 @@ export default function ManagerDashboardPage() {
   const [remindMsg, setRemindMsg] = useState("");
   const [showAtRisk, setShowAtRisk] = useState(false);
   const [trendWeeks, setTrendWeeks] = useState(8);
-  const [filled, setFilled] = useState(false); // drives the one health-bar entrance
-
-  useEffect(() => { const t = setTimeout(() => setFilled(true), 60); return () => clearTimeout(t); }, []);
 
   async function sendReminders() {
     setReminding(true); setRemindMsg("");
@@ -75,7 +72,6 @@ export default function ManagerDashboardPage() {
   const thisWeek = data.progressOverTime.length ? data.progressOverTime[data.progressOverTime.length - 1].hours : 0;
   const trend = data.progressOverTime.slice(-trendWeeks);
   const today = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
-  const pct = (n: number) => (stats.teamMembers ? (n / stats.teamMembers) * 100 : 0);
 
   // The single verdict a manager reads first — same language as the admin view.
   const verdict = stats.teamMembers === 0
@@ -114,20 +110,13 @@ export default function ManagerDashboardPage() {
             </div>
           </div>
 
-          {/* Clear breakdown — a proportion bar plus three labelled counts */}
+          {/* Clear breakdown — three labelled status counts */}
           {stats.teamMembers > 0 && (
-            <>
-              <div className="mt-6 flex h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
-                <span className="h-full bg-emerald-500 transition-[width] duration-700 ease-out" style={{ width: `${filled ? pct(onTrack) : 0}%` }} />
-                <span className="h-full bg-amber-500 transition-[width] duration-700 ease-out" style={{ width: `${filled ? pct(stats.attention) : 0}%` }} />
-                <span className="h-full bg-rose-500 transition-[width] duration-700 ease-out" style={{ width: `${filled ? pct(stats.atRisk) : 0}%` }} />
-              </div>
-              <div className="mt-4 grid grid-cols-3 gap-3">
-                <StatusStat tone="emerald" label="On track" value={onTrack} total={stats.teamMembers} />
-                <StatusStat tone="amber" label="Behind pace" value={stats.attention} total={stats.teamMembers} />
-                <StatusStat tone="rose" label="At risk" value={stats.atRisk} total={stats.teamMembers} />
-              </div>
-            </>
+            <div className="mt-6 grid grid-cols-3 gap-3">
+              <StatusStat tone="emerald" label="On track" value={onTrack} total={stats.teamMembers} />
+              <StatusStat tone="amber" label="Behind pace" value={stats.attention} total={stats.teamMembers} />
+              <StatusStat tone="rose" label="At risk" value={stats.atRisk} total={stats.teamMembers} />
+            </div>
           )}
 
           {/* Manager actions */}
@@ -248,17 +237,21 @@ const STATUS_TONE: Record<"emerald" | "amber" | "rose", { bg: string; dot: strin
   rose: { bg: "bg-rose-50", dot: "bg-rose-500", num: "text-rose-700", label: "text-rose-700/80" },
 };
 
-// One labelled status count — big number over a coloured, named chip so the
-// on-track / behind / at-risk split reads at a glance instead of a tiny legend.
+// One labelled status count — big number + share-of-team over a coloured, named
+// chip, so the on-track / behind / at-risk split reads at a glance.
 function StatusStat({ tone, label, value, total }: { tone: "emerald" | "amber" | "rose"; label: string; value: number; total: number }) {
   const t = STATUS_TONE[tone];
+  const share = total ? Math.round((value / total) * 100) : 0;
   return (
-    <div className={`rounded-xl ${t.bg} px-4 py-3`}>
-      <div className="flex items-center gap-2">
-        <span className={`h-2 w-2 shrink-0 rounded-full ${t.dot}`} />
-        <span className={`text-xs font-semibold ${t.label}`}>{label}</span>
+    <div className={`rounded-xl ${t.bg} px-4 py-3.5`}>
+      <div className="flex items-center justify-between gap-2">
+        <span className="flex items-center gap-2">
+          <span className={`h-2 w-2 shrink-0 rounded-full ${t.dot}`} />
+          <span className={`text-xs font-semibold ${t.label}`}>{label}</span>
+        </span>
+        <span className={`nums-tabular text-xs font-semibold ${t.label}`}>{share}%</span>
       </div>
-      <p className={`nums-tabular mt-1.5 text-2xl font-bold leading-none ${t.num}`}>
+      <p className={`nums-tabular mt-2 text-2xl font-bold leading-none ${t.num}`}>
         {value}<span className="text-sm font-medium opacity-60"> / {total}</span>
       </p>
     </div>

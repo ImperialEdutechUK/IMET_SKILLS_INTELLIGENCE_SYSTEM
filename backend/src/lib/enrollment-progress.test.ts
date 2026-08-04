@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { deriveProgress, resolveTargetHours } from "./enrollment-progress";
+import { completionCpdHours, deriveProgress, resolveTargetHours } from "./enrollment-progress";
 
 describe("resolveTargetHours", () => {
   it("prefers the published duration", () => {
@@ -110,5 +110,37 @@ describe("deriveProgress with a learner override", () => {
   it("ignores a zero or negative override", () => {
     expect(resolveTargetHours(16, 16, 0)).toBe(16);
     expect(resolveTargetHours(16, 16, -3)).toBe(16);
+  });
+});
+
+describe("completionCpdHours", () => {
+  it("credits the FULL course length, not the slice of time logged", () => {
+    // The reported bug: 4h logged against an 8h course the learner finished banked
+    // 4h, so their CPD total read far lower than the learning they had done.
+    expect(completionCpdHours({ hoursLogged: 4, durationHours: 8 })).toBe(8);
+  });
+
+  it("prefers the learner's own corrected length over the scraped catalogue", () => {
+    // Catalogue says 16h, the learner re-measured it at 8h. Their figure wins.
+    expect(
+      completionCpdHours({ hoursLogged: 4, durationHours: 16, cpdHours: 16, targetHoursOverride: 8 })
+    ).toBe(8);
+  });
+
+  it("keeps logged hours that exceed the course length", () => {
+    // Over-delivering on a short course is real time spent; never round it away.
+    expect(completionCpdHours({ hoursLogged: 20, durationHours: 8 })).toBe(20);
+  });
+
+  it("falls back to the catalogue CPD hours when no duration is published", () => {
+    expect(completionCpdHours({ hoursLogged: 1, durationHours: null, cpdHours: 5 })).toBe(5);
+  });
+
+  it("credits the full length even when nothing was logged", () => {
+    expect(completionCpdHours({ hoursLogged: 0, durationHours: 8 })).toBe(8);
+  });
+
+  it("is 0 only when the course has no length and nothing was logged", () => {
+    expect(completionCpdHours({ hoursLogged: 0, durationHours: null, cpdHours: 0 })).toBe(0);
   });
 });

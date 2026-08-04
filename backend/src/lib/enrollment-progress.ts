@@ -95,3 +95,31 @@ export function deriveProgress(opts: {
  * of the honour system, not a day of study.
  */
 export const MAX_HOURS_PER_ENTRY = 24;
+
+/**
+ * CPD hours a COMPLETED course is worth.
+ *
+ * Finishing a course earns its full CPD value, not the slice of time the learner
+ * happened to log along the way: someone who logs 4h of an 8h course and then
+ * marks it complete has completed 8h of learning, and their CPD must say 8h.
+ * Crediting only the logged hours silently under-reported every learner who
+ * didn't journal every session — the "Nandika shows 16h" case.
+ *
+ * The denominator is `resolveTargetHours`, so the learner's OWN correction to the
+ * course length wins over the scraped catalogue figure (which is an estimate and
+ * is frequently wrong). Logged hours above the course length are kept — over-
+ * delivering on a short course is real time spent and is never rounded away.
+ *
+ * Returns 0 only when there is no course length and nothing was logged, in which
+ * case there is genuinely nothing to credit.
+ */
+export function completionCpdHours(opts: {
+  hoursLogged: number;
+  durationHours?: number | null;
+  cpdHours?: number | null;
+  targetHoursOverride?: number | null;
+}): number {
+  const logged = Number.isFinite(opts.hoursLogged) ? Math.max(0, opts.hoursLogged) : 0;
+  const target = resolveTargetHours(opts.durationHours, opts.cpdHours, opts.targetHoursOverride) ?? 0;
+  return Math.round(Math.max(logged, target) * 100) / 100;
+}

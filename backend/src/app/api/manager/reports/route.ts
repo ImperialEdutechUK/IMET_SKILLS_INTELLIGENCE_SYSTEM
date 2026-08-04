@@ -62,15 +62,38 @@ export async function GET(req: Request) {
   const allRecords = users.flatMap((u) => u.cpdRecords);
 
   const now = new Date();
+
+  // Weekly CPD cannot be bucketed by CpdRecord.loggedAt. A course keeps ONE record
+  // that is topped up in place as time is logged and again on completion, while
+  // loggedAt stays at the date it was first created — so every later hour landed
+  // retroactively in an old week and recent weeks read empty. The append-only
+  // EnrollmentEvent trail carries the hours each event ADDED at the moment it
+  // happened, which is what a "hours per week" series actually needs. Standalone CPD
+  // (manual entries, certificate uploads — no enrollment, so no trail) still comes
+  // from loggedAt, which is accurate for those rows because they are written once.
+  const trendStart = new Date(now.getTime() - 8 * 7 * 24 * 60 * 60 * 1000);
+  const trendEvents = await prisma.enrollmentEvent.findMany({
+    where: {
+      enrollment: { userId: { in: users.map((u) => u.id) } },
+      createdAt: { gte: trendStart },
+      hours: { not: null },
+    },
+    select: { hours: true, createdAt: true },
+  });
+  const standaloneRecords = allRecords.filter((r) => r.enrollmentId === null);
+
   const trend: { label: string; avgProgress: number; cpdHours: number }[] = [];
   for (let i = 7; i >= 0; i--) {
     const weekEnd = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
     const weekStart = new Date(weekEnd.getTime() - 7 * 24 * 60 * 60 * 1000);
 
+    const inWeek = (d: Date) => d >= weekStart && d < weekEnd;
     const cpdHours = round1(
-      allRecords
-        .filter((r) => r.loggedAt >= weekStart && r.loggedAt < weekEnd)
-        .reduce((s, r) => s + r.hours, 0)
+      Math.max(
+        0,
+        trendEvents.filter((e) => inWeek(e.createdAt)).reduce((s, e) => s + (e.hours ?? 0), 0) +
+          standaloneRecords.filter((r) => inWeek(r.loggedAt)).reduce((s, r) => s + r.hours, 0)
+      )
     );
 
     const completedByThen = allEnrollments.filter((e) => {

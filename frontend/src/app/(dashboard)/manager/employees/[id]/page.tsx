@@ -16,7 +16,7 @@ const CERTS_PER_PAGE = 5;
 
 interface Skill { name: string; current: number; target: number; gap: number }
 interface Course {
-  id: string; title: string; category: string; progress: number; cpdHours: number;
+  id: string; title: string; category: string; progress: number; cpdHours: number; cpdCredited: number;
   // Progress is derived server-side from hours logged vs the course duration.
   progressKnown: boolean; hoursLogged: number; targetHours: number | null;
   daysSinceActivity: number | null;
@@ -330,7 +330,14 @@ function CourseList({ courses, showProgress }: { courses: Course[]; showProgress
                   {c.progressKnown ? `${c.progress}%` : `${c.hoursLogged}h`}
                 </span>
               ) : (
-                <span className="shrink-0 rounded-full bg-[var(--brand-tint)] px-2 py-0.5 text-[11px] font-medium text-[var(--brand-dark)]">+{c.cpdHours} CPD</span>
+                /* The CPD this course actually banked, not the catalogue's scraped
+                   estimate — these add up to the Total CPD Hours tile above. */
+                <span
+                  className="shrink-0 rounded-full bg-[var(--brand-tint)] px-2 py-0.5 text-[11px] font-medium text-[var(--brand-dark)]"
+                  title={`${c.hoursLogged}h logged · credited ${c.cpdCredited}h on completion`}
+                >
+                  +{c.cpdCredited} CPD
+                </span>
               )}
             </li>
           ))}

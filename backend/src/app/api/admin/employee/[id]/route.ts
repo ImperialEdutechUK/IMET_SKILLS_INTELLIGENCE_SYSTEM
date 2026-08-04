@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { verifyToken } from "@/lib/verifyToken";
 import { getCpdTargetHours } from "@/lib/cpd-target";
 import { cpdRiskStatus } from "@/lib/cpd-risk";
+import { deriveProgress } from "@/lib/enrollment-progress";
 
 // Read-only per-employee detail for admin / HR / Director:
 // courses, skill gaps (role requirement vs current level), and CPD status.
@@ -18,7 +19,12 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     where: { id },
     include: {
       department: true,
-      enrollments: { include: { course: { include: { category: true } } } },
+      enrollments: {
+        include: {
+          course: { include: { category: true } },
+          cpdRecord: { select: { hours: true } },
+        },
+      },
       cpdRecords: true,
       userSkills: { include: { skill: true } },
       skillGaps: { include: { skill: true } },
@@ -32,15 +38,32 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const cpdHours = user.cpdRecords.reduce((s, r) => s + r.hours, 0);
   const { cpdProgress, status: cpdStatus } = cpdRiskStatus(cpdHours, targetHours);
 
-  const courses = user.enrollments.map((e) => ({
-    id: e.id,
-    title: e.course.title,
-    provider: e.course.provider,
-    category: e.course.category?.name ?? null,
-    status: e.status,
-    progress: e.progress,
-    externalUrl: e.course.externalUrl,
-  }));
+  const courses = user.enrollments.map((e) => {
+    // Recomputed from hours, exactly as the manager and employee views do. Reading the
+    // stored column here made admin the one screen that could disagree with the other
+    // two about the same course.
+    const derived = deriveProgress({
+      hoursLogged: e.hoursLogged,
+      status: e.status,
+      durationHours: e.course.durationHours,
+      cpdHours: e.course.cpdHours,
+      targetHoursOverride: e.targetHoursOverride,
+    });
+    return {
+      id: e.id,
+      title: e.course.title,
+      provider: e.course.provider,
+      category: e.course.category?.name ?? null,
+      status: e.status,
+      progress: derived.progress,
+      progressKnown: derived.progressKnown,
+      hoursLogged: Math.round(e.hoursLogged * 10) / 10,
+      targetHours: derived.targetHours,
+      // CPD actually banked for this course — reconciles with the CPD total above.
+      cpdCredited: Math.round((e.cpdRecord?.hours ?? 0) * 10) / 10,
+      externalUrl: e.course.externalUrl,
+    };
+  });
 
   // Skill gaps: required level (from the employee's role profile) vs current level.
   let roleTitle: string | null = null;

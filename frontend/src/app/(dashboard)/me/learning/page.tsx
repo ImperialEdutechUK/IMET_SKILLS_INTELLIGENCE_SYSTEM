@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { BookOpen, Clock, CheckCircle2, PlayCircle, Plus, ExternalLink, X, History, Award } from "lucide-react";
+import { BookOpen, Clock, CheckCircle2, ChevronRight, PlayCircle, Plus, ExternalLink, X, History, Award } from "lucide-react";
 import Stat3D from "@/components/dashboard/Stat3D";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
 import AchievementsBento from "@/components/gamification/AchievementsBento";
@@ -27,6 +27,10 @@ interface Course {
   // something the learner can set. progressKnown is false when the course publishes
   // no duration, in which case we show hours logged instead of a percentage.
   progressKnown: boolean; targetHours: number | null; hoursLogged: number;
+  // CPD this course has actually banked. A completed course earns its FULL length
+  // (the learner's corrected figure when they set one), so this is normally higher
+  // than hoursLogged — the two are shown side by side, never one as the other.
+  cpdCredited: number;
   // What the scraped catalogue claims, vs the learner's own correction to it.
   catalogueHours: number | null; targetHoursOverride: number | null;
   lastActivityAt: string | null; daysSinceActivity: number | null;
@@ -181,9 +185,7 @@ export default function MyLearningPage() {
               <div className="flex flex-col gap-4 md:flex-row md:items-center">
                 <CourseIcon />
                 <div className="min-w-0 flex-1">
-                  <button onClick={() => setDetail(c)} className="text-left">
-                    <p className="text-sm font-semibold text-[var(--ink)] hover:text-[var(--brand)] hover:underline">{c.title}</p>
-                  </button>
+                  <CourseTitleButton course={c} onOpen={() => setDetail(c)} />
                   {c.description && <p className="mt-0.5 line-clamp-1 text-xs text-[var(--muted)]">{c.description}</p>}
                   <p className="mt-1 text-[11px] text-[var(--muted)]">
                     {c.level}{c.targetHours ? ` · ${c.targetHours}h` : ""} · {c.category}
@@ -271,9 +273,7 @@ export default function MyLearningPage() {
             <div key={c.id} className="flex flex-col gap-3 border-b border-[var(--border)] p-5 last:border-0 md:flex-row md:items-center">
               <CourseIcon />
               <div className="min-w-0 flex-1">
-                <button onClick={() => setDetail(c)} className="text-left">
-                  <p className="text-sm font-semibold text-[var(--ink)] hover:text-[var(--brand)] hover:underline">{c.title}</p>
-                </button>
+                <CourseTitleButton course={c} onOpen={() => setDetail(c)} />
                 <p className="mt-0.5 text-[11px] text-[var(--muted)]">
                   {c.level}{c.targetHours ? ` · ${c.targetHours}h` : ""} · {c.category} · enrolled {c.createdAt}
                   {c.targetHoursOverride !== null && <span className="text-[var(--brand)]"> · adjusted by you</span>}
@@ -294,12 +294,25 @@ export default function MyLearningPage() {
             <div key={c.id} className="flex items-center gap-4 border-b border-[var(--border)] p-5 last:border-0">
               <Icon3D icon={CheckCircle2} tone={TONES.emerald} size="sm" />
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-[var(--ink)]">{c.title}</p>
+                {/* Clickable here too, so the title behaves the same in every tab —
+                    and a completed course is exactly where someone re-measures its
+                    length, which now re-credits the CPD. */}
+                <CourseTitleButton course={c} onOpen={() => setDetail(c)} />
                 <p className="mt-0.5 text-[11px] text-[var(--muted)]">{c.level} · {c.category}{c.completedAt ? ` · completed ${c.completedAt}` : ""}{c.hoursLogged > 0 ? ` · ${c.hoursLogged}h logged` : ""}</p>
               </div>
-              {/* CPD earned is the time the learner logged, never the catalogue's
-                  estimate — same number the CPD ledger and certificate carry. */}
-              <span className="shrink-0 rounded-full bg-[var(--brand-tint)] px-2.5 py-1 text-xs font-medium text-[var(--brand-dark)]">+{c.hoursLogged} CPD</span>
+              {/* CPD earned is the course's full length — the learner's own corrected
+                  figure when they set one, never a scraped estimate they disagreed
+                  with. Same number the CPD ledger and the certificate carry. */}
+              <span
+                className="shrink-0 rounded-full bg-[var(--brand-tint)] px-2.5 py-1 text-xs font-medium text-[var(--brand-dark)]"
+                title={
+                  c.cpdCredited > c.hoursLogged
+                    ? `Completing this course earns its full ${c.cpdCredited}h — you logged ${c.hoursLogged}h along the way.`
+                    : "CPD hours banked for this course."
+                }
+              >
+                +{c.cpdCredited} CPD
+              </span>
               {c.certificateId && <button onClick={() => setTab("certificates")} className="shrink-0 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--ink)] hover:bg-slate-50">View Certificate</button>}
             </div>
           ))}
@@ -338,9 +351,13 @@ export default function MyLearningPage() {
         <CertificateProofModal
           heading="Mark course complete"
           intro={`Upload the certificate you earned for this course. It only moves to Completed once the proof is saved. ${
-            completing.hoursLogged > 0
-              ? `This counts the ${completing.hoursLogged}h you logged as CPD — nothing to re-enter.`
-              : "You've logged no hours on it, so it earns no CPD. Log your time first if you want it to count."
+            completing.targetHours
+              ? `Completing it earns the full ${Math.max(completing.hoursLogged, completing.targetHours)}h of CPD${
+                  completing.hoursLogged > 0 ? ` — you've logged ${completing.hoursLogged}h so far` : ""
+                }, nothing to re-enter.`
+              : completing.hoursLogged > 0
+                ? `This course publishes no length, so it banks the ${completing.hoursLogged}h you logged.`
+                : "This course publishes no length and you've logged no hours, so it earns no CPD. Log your time first if you want it to count."
           }`}
           submitLabel="Complete & save certificate"
           initialTitle={completing.title}
@@ -430,14 +447,32 @@ function CourseDetailModal({ course, onClose, onSaved }: { course: Course; onClo
           <Row label="Level" value={course.level} />
           <Row label="Category" value={course.category} />
           <Row label="Time you've logged" value={`${course.hoursLogged}h`} />
-          {/* Completing the course banks exactly the hours logged — the catalogue's
-              own CPD figure is never added on top. */}
-          <Row label="CPD on completion" value={`${course.hoursLogged}h — the time you log`} />
+          {/* Completing the course banks its full length, using the learner's own
+              corrected figure ahead of the scraped catalogue value. Logging more than
+              that keeps the larger number — over-delivering is never rounded away. */}
+          {course.status === "completed" ? (
+            <Row label="CPD earned" value={`${course.cpdCredited}h`} />
+          ) : (
+            <Row
+              label="CPD on completion"
+              value={
+                course.targetHours
+                  ? `${Math.max(course.hoursLogged, course.targetHours)}h — the full course`
+                  : `${course.hoursLogged}h — the time you log`
+              }
+            />
+          )}
         </div>
 
-        <label className="mb-1 block text-xs font-medium text-[var(--ink)]">Total hours to complete</label>
+        <label className="mb-1 block text-xs font-medium text-[var(--ink)]">
+          {course.status === "completed" ? "Total hours for this course" : "Total hours to complete"}
+        </label>
         <p className="mb-2 text-[11px] text-[var(--muted)]">
-          Your progress bar is this many hours divided into the time you log. Only you see this change.
+          {course.status === "completed"
+            ? // Editing this on a finished course re-credits the ledger, so say so
+              // plainly rather than letting the CPD total change unannounced.
+              "Your figure, not the catalogue's — changing it re-credits the CPD for this course and updates your certificate. Only your own record changes."
+            : "Your progress bar is this many hours divided into the time you log, and it's what the course credits when you complete it. Only you see this change."}
         </p>
         <div className="flex items-center gap-2">
           <input type="number" min={0.5} step={0.5} value={hours} autoFocus
@@ -632,4 +667,25 @@ function Section({ title, children, empty, emptyText }: { title: string; childre
 
 function CourseIcon() {
   return <Icon3D icon={BookOpen} tone={TONES.blue} size="sm" />;
+}
+
+// The course title opens the detail dialog, which nothing about a bold line of text
+// says on its own. It gets the full set of affordances: a hand cursor, a colour and
+// underline on hover, a chevron that slides in to name the action, a keyboard focus
+// ring, and a tooltip — so the title reads as a control at a glance and by keyboard.
+function CourseTitleButton({ course, onOpen }: { course: Course; onOpen: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      title={`Open details for "${course.title}"`}
+      aria-label={`Open details for ${course.title}`}
+      className="group -mx-1 flex max-w-full cursor-pointer items-center gap-1 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-[var(--brand-tint)]/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] focus-visible:ring-offset-1"
+    >
+      <span className="truncate text-sm font-semibold text-[var(--ink)] underline-offset-2 transition-colors group-hover:text-[var(--brand)] group-hover:underline">
+        {course.title}
+      </span>
+      <ChevronRight className="h-3.5 w-3.5 shrink-0 -translate-x-1 text-[var(--brand)] opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100" />
+    </button>
+  );
 }

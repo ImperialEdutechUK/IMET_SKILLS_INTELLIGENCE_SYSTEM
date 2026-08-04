@@ -25,9 +25,9 @@ interface CertificateOpts {
   cpdHours: number;
   /**
    * Credit exactly this many hours instead of the course's catalogue figure, and
-   * accept 0. Used by "Mark Complete" in My Learning, where CPD must reflect the time
-   * the learner actually logged — crediting the catalogue hours on top of the hours
-   * they already logged would count the same course twice.
+   * accept 0. This is how a caller states the learner's OWN figure — the hours they
+   * typed on a self-reported course, or `completionCpdHours()` for "Mark Complete",
+   * which honours their corrected course length over the scraped catalogue value.
    */
   creditHours?: number;
   /** Certificate the learner uploaded when marking the course complete. */
@@ -83,29 +83,62 @@ export async function issueCompletionCertificate(opts: CertificateOpts): Promise
         status: "approved",
       },
     });
-  } else if (proof) {
+  } else if (proof || existing.cpdHours !== hours) {
     // Re-completing a course the learner had already earned a certificate for: attach
-    // the freshly uploaded proof rather than silently discarding it. Only fills the
-    // proof fields — the original issue date and CPD hours stand.
+    // the freshly uploaded proof rather than silently discarding it, and re-state the
+    // hours.
+    //
+    // Syncing cpdHours matters: a certificate issued from the catalogue's estimate
+    // used to keep that estimate forever while the CPD ledger banked something else,
+    // so the certificate card and the CPD total disagreed (16h on the card, 4h in the
+    // ledger). The completion credit is the single figure both must show.
     await prisma.certificate.update({
       where: { id: existing.id },
-      data: { fileUrl: proof.fileUrl, certificateUrl: proof.certificateUrl, issuer },
+      data: {
+        cpdHours: hours,
+        issuer,
+        ...(proof ? { fileUrl: proof.fileUrl, certificateUrl: proof.certificateUrl } : {}),
+      },
     });
   }
 }
 
 /**
- * Credit CPD hours for a completed enrollment. No-op when the enrollment already has
- * a CPD record (e.g. the learner logged hours as they went) — those hours are already
- * banked and must not be topped up — or when there is nothing to credit.
+ * Credit CPD hours for a completed enrollment, and return the hours ADDED to the
+ * learner's ledger by this call (0 when nothing changed).
+ *
+ * A learner who logged hours as they went already has a CPD record on this
+ * enrollment holding those partial hours. Completing the course must TOP THAT UP to
+ * the course's full value — it must not no-op, which is what silently under-credited
+ * every learner who logged as they went (4h banked against an 8h course they
+ * finished). One record per enrollment (enrollmentId is unique), so topping up can
+ * never double-count: the record is set to the completion credit, not increased by it.
+ *
+ * Never lowers a record — hours already banked are never taken away here.
+ *
+ * Used by the "I already did this course" flow, where the learner TYPES the hours and
+ * that figure is authoritative. The enrollment PATCH takes the other path
+ * (setEnrollmentCpd), which states the exact target instead of raising toward one.
  */
-export async function logCompletionCpd(opts: CompletionOpts): Promise<void> {
+export async function logCompletionCpd(opts: CompletionOpts): Promise<number> {
   const hours = creditFor(opts);
-  if (hours <= 0) return;
+  if (hours <= 0) return 0;
 
   // enrollmentId is unique -> at most one CPD record per enrollment
   const existing = await prisma.cpdRecord.findUnique({ where: { enrollmentId: opts.enrollmentId } });
-  if (existing) return;
+
+  if (existing) {
+    const topUp = Math.round((hours - existing.hours) * 100) / 100;
+    if (topUp <= 0) return 0;
+    await prisma.cpdRecord.update({
+      where: { enrollmentId: opts.enrollmentId },
+      // loggedAt moves to now — the top-up is earned on the completion date, and for a
+      // record with no activity trail behind it that timestamp is all the period-scoped
+      // figures have to go on.
+      data: { hours, loggedAt: new Date() },
+    });
+    return topUp;
+  }
 
   await prisma.cpdRecord.create({
     data: {
@@ -123,6 +156,62 @@ export async function logCompletionCpd(opts: CompletionOpts): Promise<void> {
       }),
     },
   });
+  return hours;
+}
+
+/**
+ * Set an enrollment's CPD to exactly `hours`, creating the record if needed.
+ *
+ * This is the ONE write the enrollment PATCH makes to the ledger, replacing three
+ * separate blocks that each nudged the number by a delta (log hours → add; complete →
+ * top up; reopen → subtract). Deltas made the outcome depend on the order and on how
+ * many times a request had run; stating the target instead makes the whole PATCH
+ * idempotent and double-counting structurally impossible, in either direction:
+ *
+ *   completed → the course's full value (completionCpdHours)
+ *   otherwise → the hours actually logged
+ *
+ * Returns the signed change applied, which the caller records on the activity trail.
+ */
+export async function setEnrollmentCpd(opts: {
+  userId: string;
+  enrollmentId: string;
+  courseTitle: string;
+  provider: string | null;
+  hours: number;
+}): Promise<number> {
+  const next = Math.round(Math.max(0, opts.hours) * 100) / 100;
+  const existing = await prisma.cpdRecord.findUnique({ where: { enrollmentId: opts.enrollmentId } });
+
+  if (existing) {
+    if (existing.hours === next) return 0;
+    await prisma.cpdRecord.update({
+      where: { enrollmentId: opts.enrollmentId },
+      // loggedAt moves only when CPD is EARNED, never when it is given back, so the
+      // date always marks the most recent moment this course added to the ledger.
+      data: { hours: next, ...(next > existing.hours ? { loggedAt: new Date() } : {}) },
+    });
+    return Math.round((next - existing.hours) * 100) / 100;
+  }
+
+  if (next <= 0) return 0;
+  await prisma.cpdRecord.create({
+    data: {
+      userId: opts.userId,
+      enrollmentId: opts.enrollmentId,
+      hours: next,
+      source: "course",
+      description: packCpd({
+        title: opts.courseTitle,
+        type: "Learning",
+        provider: opts.provider,
+        category: "Technical Skills",
+        dateCompleted: new Date().toISOString().slice(0, 10),
+        note: "Time logged",
+      }),
+    },
+  });
+  return next;
 }
 
 /** Both completion side-effects, in the order that avoids double-counting CPD. */

@@ -3,12 +3,16 @@ import { prisma } from "@/lib/db";
 import { verifyToken } from "@/lib/verifyToken";
 import {
   issueCompletionCertificate,
-  logCompletionCpd,
+  setEnrollmentCpd,
   type CompletionProof,
 } from "@/lib/enrollment-complete";
 import { parseCertificateProof } from "@/lib/certificate-proof";
-import { packCpd } from "@/lib/cpd-activity";
-import { deriveProgress, MAX_HOURS_PER_ENTRY, MAX_TARGET_HOURS } from "@/lib/enrollment-progress";
+import {
+  completionCpdHours,
+  deriveProgress,
+  MAX_HOURS_PER_ENTRY,
+  MAX_TARGET_HOURS,
+} from "@/lib/enrollment-progress";
 
 // Update the signed-in employee's own enrollment: start it, log hours, or complete it.
 //
@@ -85,7 +89,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   const enrollment = await prisma.enrollment.findUnique({
     where: { id },
-    include: { course: { include: { category: true } } },
+    // cpdRecord comes along so the activity trail can state the exact CPD delta this
+    // request causes, rather than reconstructing what was banked earlier.
+    include: { course: { include: { category: true } }, cpdRecord: { select: { hours: true } } },
   });
   if (!enrollment || enrollment.userId !== authUser.id) {
     return NextResponse.json({ error: "Enrollment not found." }, { status: 404 });
@@ -117,6 +123,16 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const justReopened = enrollment.status === "completed" && nextStatus !== "completed";
   const now = new Date();
 
+  // What finishing this course is worth: its FULL length — the learner's own
+  // correction if they made one, otherwise the catalogue's — never merely the slice
+  // of time they happened to journal. See completionCpdHours().
+  const completionHours = completionCpdHours({
+    hoursLogged: nextHoursLogged,
+    durationHours: enrollment.course.durationHours,
+    cpdHours: enrollment.course.cpdHours,
+    targetHoursOverride: nextTargetOverride,
+  });
+
   // ── Proof gate ─────────────────────────────────────────────────────────────
   // Nothing has been written yet. Bailing out here is what guarantees the course
   // stays in its current tab with its current progress when the learner cancels
@@ -133,12 +149,20 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (justStarted) events.push({ type: "started", note: "Started the course" });
   if (settingTarget && nextTargetOverride !== enrollment.targetHoursOverride) {
     const catalogue = enrollment.course.durationHours ?? enrollment.course.cpdHours;
+    // Re-measuring a course that is already complete moves CPD, so the trail records
+    // the delta (either sign) — the same "hours this event added" invariant as above.
+    const reCredit =
+      nextStatus === "completed" && !justCompleted
+        ? Math.round((completionHours - (enrollment.cpdRecord?.hours ?? 0)) * 100) / 100
+        : 0;
+    const base =
+      nextTargetOverride === null
+        ? `Course length reset to the catalogue's ${catalogue}h`
+        : `Course length set to ${nextTargetOverride}h (catalogue says ${catalogue}h)`;
     events.push({
       type: "target_adjusted",
-      note:
-        nextTargetOverride === null
-          ? `Course length reset to the catalogue's ${catalogue}h`
-          : `Course length set to ${nextTargetOverride}h (catalogue says ${catalogue}h)`,
+      hours: reCredit !== 0 ? reCredit : undefined,
+      note: reCredit !== 0 ? `${base} · CPD now ${completionHours}h` : base,
     });
   }
   if (loggingHours) {
@@ -151,15 +175,30 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (justCompleted) {
     // Recording the hours behind a completion is the whole point of the trail: a
     // course marked complete with nothing logged is visible rather than invisible.
+    // `hours` on an event always means "CPD hours this event ADDED to the ledger" —
+    // here the top-up only, since the logged portion was already counted by its own
+    // hours_logged events. That invariant is what lets the month-scoped "Hours Spent"
+    // figure be a plain sum over the trail without double-counting.
+    const topUp = Math.round((completionHours - nextHoursLogged) * 100) / 100;
     events.push({
       type: "completed",
+      hours: topUp > 0 ? topUp : undefined,
       note:
-        nextHoursLogged > 0
-          ? `Completed after ${nextHoursLogged}h logged · certificate uploaded`
-          : "Completed with no hours logged · certificate uploaded",
+        topUp > 0
+          ? `Completed · ${completionHours}h CPD credited (${nextHoursLogged}h logged + ${topUp}h on completion)`
+          : `Completed after ${nextHoursLogged}h logged · ${completionHours}h CPD credited`,
     });
   }
-  if (justReopened) events.push({ type: "reopened", note: "Reopened the course" });
+  if (justReopened) {
+    // Negative hours: reopening REMOVES the completion credit from the ledger, and the
+    // trail has to carry that so a complete-then-reopen in the same month nets to zero.
+    const givenBack = Math.round(((enrollment.cpdRecord?.hours ?? 0) - nextHoursLogged) * 100) / 100;
+    events.push({
+      type: "reopened",
+      hours: givenBack > 0 ? -givenBack : undefined,
+      note: `Reopened the course · CPD back to the ${nextHoursLogged}h logged`,
+    });
+  }
 
   // Bank the certificate BEFORE the status flips. If this write fails the request
   // throws with the enrollment still In Progress — a completed course can never end
@@ -170,9 +209,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       courseTitle: enrollment.course.title,
       provider: enrollment.course.provider ?? null,
       cpdHours: enrollment.course.cpdHours,
-      // The certificate records the hours the learner actually logged, not the
-      // catalogue's estimate, so its "+Xh CPD" matches their real CPD ledger.
-      creditHours: nextHoursLogged,
+      // The certificate carries exactly what the CPD ledger banks, so the "+Xh CPD"
+      // on the certificate card can never disagree with the learner's CPD total.
+      creditHours: completionHours,
       proof,
     });
   }
@@ -193,53 +232,41 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     },
   });
 
-  // Manual hours logging — accumulate into the enrollment's single CPD record. Doing
-  // this before the completion block means completion won't double-count (it only
-  // creates a CPD record when none exists yet).
-  if (loggingHours) {
-    const today = now.toISOString().slice(0, 10);
-    const existing = await prisma.cpdRecord.findUnique({ where: { enrollmentId: id } });
-    if (existing) {
-      await prisma.cpdRecord.update({
-        where: { enrollmentId: id },
-        data: { hours: existing.hours + hours },
-      });
-    } else {
-      await prisma.cpdRecord.create({
-        data: {
-          userId: authUser.id,
-          enrollmentId: id,
-          hours,
-          source: "course",
-          description: packCpd({
-            title: enrollment.course.title,
-            type: "Learning",
-            provider: enrollment.course.provider ?? null,
-            category: "Technical Skills",
-            dateCompleted: today,
-            note: "Time logged",
-          }),
-        },
-      });
-    }
-  }
+  // ── Reconcile the CPD ledger ───────────────────────────────────────────────
+  // ONE write, stating what this course is worth right now rather than nudging the
+  // figure by a delta per branch. It covers every path through this route: logging
+  // hours, completing (full course value), reopening (credit handed back), and
+  // re-measuring a finished course (re-credited up or down).
+  await setEnrollmentCpd({
+    userId: authUser.id,
+    enrollmentId: id,
+    courseTitle: enrollment.course.title,
+    provider: enrollment.course.provider ?? null,
+    hours: nextStatus === "completed" ? completionHours : nextHoursLogged,
+  });
 
-  // The CPD half of completion. Completing a course NEVER credits the catalogue's CPD
-  // figure here — only the hours the learner logged count, so finishing a 10h course
-  // after logging 3h banks 3h, not 13h. In practice the hours block above has already
-  // written that record and this is a no-op; it only creates one for an enrollment
-  // whose logged hours were never turned into CPD, and creditHours 0 means a course
-  // marked complete with no time logged earns no CPD at all.
-  if (justCompleted) {
-    await logCompletionCpd({
+  // Re-measuring a course that was ALREADY complete also restates its certificate, so
+  // the card can't keep advertising a scraped figure the learner has since corrected.
+  const targetChangedOnCompleted =
+    settingTarget &&
+    !justCompleted &&
+    nextStatus === "completed" &&
+    nextTargetOverride !== enrollment.targetHoursOverride;
+
+  if (targetChangedOnCompleted) {
+    await issueCompletionCertificate({
       userId: authUser.id,
-      enrollmentId: id,
       courseTitle: enrollment.course.title,
       provider: enrollment.course.provider ?? null,
       cpdHours: enrollment.course.cpdHours,
-      creditHours: nextHoursLogged,
+      creditHours: completionHours,
     });
   }
+
+  const banked = await prisma.cpdRecord.findUnique({
+    where: { enrollmentId: id },
+    select: { hours: true },
+  });
 
   return NextResponse.json({
     ok: true,
@@ -248,6 +275,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       status: updated.status,
       progress: updated.progress,
       hoursLogged: updated.hoursLogged,
+      // What this course contributes to the CPD ledger right now. Distinct from
+      // hoursLogged for a completed course, which earns its full length.
+      cpdCredited: Math.round((banked?.hours ?? 0) * 10) / 10,
     },
     completed: justCompleted,
   });

@@ -30,6 +30,34 @@ body {
 /* Numeric figures in dashboards line up in columns when tabular. */
 .nums-tabular { font-variant-numeric: tabular-nums; }
 
+/* Tailwind v4's Preflight sets `cursor: default` on buttons — a deliberate change
+   from v3, and one that leaves every button in the app (Log Hours, Mark Complete,
+   the course-title buttons in My Learning, tabs, modal actions) feeling inert: no
+   hand cursor, so nothing announces itself as clickable. Restore the pointer for
+   everything genuinely interactive, app-wide rather than page by page.
+
+   Disabled controls keep `not-allowed`, which is the honest signal there. */
+@layer base {
+  button,
+  summary,
+  label[for],
+  [role="button"],
+  [role="tab"],
+  [role="option"],
+  select,
+  a[href] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [role="button"][aria-disabled="true"],
+  input:disabled,
+  select:disabled,
+  textarea:disabled {
+    cursor: not-allowed;
+  }
+}
+
 /* One quiet entrance for landing sections — a gentle rise from an already-legible
    default, exponential ease-out. Honoured only when motion is welcome. */
 @keyframes home-rise {

@@ -16,6 +16,11 @@ interface Course {
   category: string | null;
   status: "not_started" | "in_progress" | "completed";
   progress: number;
+  progressKnown: boolean;
+  hoursLogged: number;
+  targetHours: number | null;
+  /** CPD actually banked for this course — reconciles with the CPD total above. */
+  cpdCredited: number;
   externalUrl: string | null;
 }
 interface Gap {
@@ -100,10 +105,20 @@ export default function AdminEmployeeDetailPage() {
                     ) : (
                       <p className="text-sm font-medium text-[var(--ink)]">{c.title}</p>
                     )}
-                    <p className="text-xs text-[var(--muted)]">{c.provider ?? "—"}{c.category ? ` · ${c.category}` : ""}</p>
+                    <p className="text-xs text-[var(--muted)]">
+                      {c.provider ?? "—"}{c.category ? ` · ${c.category}` : ""}
+                      {/* The hours behind the status, so an auditor can see what the
+                          CPD total is actually made of rather than a bare percentage. */}
+                      {c.status !== "not_started" && ` · ${c.hoursLogged}h${c.targetHours ? ` of ${c.targetHours}h` : ""} logged`}
+                    </p>
                   </div>
+                  {c.cpdCredited > 0 && (
+                    <span className="shrink-0 rounded-full bg-[var(--brand-tint)] px-2 py-0.5 text-[11px] font-medium text-[var(--brand-dark)]" title={`Credited ${c.cpdCredited}h of CPD`}>
+                      +{c.cpdCredited} CPD
+                    </span>
+                  )}
                   <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${c.status === "completed" ? "bg-[var(--brand-tint)] text-[var(--brand-dark)]" : c.status === "in_progress" ? "bg-blue-50 text-blue-700" : "bg-slate-100 text-[var(--muted)]"}`}>
-                    {c.status === "completed" ? "Completed" : c.status === "in_progress" ? `In progress · ${c.progress}%` : "Not started"}
+                    {c.status === "completed" ? "Completed" : c.status === "in_progress" ? (c.progressKnown ? `In progress · ${c.progress}%` : "In progress") : "Not started"}
                   </span>
                 </li>
               ))}

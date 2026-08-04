@@ -5,7 +5,9 @@
   --brand-dark:  #256b4e;
   --brand-tint:  #e8f1ed;
   --ink:         #0f1b2d;
-  --muted:       #6b7280;
+  /* Darkened from #6b7280 so muted text clears WCAG 4.5:1 on the page tint
+     (#f5f6f8 → 4.96) as well as on white (5.36). */
+  --muted:       #646b78;
   --page:        #f5f6f8;
   --card:        #ffffff;
   --border:      #e8eaee;
@@ -277,4 +279,25 @@ body {
 @media (max-width: 520px) { .hero3d { transform: scale(.8); height: 360px; } }
 @media (prefers-reduced-motion: reduce) {
   .hero3d-orbit--a, .hero3d-orbit--b, .hero3d-medallion, .hero3d-arc-run, .hero3d-ach { animation: none; }
+}
+
+/* ---- Accessibility: visible focus + reduced motion --------------------- */
+/* WCAG 2.4.7 — a consistent, high-contrast focus ring on every interactive
+   element, even those that set `outline-none` (this rule loads after the
+   utilities, so it wins on :focus-visible). */
+:where(a, button, input, select, textarea, [role="tab"], [role="button"], [tabindex]):focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* WCAG 2.3.3 — honour a reduced-motion preference everywhere, including the
+   gamification pop and the onboarding tour rail. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }

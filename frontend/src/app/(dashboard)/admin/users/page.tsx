@@ -60,7 +60,7 @@ export default function UserManagementPage() {
           {data.pending > 0 ? (
             <Link href="/admin/approvals" className="group -my-1 rounded-lg py-1">
               <p className="text-[1.55rem] font-bold leading-none tracking-tight text-amber-600">{data.pending}</p>
-              <p className="mt-1 text-xs text-amber-700/90 group-hover:underline">Pending approval →</p>
+              <p className="mt-1 text-xs text-amber-700 group-hover:underline">Pending approval →</p>
             </Link>
           ) : (
             <Figure value={0} label="Pending" />

@@ -10,7 +10,7 @@ import { navFor, departmentNav } from "@/lib/nav";
 import Avatar from "@/components/ui/Avatar";
 import type { NavSection, SessionUser } from "@/types";
 
-export default function Sidebar({ user }: { user: SessionUser }) {
+export default function Sidebar({ user, mobileOpen = false, onClose }: { user: SessionUser; mobileOpen?: boolean; onClose?: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
   const deptMatch = pathname.match(/^\/manager\/departments\/([^/]+)/);
@@ -19,7 +19,9 @@ export default function Sidebar({ user }: { user: SessionUser }) {
   const sections = inDepartment && departmentId ? departmentNav(departmentId) : navFor(user);
 
   return (
-    <aside className="flex h-screen w-64 shrink-0 flex-col border-r border-[var(--border)] bg-white">
+    <aside
+      className={`fixed inset-y-0 left-0 z-50 flex h-screen w-64 shrink-0 flex-col border-r border-[var(--border)] bg-white transition-transform duration-200 lg:static lg:z-auto lg:translate-x-0 ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
+    >
       <div className="flex h-16 items-center gap-2.5 border-b border-[var(--border)] px-5">
         <span className="grid h-8 w-8 place-items-center rounded-lg bg-[var(--brand)] text-white">
           <GraduationCap className="h-4.5 w-4.5" />
@@ -35,7 +37,7 @@ export default function Sidebar({ user }: { user: SessionUser }) {
           <ArrowLeft className="h-3.5 w-3.5" /> All Departments
         </Link>
       )}
-      <nav data-tour="sidebar-nav" className="flex-1 overflow-y-auto p-3">
+      <nav data-tour="sidebar-nav" onClick={onClose} className="flex-1 overflow-y-auto p-3">
         {sections.map((section, si) => (
           <NavGroup
             key={section.title ?? si}

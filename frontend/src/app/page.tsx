@@ -2,9 +2,10 @@ import Link from "next/link";
 import Image from "next/image";
 import type { LucideIcon } from "lucide-react";
 import {
-  GraduationCap, Menu, ArrowRight, ArrowDownRight,
+  GraduationCap, ArrowRight, ArrowDownRight,
   Sparkles, Award, BarChart3,
 } from "lucide-react";
+import LandingNav from "./LandingNav";
 
 const features: { icon: LucideIcon; title: string; desc: string }[] = [
   { icon: Sparkles, title: "AI-recommended learning", desc: "Every course matched to a person's real skill gaps and role — from a catalogue of 27,000+ courses." },
@@ -29,26 +30,8 @@ function Sunburst({ size = 128, lines = 44 }: { size?: number; lines?: number })
 export default function LandingPage() {
   return (
     <main className="min-h-screen bg-white text-[var(--ink)]">
-      {/* Nav */}
-      <header className="border-b border-[var(--border)]">
-        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6 lg:px-10">
-          <div className="flex items-center gap-2.5">
-            <span className="grid h-9 w-9 place-items-center rounded-full bg-[var(--brand)] text-white">
-              <GraduationCap className="h-5 w-5" />
-            </span>
-            <p className="text-xl font-extrabold tracking-tight">LearnSmart <span className="text-[var(--brand)]">AI</span></p>
-          </div>
-          <nav className="hidden items-center gap-10 text-[15px] font-medium lg:flex">
-            <a href="#features" className="transition-opacity hover:opacity-60">Features</a>
-            <a href="#how" className="transition-opacity hover:opacity-60">How it works</a>
-            <Link href="/login" className="transition-opacity hover:opacity-60">Sign in</Link>
-          </nav>
-          <div className="flex items-center gap-3">
-            <Link href="/register" className="rounded-full bg-[var(--brand)] px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--brand-dark)]">Get started</Link>
-            <button aria-label="Menu" className="grid h-11 w-11 place-items-center rounded-full transition-colors hover:bg-slate-100 lg:hidden"><Menu className="h-6 w-6" /></button>
-          </div>
-        </div>
-      </header>
+      {/* Nav — client island so the mobile menu works */}
+      <LandingNav />
 
       {/* Hero */}
       <section className="relative overflow-hidden">

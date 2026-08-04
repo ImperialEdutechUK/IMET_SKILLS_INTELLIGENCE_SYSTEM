@@ -134,7 +134,7 @@ export default function UserManagementPage() {
 function Figure({ value, label }: { value: number; label: string }) {
   return (
     <div>
-      <p className="text-[1.55rem] font-bold leading-none tracking-tight text-[var(--ink)]">{value.toLocaleString()}</p>
+      <p className="nums-tabular text-[1.55rem] font-bold leading-none tracking-tight text-[var(--ink)]">{value.toLocaleString()}</p>
       <p className="mt-1 text-xs text-[var(--muted)]">{label}</p>
     </div>
   );

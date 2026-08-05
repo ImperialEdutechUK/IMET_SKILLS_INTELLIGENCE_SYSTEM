@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { BookOpen, Target, Award, Sparkles, Bell, Check, ScrollText, TrendingUp, PieChart, ArrowRight, X } from "lucide-react";
+import { BookOpen, Target, Award, Sparkles, Bell, Check, ScrollText, TrendingUp, PieChart, ArrowRight, X, Clock } from "lucide-react";
 import LearnAreaChart from "@/components/charts/LearnAreaChart";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
 import { computeGamification } from "@/lib/gamification";
@@ -88,6 +88,7 @@ export default function EmployeeDashboardPage() {
     { label: "Courses in progress", value: data.inProgressCount, sub: data.notStartedCount > 0 ? `${data.notStartedCount} not started` : "keep it going", icon: BookOpen, accent: "#0284c7", tint: "bg-sky-50 text-sky-600", href: "/me/learning" },
     { label: "Courses completed", value: data.completedCount, sub: data.completedCount > 0 ? "nice work" : "add a course to start", icon: Award, accent: "#7c3aed", tint: "bg-violet-50 text-violet-600", href: "/me/learning" },
     { label: "Skill gaps", value: data.gapCount, sub: data.topGap ? `top: ${data.topGap.skill}` : "on target", icon: Target, accent: "#d97706", tint: "bg-amber-50 text-amber-600", href: "/me/skills" },
+    { label: "CPD hours", value: data.cpdHours, sub: "logged this year", icon: Clock, accent: "#0d9488", tint: "bg-teal-50 text-teal-600", href: "/me/reports" },
   ];
 
   return (
@@ -122,8 +123,8 @@ export default function EmployeeDashboardPage() {
         <p className="mt-1 text-sm text-[var(--muted)]">Welcome back, {first} — here&rsquo;s your learning at a glance.</p>
       </div>
 
-      {/* ROW 1 — four KPI cards. */}
-      <div data-tour="dashboard-kpis" className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* ROW 1 — KPI cards, including total CPD hours. */}
+      <div data-tour="dashboard-kpis" className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         {kpis.map((k) => (
           <Link key={k.label} href={k.href}
             className="flex items-center justify-between rounded-2xl border border-[var(--border)] bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-md"

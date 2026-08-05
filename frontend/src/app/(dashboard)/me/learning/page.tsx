@@ -5,6 +5,7 @@ import { BookOpen, Clock, CheckCircle2, ChevronRight, PlayCircle, Plus, External
 import PageHeader from "@/components/ui/PageHeader";
 import KpiCard from "@/components/ui/KpiCard";
 import { tabKeyDown } from "@/lib/tabKeys";
+import Pagination, { pageSlice } from "@/components/ui/Pagination";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
 import AchievementsBento from "@/components/gamification/AchievementsBento";
 import CertificateProofModal, { CertificateFileField } from "@/components/certificates/CertificateProofModal";
@@ -55,6 +56,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "completed", label: "Completed" },
   { key: "certificates", label: "Certificates" },
 ];
+const PAGE_SIZE = 8;
 
 export default function MyLearningPage() {
   const { data, error, isLoading, isRefreshing, mutate } = useApi<LearningData>("/api/me/learning");
@@ -63,6 +65,7 @@ export default function MyLearningPage() {
   const certificates = certData?.certificates ?? [];
   const cpdHours = dashData?.cpdHours ?? 0;
   const [tab, setTab] = useState<Tab>("not_started");
+  const [page, setPage] = useState(1);
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [showAdd, setShowAdd] = useState(false);
   const [logOpen, setLogOpen] = useState<Record<string, boolean>>({});
@@ -83,6 +86,9 @@ export default function MyLearningPage() {
     const t = new URLSearchParams(window.location.search).get("tab");
     if (t === "certificates") { setTab("certificates"); didInit.current = true; }
   }, []);
+
+  // Switching tabs starts the new list at page one.
+  useEffect(() => { setPage(1); }, [tab]);
 
   // Land the user on content, not an empty state: once data arrives, select the first
   // non-empty tab (respecting tab order). A manual click wins.
@@ -174,7 +180,7 @@ export default function MyLearningPage() {
       {/* Tab content */}
       {tab === "in_progress" && (
         <Section title="In Progress Courses" empty={data.inProgress.length === 0} emptyText="No courses in progress. Start one from the Not Started tab or enrol from your dashboard.">
-          {data.inProgress.map((c) => (
+          {pageSlice(data.inProgress, page, PAGE_SIZE).map((c) => (
             <div key={c.id} className="border-b border-[var(--border)] p-5 last:border-0">
               <div className="flex flex-col gap-4 md:flex-row md:items-center">
                 <CourseIcon />
@@ -258,12 +264,15 @@ export default function MyLearningPage() {
               )}
             </div>
           ))}
+          {data.inProgress.length > PAGE_SIZE && (
+            <div className="p-5"><Pagination page={page} total={data.inProgress.length} pageSize={PAGE_SIZE} onChange={setPage} /></div>
+          )}
         </Section>
       )}
 
       {tab === "not_started" && (
         <Section title="Courses you haven't started yet" empty={data.notStarted.length === 0} emptyText="Nothing waiting. Enrol in a recommended course from your dashboard.">
-          {data.notStarted.map((c) => (
+          {pageSlice(data.notStarted, page, PAGE_SIZE).map((c) => (
             <div key={c.id} className="flex flex-col gap-3 border-b border-[var(--border)] p-5 last:border-0 md:flex-row md:items-center">
               <CourseIcon />
               <div className="min-w-0 flex-1">
@@ -279,12 +288,15 @@ export default function MyLearningPage() {
               </div>
             </div>
           ))}
+          {data.notStarted.length > PAGE_SIZE && (
+            <div className="p-5"><Pagination page={page} total={data.notStarted.length} pageSize={PAGE_SIZE} onChange={setPage} /></div>
+          )}
         </Section>
       )}
 
       {tab === "completed" && (
         <Section title="Completed Courses" empty={data.completed.length === 0} emptyText="No completed courses yet. Finish an in-progress course to earn a certificate.">
-          {data.completed.map((c) => (
+          {pageSlice(data.completed, page, PAGE_SIZE).map((c) => (
             <div key={c.id} className="flex items-center gap-4 border-b border-[var(--border)] p-5 last:border-0">
               <Icon3D icon={CheckCircle2} tone={TONES.emerald} size="sm" />
               <div className="min-w-0 flex-1">
@@ -310,6 +322,9 @@ export default function MyLearningPage() {
               {c.certificateId && <button onClick={() => setTab("certificates")} className="shrink-0 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--ink)] hover:bg-slate-50">View Certificate</button>}
             </div>
           ))}
+          {data.completed.length > PAGE_SIZE && (
+            <div className="p-5"><Pagination page={page} total={data.completed.length} pageSize={PAGE_SIZE} onChange={setPage} /></div>
+          )}
         </Section>
       )}
 

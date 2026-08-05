@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Search, ChevronRight, KeyRound } from "lucide-react";
 import Avatar from "@/components/ui/Avatar";
 import { useApi } from "@/lib/api";
 import { TableSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
 import PasswordResetDialog, { type ResetTarget } from "@/components/admin/PasswordResetDialog";
+import Pagination, { pageSlice } from "@/components/ui/Pagination";
 
 const CARD = "rounded-2xl border border-[var(--border)] bg-white shadow-[0_1px_2px_rgba(15,27,45,.04),0_10px_26px_-14px_rgba(15,27,45,.12)]";
+const PAGE_SIZE = 12;
 
 const roleConfig: Record<string, string> = {
   employee: "bg-slate-100 text-slate-600",
@@ -30,15 +32,19 @@ export default function UserManagementPage() {
   const { data, error, isLoading, isRefreshing, refresh } = useApi<Data>("/api/admin/users");
   const [search, setSearch] = useState("");
   const [resetTarget, setResetTarget] = useState<ResetTarget | null>(null);
+  const [page, setPage] = useState(1);
+  // A new search resets to the first page.
+  useEffect(() => { setPage(1); }, [search]);
 
   if (isLoading) return <TableSkeleton rows={8} />;
   if (!data) return <ErrorPanel message={error?.message ?? "Could not load users."} onRetry={refresh} />;
 
   const q = search.trim().toLowerCase();
   const filtered = data.users.filter((u) => u.fullName.toLowerCase().includes(q) || (u.email ?? "").toLowerCase().includes(q) || u.department.toLowerCase().includes(q) || u.role.toLowerCase().includes(q));
+  const paged = pageSlice(filtered, page, PAGE_SIZE);
 
-  // Group by department so the roster is organised and scannable.
-  const groups = filtered.reduce((acc, u) => {
+  // Group the current page by department so the roster is organised and scannable.
+  const groups = paged.reduce((acc, u) => {
     const dept = u.department && u.department !== "—" ? u.department : "Unassigned";
     (acc[dept] ??= []).push(u);
     return acc;
@@ -54,20 +60,20 @@ export default function UserManagementPage() {
         </div>
         <p className="mb-6 text-sm text-[var(--muted)]">Everyone on the platform, grouped by department. New people self-register and wait under Pending approvals. Use the key icon to issue a one-time password reset code for someone who is locked out.</p>
 
-        {/* Lean summary — figures, not a wall of icon cards. Pending is actionable.
+        {/* Summary — one card per figure. Pending is a clickable shortcut.
             data-tour: onboarding-tour anchor only — no behaviour change. */}
-        <div data-tour="adm-users-summary" className={`${CARD} mb-7 flex flex-wrap items-center gap-x-10 gap-y-4 px-6 py-5`}>
-          <Figure value={data.total} label="Total users" />
-          <Figure value={data.active} label="Active" />
+        <div data-tour="adm-users-summary" className="mb-7 grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <StatCard value={data.total} label="Total users" />
+          <StatCard value={data.active} label="Active" />
           {data.pending > 0 ? (
-            <Link href="/admin/approvals" className="group -my-1 rounded-lg py-1">
-              <p className="text-[1.55rem] font-bold leading-none tracking-tight text-amber-600">{data.pending}</p>
-              <p className="mt-1 text-xs text-amber-700 group-hover:underline">Pending approval →</p>
+            <Link href="/admin/approvals" className={`${CARD} group flex flex-col p-5 transition hover:-translate-y-0.5 hover:shadow-md`}>
+              <p className="nums-tabular text-[1.7rem] font-bold leading-none tracking-tight text-amber-600">{data.pending}</p>
+              <p className="mt-1.5 text-sm font-medium text-amber-700 group-hover:underline">Pending approval →</p>
             </Link>
           ) : (
-            <Figure value={0} label="Pending" />
+            <StatCard value={0} label="Pending" />
           )}
-          <Figure value={data.departmentCount} label="Departments" />
+          <StatCard value={data.departmentCount} label="Departments" />
         </div>
 
         {/* Search */}
@@ -139,6 +145,10 @@ export default function UserManagementPage() {
             </div>
           )}
         </div>
+
+        {filtered.length > PAGE_SIZE && (
+          <Pagination page={page} total={filtered.length} pageSize={PAGE_SIZE} onChange={setPage} className="mt-5" />
+        )}
       </div>
 
       {resetTarget && (
@@ -148,11 +158,11 @@ export default function UserManagementPage() {
   );
 }
 
-function Figure({ value, label }: { value: number; label: string }) {
+function StatCard({ value, label }: { value: number; label: string }) {
   return (
-    <div>
-      <p className="nums-tabular text-[1.55rem] font-bold leading-none tracking-tight text-[var(--ink)]">{value.toLocaleString()}</p>
-      <p className="mt-1 text-xs text-[var(--muted)]">{label}</p>
+    <div className={`${CARD} p-5`}>
+      <p className="nums-tabular text-[1.7rem] font-bold leading-none tracking-tight text-[var(--ink)]">{value.toLocaleString()}</p>
+      <p className="mt-1.5 text-sm font-medium text-[var(--muted)]">{label}</p>
     </div>
   );
 }

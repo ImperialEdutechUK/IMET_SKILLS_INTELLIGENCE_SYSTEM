@@ -1,10 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { ChevronRight, TrendingUp, Target, Users, BookOpen, AlertTriangle, CheckCircle2 } from "lucide-react";
 import LearnAreaChart from "@/components/charts/LearnAreaChart";
 import { useApi } from "@/lib/api";
 import { PageSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
+import Pagination, { pageSlice } from "@/components/ui/Pagination";
+
+const DEPT_PAGE_SIZE = 6;
 
 interface Cat { name: string; value: number }
 interface Dept {
@@ -44,6 +48,7 @@ const HEALTH_LABEL: Record<Health, string> = {
 
 export default function AdminAnalyticsDashboard() {
   const { data, error, isLoading, isRefreshing, refresh } = useApi<Data>("/api/admin/dashboard");
+  const [deptPage, setDeptPage] = useState(1);
 
   if (isLoading) return <PageSkeleton cards={4} />;
   if (!data) return <ErrorPanel message={error?.message ?? "Could not load dashboard."} onRetry={refresh} />;
@@ -74,6 +79,7 @@ export default function AdminAnalyticsDashboard() {
   const staffed = data.departments.filter((d) => d.teamMembers > 0)
     .sort((a, b) => rank[deptHealth(a)] - rank[deptHealth(b)] || a.name.localeCompare(b.name));
   const emptyCount = data.departments.length - staffed.length;
+  const pagedStaffed = pageSlice(staffed, deptPage, DEPT_PAGE_SIZE);
 
   const gaps = data.skillsGap.slice(0, 5);
   const maxGap = Math.max(1, ...gaps.map((g) => g.gap));
@@ -136,7 +142,7 @@ export default function AdminAnalyticsDashboard() {
             <p className="p-6 text-sm text-[var(--muted)]">No departments have employees yet.</p>
           ) : (
             <ul className="divide-y divide-[var(--border)]">
-              {staffed.map((d) => {
+              {pagedStaffed.map((d) => {
                 const hl = deptHealth(d);
                 return (
                   <li key={d.id}>
@@ -161,6 +167,11 @@ export default function AdminAnalyticsDashboard() {
                 );
               })}
             </ul>
+          )}
+          {staffed.length > DEPT_PAGE_SIZE && (
+            <div className="border-t border-[var(--border)] px-5 py-3">
+              <Pagination page={deptPage} total={staffed.length} pageSize={DEPT_PAGE_SIZE} onChange={setDeptPage} />
+            </div>
           )}
           {emptyCount > 0 && (
             <Link href="/admin/departments" className="flex items-center justify-between gap-2 border-t border-[var(--border)] px-5 py-3 text-xs text-[var(--muted)] transition-colors hover:bg-slate-50/80 hover:text-[var(--ink)]">

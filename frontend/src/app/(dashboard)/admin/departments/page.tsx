@@ -1,9 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { useApi } from "@/lib/api";
 import { TableSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
+import Pagination, { pageSlice } from "@/components/ui/Pagination";
+
+const PAGE_SIZE = 6;
 
 interface Dept {
   id: string;
@@ -29,6 +33,7 @@ const LABEL: Record<Health, string> = { at_risk: "At risk", behind: "Behind pace
 export default function AdminDepartmentsPage() {
   // Same endpoint the dashboard uses — SWR serves it from cache, no extra request.
   const { data, error, isLoading, isRefreshing, refresh } = useApi<{ departments: Dept[] }>("/api/admin/dashboard");
+  const [page, setPage] = useState(1);
 
   if (isLoading) return <TableSkeleton rows={6} />;
   if (!data?.departments) return <ErrorPanel message={error?.message ?? "Could not load departments."} onRetry={refresh} />;
@@ -37,9 +42,10 @@ export default function AdminDepartmentsPage() {
   const staffed = data.departments.filter((d) => d.teamMembers > 0)
     .sort((a, b) => rank[health(a)] - rank[health(b)] || a.name.localeCompare(b.name));
   const empty = data.departments.filter((d) => d.teamMembers === 0).sort((a, b) => a.name.localeCompare(b.name));
+  const pagedStaffed = pageSlice(staffed, page, PAGE_SIZE);
 
   return (
-    <div className="-m-6 min-h-full bg-white p-6 lg:p-8">
+    <div>
       <div className="mx-auto max-w-5xl">
         <div className="mb-1 flex items-center gap-2.5">
           <h1 className="text-[1.65rem] font-bold tracking-tight text-[var(--ink)]">Departments</h1>
@@ -54,7 +60,7 @@ export default function AdminDepartmentsPage() {
             {staffed.length > 0 && (
               <div className={`${CARD} mb-6 overflow-hidden`}>
                 <ul className="divide-y divide-[var(--border)]">
-                  {staffed.map((d) => {
+                  {pagedStaffed.map((d) => {
                     const hl = health(d);
                     return (
                       <li key={d.id}>
@@ -79,6 +85,10 @@ export default function AdminDepartmentsPage() {
                   })}
                 </ul>
               </div>
+            )}
+
+            {staffed.length > PAGE_SIZE && (
+              <Pagination page={page} total={staffed.length} pageSize={PAGE_SIZE} onChange={setPage} className="mb-6" />
             )}
 
             {empty.length > 0 && (

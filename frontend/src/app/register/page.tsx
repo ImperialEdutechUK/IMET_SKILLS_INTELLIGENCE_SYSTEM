@@ -114,7 +114,7 @@ export default function RegisterPage() {
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
             <Field icon={User} label="Full Name" value={fullName} onChange={setFullName} type="text" placeholder="Your full name" required />
-            <Field icon={Briefcase} label="Position" value={position} onChange={setPosition} type="text" placeholder="Your job title" />
+            <Field icon={Briefcase} label="Position" value={position} onChange={setPosition} type="text" placeholder="Your job title" required />
             <Field icon={Mail} label="Email" value={email} onChange={setEmail} type="email" placeholder="you@imperiallearning.co.uk" required />
 
             <div>

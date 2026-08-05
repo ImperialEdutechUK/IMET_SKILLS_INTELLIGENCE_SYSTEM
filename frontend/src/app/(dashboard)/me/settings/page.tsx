@@ -81,7 +81,7 @@ export default function SettingsPage() {
   return (
     <div>
       <div className="mb-6"><h1 className="text-2xl font-bold text-[var(--ink)]">Settings</h1><p className="mt-1 text-sm text-[var(--muted)]">Manage your account preferences.</p></div>
-      <div className="max-w-2xl space-y-6">
+      <div className="grid max-w-5xl grid-cols-1 items-start gap-6 md:grid-cols-2">
         <div className="rounded-2xl border border-[var(--border)] bg-white p-6">
           <div className="mb-4 flex items-center gap-2"><User className="h-4 w-4 text-[var(--brand)]" /><h3 className="font-semibold text-[var(--ink)]">Profile</h3></div>
           <div className="space-y-4">

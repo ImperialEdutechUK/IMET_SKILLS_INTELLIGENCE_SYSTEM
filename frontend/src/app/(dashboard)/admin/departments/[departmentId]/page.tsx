@@ -78,6 +78,7 @@ export default function AdminDepartmentDetailPage() {
     }));
   const categoryData = summary.categoryBreakdown.map((c, i) => ({ ...c, color: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }));
   const totalEnrollments = summary.coursesInProgress + summary.coursesCompleted;
+  const totalCourseStatuses = summary.coursesCompleted + summary.coursesInProgress + summary.notStarted;
 
   return (
     <div>
@@ -99,17 +100,10 @@ export default function AdminDepartmentDetailPage() {
       <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="rounded-2xl border border-[var(--border)] bg-white p-5 lg:col-span-2">
           <h3 className="mb-4 font-semibold text-[var(--ink)]">Course Progress</h3>
-          <div className="grid grid-cols-3 gap-4 text-center">
-            {[
-              { label: "Completed", value: summary.coursesCompleted, color: "text-[var(--brand)]" },
-              { label: "In Progress", value: summary.coursesInProgress, color: "text-blue-600" },
-              { label: "Not Started", value: summary.notStarted, color: "text-[var(--muted)]" },
-            ].map((s) => (
-              <div key={s.label}>
-                <p className={`text-2xl font-bold leading-none ${s.color}`}>{s.value}</p>
-                <p className="mt-1.5 text-xs text-[var(--muted)]">{s.label}</p>
-              </div>
-            ))}
+          <div className="grid grid-cols-3 divide-x divide-[var(--border)] overflow-hidden rounded-2xl border border-[var(--border)]">
+            <ProgressStat dot="bg-emerald-500" label="Completed" value={summary.coursesCompleted} total={totalCourseStatuses} />
+            <ProgressStat dot="bg-blue-500" label="In progress" value={summary.coursesInProgress} total={totalCourseStatuses} />
+            <ProgressStat dot="bg-slate-400" label="Not started" value={summary.notStarted} total={totalCourseStatuses} />
           </div>
         </div>
         {attentionItems.length > 0 ? (
@@ -211,6 +205,22 @@ export default function AdminDepartmentDetailPage() {
           </ul>
         )}
       </div>
+    </div>
+  );
+}
+
+// One column of the Course Progress panel: coloured dot + micro-label, a big
+// count and its share of all enrolments — the app's refined breakdown style.
+function ProgressStat({ dot, label, value, total }: { dot: string; label: string; value: number; total: number }) {
+  const share = total ? Math.round((value / total) * 100) : 0;
+  return (
+    <div className="px-4 py-3.5">
+      <div className="flex items-center gap-2">
+        <span className={`h-2 w-2 shrink-0 rounded-full ${dot}`} />
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)]">{label}</span>
+      </div>
+      <p className="nums-tabular mt-2 text-2xl font-bold leading-none tracking-tight text-[var(--ink)]">{value}</p>
+      <p className="nums-tabular mt-1.5 text-xs text-[var(--muted)]">{share}% of enrolments</p>
     </div>
   );
 }

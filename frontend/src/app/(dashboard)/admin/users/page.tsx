@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Search, ChevronRight, KeyRound } from "lucide-react";
+import { Search, ChevronRight, KeyRound, Users, UserCheck, Clock, Building2 } from "lucide-react";
 import Avatar from "@/components/ui/Avatar";
 import { useApi } from "@/lib/api";
 import { TableSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
 import PasswordResetDialog, { type ResetTarget } from "@/components/admin/PasswordResetDialog";
 import Pagination, { pageSlice } from "@/components/ui/Pagination";
+import KpiCard from "@/components/ui/KpiCard";
 
 const CARD = "rounded-2xl border border-[var(--border)] bg-white shadow-[0_1px_2px_rgba(15,27,45,.04),0_10px_26px_-14px_rgba(15,27,45,.12)]";
 const PAGE_SIZE = 12;
@@ -60,20 +61,17 @@ export default function UserManagementPage() {
         </div>
         <p className="mb-6 text-sm text-[var(--muted)]">Everyone on the platform, grouped by department. New people self-register and wait under Pending approvals. Use the key icon to issue a one-time password reset code for someone who is locked out.</p>
 
-        {/* Summary — one card per figure. Pending is a clickable shortcut.
-            data-tour: onboarding-tour anchor only — no behaviour change. */}
+        {/* Summary — one polished KPI tile per figure. Pending is a clickable
+            shortcut to approvals. data-tour: onboarding-tour anchor only. */}
         <div data-tour="adm-users-summary" className="mb-7 grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <StatCard value={data.total} label="Total users" />
-          <StatCard value={data.active} label="Active" />
+          <KpiCard icon={Users} label="Total users" value={data.total} sublabel="On the platform" />
+          <KpiCard icon={UserCheck} label="Active" value={data.active} status="positive" sublabel="Approved &amp; signed in" />
           {data.pending > 0 ? (
-            <Link href="/admin/approvals" className={`${CARD} group flex flex-col p-5 transition hover:-translate-y-0.5 hover:shadow-md`}>
-              <p className="nums-tabular text-[1.7rem] font-bold leading-none tracking-tight text-amber-600">{data.pending}</p>
-              <p className="mt-1.5 text-sm font-medium text-amber-700 group-hover:underline">Pending approval →</p>
-            </Link>
+            <KpiCard icon={Clock} label="Pending approval" value={data.pending} status="warning" sublabel="Review sign-ups →" href="/admin/approvals" />
           ) : (
-            <StatCard value={0} label="Pending" />
+            <KpiCard icon={Clock} label="Pending" value={0} sublabel="None waiting" />
           )}
-          <StatCard value={data.departmentCount} label="Departments" />
+          <KpiCard icon={Building2} label="Departments" value={data.departmentCount} sublabel="Across the org" />
         </div>
 
         {/* Search */}
@@ -154,15 +152,6 @@ export default function UserManagementPage() {
       {resetTarget && (
         <PasswordResetDialog target={resetTarget} onClose={() => setResetTarget(null)} />
       )}
-    </div>
-  );
-}
-
-function StatCard({ value, label }: { value: number; label: string }) {
-  return (
-    <div className={`${CARD} p-5`}>
-      <p className="nums-tabular text-[1.7rem] font-bold leading-none tracking-tight text-[var(--ink)]">{value.toLocaleString()}</p>
-      <p className="mt-1.5 text-sm font-medium text-[var(--muted)]">{label}</p>
     </div>
   );
 }

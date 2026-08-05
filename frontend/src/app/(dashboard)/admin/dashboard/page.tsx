@@ -111,8 +111,9 @@ export default function AdminAnalyticsDashboard() {
                   <p className="mt-1 max-w-lg text-[15px] leading-relaxed text-[var(--muted)]">{verdict.line}</p>
                 </div>
               </div>
-              {/* Quiet supporting figures — subordinate to the verdict */}
-              <div className="flex gap-8">
+              {/* Supporting figures — one aligned, divided panel so the numbers and
+                  labels line up as a unit instead of reading ragged. */}
+              <div className="grid grid-cols-3 divide-x divide-[var(--border)] overflow-hidden rounded-2xl border border-[var(--border)] bg-white/70 lg:w-auto lg:shrink-0">
                 <Figure value={data.totalEmployees} label="Employees" href="/admin/users" />
                 <Figure value={completed} label="Courses done" href="/admin/departments" />
                 <Figure value={data.certificatesEarned} label="Certificates" href="/admin/departments" />
@@ -222,16 +223,19 @@ export default function AdminAnalyticsDashboard() {
   );
 }
 
+// One cell of the figures panel: a big count over a quiet label, consistently
+// padded so all three align. Whole cell is the click target when linked.
 function Figure({ value, label, href }: { value: number; label: string; href?: string }) {
   const inner = (
     <>
-      <p className="nums-tabular text-[1.55rem] font-bold leading-none tracking-tight text-[var(--ink)]">{value.toLocaleString()}</p>
-      <p className="mt-1 text-xs text-[var(--muted)]">{label}</p>
+      <p className="nums-tabular text-[1.5rem] font-bold leading-none tracking-tight text-[var(--ink)]">{value.toLocaleString()}</p>
+      <p className="mt-1.5 text-xs font-medium text-[var(--muted)]">{label}</p>
     </>
   );
+  const cls = "block px-5 py-3.5 text-center sm:text-left";
   return href
-    ? <Link href={href} className="group rounded-lg transition-opacity hover:opacity-70">{inner}</Link>
-    : <div>{inner}</div>;
+    ? <Link href={href} className={`${cls} transition-colors hover:bg-slate-50/80`}>{inner}</Link>
+    : <div className={cls}>{inner}</div>;
 }
 
 type BreakdownTone = "emerald" | "amber" | "rose" | "slate";

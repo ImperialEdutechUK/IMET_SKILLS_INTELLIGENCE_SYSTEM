@@ -161,7 +161,12 @@ function Thumbnail({ cert, kind }: { cert: GalleryCertificate; kind: Kind }) {
   );
 }
 
-function CertificateViewer({
+/**
+ * The document viewer on its own, so anyone entitled to look at a certificate
+ * opens it the same way — the learner from their shelf, a manager from the
+ * employee drill-down. Kept free of learner-only wording for that reason.
+ */
+export function CertificateViewer({
   certificates,
   index,
   onIndexChange,
@@ -299,7 +304,7 @@ function DocumentFrame({
     return (
       <div className="grid max-h-[70vh] place-items-center overflow-auto rounded-xl border border-[var(--border)] bg-white p-3">
         {/* eslint-disable-next-line @next/next/no-img-element -- data URL, not a remote asset */}
-        <img src={fileUrl} alt="Your uploaded certificate" className="max-h-[66vh] w-auto max-w-full object-contain" />
+        <img src={fileUrl} alt="Uploaded certificate" className="max-h-[66vh] w-auto max-w-full object-contain" />
       </div>
     );
   }
@@ -311,7 +316,7 @@ function DocumentFrame({
     return (
       <iframe
         src={`${url}#toolbar=0&navpanes=0&statusbar=0&view=Fit`}
-        title="Your uploaded certificate"
+        title="Uploaded certificate"
         className="h-[70vh] w-full rounded-xl border border-[var(--border)] bg-white"
       />
     );

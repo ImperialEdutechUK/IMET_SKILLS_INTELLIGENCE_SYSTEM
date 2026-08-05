@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { ArrowLeft, Target, BookOpen, ScrollText, TrendingUp, Activity, Award, ExternalLink, FileText, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import Icon3D, { TONES, type Icon3DTone } from "@/components/dashboard/Icon3D";
 import AchievementsSummary from "@/components/gamification/AchievementsSummary";
+import { CertificateViewer, type GalleryCertificate } from "@/components/certificates/CertificateGallery";
 import type { LucideIcon } from "lucide-react";
 import { useApi } from "@/lib/api";
 import { PageSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
@@ -54,6 +55,9 @@ export default function EmployeeDetailPage() {
   const [skillPage, setSkillPage] = useState(0);
   const [certPage, setCertPage] = useState(0);
   const [courseTab, setCourseTab] = useState<"inProgress" | "completed">("inProgress");
+  // Index into the FULL certificate list (not the current page), so the viewer's
+  // Previous/Next walks every certificate this employee holds.
+  const [certViewIndex, setCertViewIndex] = useState<number | null>(null);
 
   const skills = useMemo(() => data?.skills ?? [], [data]);
   const skillPageCount = Math.max(1, Math.ceil(skills.length / SKILLS_PER_PAGE));
@@ -64,6 +68,16 @@ export default function EmployeeDetailPage() {
   const certPageCount = Math.max(1, Math.ceil(certs.length / CERTS_PER_PAGE));
   const certPageIdx = Math.min(certPage, certPageCount - 1);
   const pagedCerts = certs.slice(certPageIdx * CERTS_PER_PAGE, certPageIdx * CERTS_PER_PAGE + CERTS_PER_PAGE);
+
+  // Same shape the learner's shelf feeds the viewer. CPD hours aren't part of the
+  // manager payload; 0 simply omits that chip in the viewer's header.
+  const galleryCerts = useMemo<GalleryCertificate[]>(
+    () => certs.map((c) => ({
+      id: c.id, title: c.title, issuer: c.issuer, issuedDate: c.issuedDate,
+      cpdHours: 0, fileUrl: c.fileUrl, certificateUrl: c.certificateUrl,
+    })),
+    [certs],
+  );
 
   if (isLoading) return <PageSkeleton />;
   if (notFound) return (
@@ -190,7 +204,7 @@ export default function EmployeeDetailPage() {
           <p className="p-5 text-sm text-[var(--muted)]">No certificates yet.</p>
         ) : (
           <ul className="divide-y divide-[var(--border)]">
-            {pagedCerts.map((c) => (
+            {pagedCerts.map((c, i) => (
               <li key={c.id} className="flex items-center gap-3 px-5 py-3">
                 <Icon3D icon={Award} tone={TONES.violet} size="sm" />
                 <div className="min-w-0 flex-1">
@@ -198,10 +212,16 @@ export default function EmployeeDetailPage() {
                   <p className="text-xs text-[var(--muted)]">{c.issuer}{c.issuedDate ? ` · ${c.issuedDate}` : ""}</p>
                 </div>
                 <CertStatusBadge status={c.status} />
+                {/* Opens the document in the same viewer the learner uses. A stored
+                    `data:` URL can't be navigated to in a tab — Chrome blocks it. */}
                 {c.fileUrl && (
-                  <a href={c.fileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--ink)] hover:bg-slate-50">
+                  <button
+                    type="button"
+                    onClick={() => setCertViewIndex(certPageIdx * CERTS_PER_PAGE + i)}
+                    className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--ink)] hover:bg-slate-50"
+                  >
                     <FileText className="h-3.5 w-3.5" /> View
-                  </a>
+                  </button>
                 )}
                 {c.certificateUrl && (
                   <a href={c.certificateUrl} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--ink)] hover:bg-slate-50">
@@ -223,6 +243,17 @@ export default function EmployeeDetailPage() {
           />
         </div>
       </div>
+
+      {/* Guarded on the row still existing — a background refresh can shorten the
+          list while the viewer is open. */}
+      {certViewIndex !== null && galleryCerts[certViewIndex] && (
+        <CertificateViewer
+          certificates={galleryCerts}
+          index={certViewIndex}
+          onIndexChange={setCertViewIndex}
+          onClose={() => setCertViewIndex(null)}
+        />
+      )}
     </div>
   );
 }

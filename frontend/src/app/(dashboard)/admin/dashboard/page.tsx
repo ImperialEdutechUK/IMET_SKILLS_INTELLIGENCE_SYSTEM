@@ -85,7 +85,7 @@ export default function AdminAnalyticsDashboard() {
   const maxGap = Math.max(1, ...gaps.map((g) => g.gap));
 
   return (
-    <div className="-m-6 min-h-full bg-white p-6 lg:p-8">
+    <div>
       <div className="mx-auto max-w-6xl">
         {/* Title */}
         <div className="mb-7 flex items-center gap-2.5">

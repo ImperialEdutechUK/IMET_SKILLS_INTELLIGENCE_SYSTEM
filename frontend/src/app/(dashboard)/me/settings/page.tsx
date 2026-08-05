@@ -79,9 +79,13 @@ export default function SettingsPage() {
   };
 
   return (
-    <div>
+    // Centred rather than flush-left: this page is two columns of cards, so on a
+    // wide screen a left-aligned block leaves a lopsided gutter down the right.
+    <div className="mx-auto w-full max-w-6xl">
       <div className="mb-6"><h1 className="text-2xl font-bold text-[var(--ink)]">Settings</h1><p className="mt-1 text-sm text-[var(--muted)]">Manage your account preferences.</p></div>
-      <div className="grid max-w-5xl grid-cols-1 items-start gap-6 md:grid-cols-2">
+      {/* No `items-start`: grid items stretch, so the two cards in a row share a
+          height and their bottom edges line up. */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <Card>
           <CardHeader icon={User} title="Profile" />
           <div className="space-y-4">

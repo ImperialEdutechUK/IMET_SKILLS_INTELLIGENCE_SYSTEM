@@ -46,7 +46,7 @@ export default function LandingPage() {
             </div>
 
             <h1 className="mt-9 font-black leading-[0.92] tracking-[-0.03em]" style={{ fontSize: "clamp(3rem, 8.5vw, 6.5rem)" }}>
-              Skills<br />Intelligence<br /><span className="text-[var(--brand)]">Platform</span>
+              Skills,<br />Intelligently<br /><span className="text-[var(--brand)]">Matched</span>
             </h1>
 
             <div className="mt-12 flex flex-wrap items-center gap-8">

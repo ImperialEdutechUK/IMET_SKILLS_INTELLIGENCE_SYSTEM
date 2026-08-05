@@ -3,11 +3,15 @@ import * as XLSX from "xlsx";
 import { prisma } from "@/lib/db";
 import { verifyToken } from "@/lib/verifyToken";
 import { packCpd, CPD_TYPES, CPD_CATEGORIES, type CpdType, type CpdCategory } from "@/lib/cpd-activity";
+import { ALLOWED_SPREADSHEET_EXTENSIONS, checkBufferSize, checkUpload } from "@/lib/upload-limits";
 
 // Bulk-import a CPD log from an Excel/CSV sheet. The system scans the rows and
 // creates real CPD records. Flexible header matching so common column names work.
 // Expected columns (any casing): Title/Activity, Type, Provider, Date, Category, Hours, Description.
 export const runtime = "nodejs";
+
+/** Upper bound on rows accepted from one sheet. */
+const MAX_CPD_ROWS = 2_000;
 
 // Locate the table header row (0-indexed) by scanning the first ~15 rows for a
 // row that carries recognisable CPD column names. Falls back to row 0 so plain
@@ -61,9 +65,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "No file provided." }, { status: 400 });
   }
 
+  // Bound the input before SheetJS sees it: `xlsx` carries unfixed
+  // prototype-pollution and ReDoS advisories (see SECURITY_AUDIT.md D-01), so
+  // limiting size and extension is the mitigation available without replacing
+  // the library.
+  const upload = checkUpload(file, ALLOWED_SPREADSHEET_EXTENSIONS);
+  if (!upload.ok) return NextResponse.json({ error: upload.error }, { status: 400 });
+
   let rows: Record<string, unknown>[];
   try {
     const buf = Buffer.from(await file.arrayBuffer());
+    const size = checkBufferSize(buf);
+    if (!size.ok) return NextResponse.json({ error: size.error }, { status: 400 });
     const wb = XLSX.read(buf, { type: "buffer" });
     const sheet = wb.Sheets[wb.SheetNames[0]];
     // The official CPD Log template carries a title bar + a name/manager block
@@ -77,6 +90,15 @@ export async function POST(req: Request) {
 
   if (rows.length === 0) {
     return NextResponse.json({ error: "The sheet has no data rows." }, { status: 400 });
+  }
+  // A real CPD log is tens of rows. Capping the count stops one upload from
+  // writing an unbounded number of CpdRecord rows — which would inflate the
+  // employee's CPD total as well as the database.
+  if (rows.length > MAX_CPD_ROWS) {
+    return NextResponse.json(
+      { error: `That sheet has too many rows (limit ${MAX_CPD_ROWS}). Split it and upload again.` },
+      { status: 400 }
+    );
   }
 
   const toCreate: { hours: number; description: string; loggedAt: Date }[] = [];

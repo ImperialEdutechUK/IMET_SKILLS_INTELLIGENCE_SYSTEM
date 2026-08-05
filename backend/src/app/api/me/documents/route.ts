@@ -13,6 +13,7 @@
 import { route, requireAuth, ok, badRequest } from "@/server/http";
 import { employeeDocumentTypeSchema } from "@/server/validation/schemas";
 import { saveUpload, processDocument } from "@/server/documents/service";
+import { checkBufferSize, checkUpload } from "@/lib/upload-limits";
 import { prisma } from "@/lib/db";
 import { DocumentType } from "@prisma/client";
 
@@ -45,12 +46,19 @@ export const POST = route(async (req: Request) => {
   const file = form.get("file");
   if (!(file instanceof File)) throw badRequest("Missing 'file' in form-data.");
 
+  // Any authenticated employee can reach this route, so it is the widest-open
+  // path into the parsers. Bound it before a byte is read.
+  const upload = checkUpload(file);
+  if (!upload.ok) throw badRequest(upload.error!);
+
   const typeParsed = employeeDocumentTypeSchema.safeParse(form.get("type"));
   if (!typeParsed.success) {
     throw badRequest("Missing/invalid 'type'. One of: SKILL_MATRIX, CPD_RECORD, DAILY_REPORT.");
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
+  const size = checkBufferSize(buffer);
+  if (!size.ok) throw badRequest(size.error!);
   const doc = await saveUpload({
     buffer,
     originalName: file.name || "upload",

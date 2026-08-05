@@ -2,6 +2,7 @@
  * Small HTTP helpers shared by the recommendation-engine routes:
  * consistent JSON responses, auth/role guards, and a single error boundary.
  */
+import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { verifyToken, type AuthUser } from "@/lib/verifyToken";
@@ -57,9 +58,17 @@ export function route<Ctx>(
           { status: 400 }
         );
       }
-      console.error("[route] Unhandled error:", err);
-      const message = err instanceof Error ? err.message : "Internal server error.";
-      return NextResponse.json({ error: message }, { status: 500 });
+      // Log the real error server-side; return a generic one. Echoing
+      // `err.message` handed clients raw Prisma/driver text — table and column
+      // names, connection strings in some failure modes, upstream API bodies —
+      // which is free reconnaissance. The reference lets an operator tie a user
+      // report to the log line without the response carrying any internals.
+      const reference = randomUUID();
+      console.error(`[route] Unhandled error (ref ${reference}):`, err);
+      return NextResponse.json(
+        { error: "Something went wrong. Please try again.", reference },
+        { status: 500 }
+      );
     }
   };
 }

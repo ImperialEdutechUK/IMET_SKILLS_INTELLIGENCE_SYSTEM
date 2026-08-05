@@ -6,11 +6,13 @@
 import { route, requireAuth, ok, badRequest } from "@/server/http";
 import { documentTypeSchema } from "@/server/validation/schemas";
 import { saveUpload } from "@/server/documents/service";
+import { assertEmployeeAccess } from "@/lib/authz";
+import { checkBufferSize, checkUpload } from "@/lib/upload-limits";
 
 const WRITE_ROLES = ["manager", "admin", "author"];
 
 export const POST = route(async (req: Request) => {
-  requireAuth(req, WRITE_ROLES);
+  const auth = requireAuth(req, WRITE_ROLES);
 
   let form: FormData;
   try {
@@ -22,6 +24,9 @@ export const POST = route(async (req: Request) => {
   const file = form.get("file");
   if (!(file instanceof File)) throw badRequest("Missing 'file' in form-data.");
 
+  const upload = checkUpload(file);
+  if (!upload.ok) throw badRequest(upload.error!);
+
   const typeParsed = documentTypeSchema.safeParse(form.get("type"));
   if (!typeParsed.success) {
     throw badRequest(
@@ -29,9 +34,30 @@ export const POST = route(async (req: Request) => {
     );
   }
 
-  const userId = (form.get("userId") as string) || undefined;
-  const roleTitle = (form.get("roleTitle") as string) || undefined;
+  const rawUserId = form.get("userId");
+  const userId = typeof rawUserId === "string" && rawUserId.trim() ? rawUserId.trim() : undefined;
+
+  // `userId` decides whose skill profile this document will eventually write to,
+  // and it came straight off the request with nothing checking it. A manager
+  // could attach a skill matrix to ANY employee in ANY department and, via
+  // /process, overwrite their recorded levels. Authors have no employee mandate
+  // at all, so they may not target one.
+  if (userId) {
+    if (auth.role === "author") {
+      throw badRequest("Authors cannot attach documents to an employee.");
+    }
+    await assertEmployeeAccess(auth, userId);
+  }
+
+  const roleTitleRaw = form.get("roleTitle");
+  const roleTitle =
+    typeof roleTitleRaw === "string" && roleTitleRaw.trim()
+      ? roleTitleRaw.trim().slice(0, 200)
+      : undefined;
+
   const buffer = Buffer.from(await file.arrayBuffer());
+  const size = checkBufferSize(buffer);
+  if (!size.ok) throw badRequest(size.error!);
 
   const doc = await saveUpload({
     buffer,

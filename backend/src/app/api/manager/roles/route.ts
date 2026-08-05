@@ -45,6 +45,9 @@ export async function GET(req: Request) {
       })),
     });
   } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 });
+    // Log the detail, return none: String(e) on a Prisma failure hands the
+    // client table names, column names and sometimes the connection target.
+    console.error("[manager/roles] query failed:", e);
+    return NextResponse.json({ error: "Could not load roles." }, { status: 500 });
   }
 }

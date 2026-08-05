@@ -27,12 +27,30 @@ export const API = process.env.NEXT_PUBLIC_API_URL;
 export class ApiError extends Error {
   status: number;
   body: unknown;
-  constructor(message: string, status: number, body?: unknown) {
+  /** Seconds to wait, from Retry-After on a 429. Undefined otherwise. */
+  retryAfter?: number;
+  constructor(message: string, status: number, body?: unknown, retryAfter?: number) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.body = body;
+    this.retryAfter = retryAfter;
   }
+}
+
+/**
+ * Turn `Retry-After: 893` into "in about 15 minutes".
+ *
+ * The API rate-limits authentication and password endpoints, so a user who
+ * mistypes a password repeatedly now gets a 429. Reporting that as a bare
+ * "Request failed (429)" would read as a broken app; telling them roughly how
+ * long to wait reads as a rule.
+ */
+export function formatRetryAfter(seconds: number | undefined): string {
+  if (!seconds || seconds <= 0) return "in a moment";
+  if (seconds < 60) return `in about ${seconds} seconds`;
+  const minutes = Math.ceil(seconds / 60);
+  return `in about ${minutes} minute${minutes === 1 ? "" : "s"}`;
 }
 
 /** A 401 means the token is gone or expired — drop the session and its cache. */
@@ -56,11 +74,27 @@ export async function apiFetch<T = unknown>(path: string, init?: RequestInit): P
   const body = await res.json().catch(() => null);
   if (!res.ok) {
     if (res.status === 401) handleUnauthorized();
-    const message =
-      (body && typeof body === "object" && "error" in body && typeof body.error === "string"
+
+    const serverMessage =
+      body && typeof body === "object" && "error" in body && typeof body.error === "string"
         ? body.error
-        : null) ?? `Request failed (${res.status})`;
-    throw new ApiError(message, res.status, body);
+        : null;
+
+    if (res.status === 429) {
+      const header = Number(res.headers.get("Retry-After"));
+      const retryAfter = Number.isFinite(header) ? header : undefined;
+      // Append the wait to the server's own wording rather than replacing it —
+      // the server knows WHICH limit was hit, we only know how long.
+      const base = serverMessage ?? "Too many attempts.";
+      throw new ApiError(
+        `${base} Try again ${formatRetryAfter(retryAfter)}.`,
+        429,
+        body,
+        retryAfter,
+      );
+    }
+
+    throw new ApiError(serverMessage ?? `Request failed (${res.status})`, res.status, body);
   }
   return body as T;
 }

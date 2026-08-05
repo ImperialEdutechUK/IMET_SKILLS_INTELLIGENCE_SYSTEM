@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Search, ChevronRight } from "lucide-react";
+import { Search, ChevronRight, KeyRound } from "lucide-react";
 import Avatar from "@/components/ui/Avatar";
 import { useApi } from "@/lib/api";
 import { TableSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
+import PasswordResetDialog, { type ResetTarget } from "@/components/admin/PasswordResetDialog";
 
 const CARD = "rounded-2xl border border-[var(--border)] bg-white shadow-[0_1px_2px_rgba(15,27,45,.04),0_10px_26px_-14px_rgba(15,27,45,.12)]";
 
@@ -22,18 +23,19 @@ const statusConfig: Record<string, string> = {
   inactive: "bg-slate-100 text-slate-500",
 };
 
-interface User { id: string; fullName: string; department: string; lastActive: string; role: string; status: string; }
+interface User { id: string; fullName: string; email?: string; department: string; lastActive: string; role: string; status: string; }
 interface Data { total: number; active: number; pending: number; departmentCount: number; users: User[]; }
 
 export default function UserManagementPage() {
   const { data, error, isLoading, isRefreshing, refresh } = useApi<Data>("/api/admin/users");
   const [search, setSearch] = useState("");
+  const [resetTarget, setResetTarget] = useState<ResetTarget | null>(null);
 
   if (isLoading) return <TableSkeleton rows={8} />;
   if (!data) return <ErrorPanel message={error?.message ?? "Could not load users."} onRetry={refresh} />;
 
   const q = search.trim().toLowerCase();
-  const filtered = data.users.filter((u) => u.fullName.toLowerCase().includes(q) || u.department.toLowerCase().includes(q) || u.role.toLowerCase().includes(q));
+  const filtered = data.users.filter((u) => u.fullName.toLowerCase().includes(q) || (u.email ?? "").toLowerCase().includes(q) || u.department.toLowerCase().includes(q) || u.role.toLowerCase().includes(q));
 
   // Group by department so the roster is organised and scannable.
   const groups = filtered.reduce((acc, u) => {
@@ -50,7 +52,7 @@ export default function UserManagementPage() {
           <h1 className="text-[1.65rem] font-bold tracking-tight text-[var(--ink)]">User management</h1>
           <RefreshingBadge show={isRefreshing} />
         </div>
-        <p className="mb-6 text-sm text-[var(--muted)]">Everyone on the platform, grouped by department. New people self-register and wait under Pending approvals.</p>
+        <p className="mb-6 text-sm text-[var(--muted)]">Everyone on the platform, grouped by department. New people self-register and wait under Pending approvals. Use the key icon to issue a one-time password reset code for someone who is locked out.</p>
 
         {/* Lean summary — figures, not a wall of icon cards. Pending is actionable.
             data-tour: onboarding-tour anchor only — no behaviour change. */}
@@ -74,7 +76,7 @@ export default function UserManagementPage() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name, department or role…"
+            placeholder="Search by name, email, department or role…"
             className="w-full rounded-xl border border-[var(--border)] bg-white py-2.5 pl-9 pr-3 text-sm text-[var(--ink)] outline-none transition-colors placeholder:text-slate-400 focus:border-[var(--brand)] focus:ring-2 focus:ring-[var(--brand)]/15"
           />
         </div>
@@ -98,25 +100,36 @@ export default function UserManagementPage() {
                           <Avatar name={user.fullName} size={36} />
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-medium text-[var(--ink)]">{user.fullName}</p>
-                            <p className="truncate text-xs text-[var(--muted)]">Last active {user.lastActive}</p>
+                            <p className="truncate text-xs text-[var(--muted)]">{user.email ?? `Last active ${user.lastActive}`}</p>
                           </div>
                           <span className={`hidden shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium capitalize sm:inline ${roleConfig[user.role] ?? "bg-slate-100 text-slate-600"}`}>{user.role}</span>
                           <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium capitalize ${statusConfig[user.status] ?? "bg-slate-100 text-slate-600"}`}>{user.status.replace("_", " ")}</span>
                         </>
                       );
+                      // The reset action is a SIBLING of the row link, never inside
+                      // it — a <button> nested in an <a> is invalid, and it would
+                      // also mean a mis-aimed click navigated instead of resetting.
                       return (
-                        <li key={user.id}>
+                        <li key={user.id} className="flex items-center transition-colors hover:bg-slate-50/80">
                           {user.role === "employee" ? (
-                            <Link href={`/admin/employee/${user.id}`} className="group flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-slate-50/80">
+                            <Link href={`/admin/employee/${user.id}`} className="group flex min-w-0 flex-1 items-center gap-4 py-3.5 pl-5">
                               {rowInner}
                               <ChevronRight className="h-4 w-4 shrink-0 text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-400" />
                             </Link>
                           ) : (
-                            <div className="flex items-center gap-4 px-5 py-3.5">
+                            <div className="flex min-w-0 flex-1 items-center gap-4 py-3.5 pl-5">
                               {rowInner}
                               <span className="h-4 w-4 shrink-0" aria-hidden />
                             </div>
                           )}
+                          <button
+                            onClick={() => setResetTarget(user)}
+                            title={`Issue a password reset code for ${user.fullName}`}
+                            className="mx-3 shrink-0 rounded-lg border border-transparent p-2 text-slate-400 transition-colors hover:border-[var(--border)] hover:bg-white hover:text-[var(--brand-dark)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]"
+                          >
+                            <KeyRound className="h-4 w-4" />
+                            <span className="sr-only">Reset password for {user.fullName}</span>
+                          </button>
                         </li>
                       );
                     })}
@@ -127,6 +140,10 @@ export default function UserManagementPage() {
           )}
         </div>
       </div>
+
+      {resetTarget && (
+        <PasswordResetDialog target={resetTarget} onClose={() => setResetTarget(null)} />
+      )}
     </div>
   );
 }

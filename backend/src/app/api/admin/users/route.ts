@@ -24,6 +24,11 @@ export async function GET(req: Request) {
     users: users.map((u) => ({
       id: u.id,
       fullName: u.fullName,
+      // Admin-only route. The email is here so an administrator issuing a
+      // password-reset code can confirm they are resetting the right account —
+      // two people called "S. Perera" is exactly how a reset code reaches the
+      // wrong person.
+      email: u.email,
       department: u.department?.name ?? "—",
       lastActive: u.updatedAt.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
       role: u.role,

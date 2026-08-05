@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { saveAuth, dashboardPathFor } from "@/lib/authClient";
 import { swrCache } from "@/lib/swr-cache";
-import { prefetch } from "@/lib/api";
+import { prefetch, formatRetryAfter } from "@/lib/api";
 
 /** Endpoints each role lands on — requested during the redirect, not after it. */
 const WARM_ON_LOGIN = {
@@ -44,9 +44,21 @@ export default function LoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
       setLoading(false);
       if (!res.ok) {
+        // The API throttles repeated sign-in attempts. Without this the user
+        // sees "Incorrect email or password" while holding the RIGHT password,
+        // which sends them off to reset it for no reason.
+        if (res.status === 429) {
+          const seconds = Number(res.headers.get("Retry-After"));
+          setError(
+            `${data?.error ?? "Too many sign-in attempts."} Try again ${formatRetryAfter(
+              Number.isFinite(seconds) ? seconds : undefined,
+            )}.`,
+          );
+          return;
+        }
         setError(data?.error || "Incorrect email or password.");
         return;
       }

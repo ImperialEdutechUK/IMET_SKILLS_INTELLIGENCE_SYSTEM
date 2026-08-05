@@ -6,6 +6,8 @@ import { User, Lock, Bell, Compass } from "lucide-react";
 import { getUser } from "@/lib/authClient";
 import { requestTourReplay, tourFor } from "@/lib/onboarding";
 import { useApi, apiSend, ApiError } from "@/lib/api";
+import PasswordChecklist from "@/components/auth/PasswordChecklist";
+import { MAX_PASSWORD_LENGTH, PASSWORD_HINT, passwordMeetsRules } from "@/lib/password-rules";
 
 interface Profile { fullName: string; email: string; department: string }
 
@@ -95,10 +97,17 @@ export default function SettingsPage() {
         <div className="rounded-2xl border border-[var(--border)] bg-white p-6">
           <div className="mb-4 flex items-center gap-2"><Lock className="h-4 w-4 text-[var(--brand)]" /><h3 className="font-semibold text-[var(--ink)]">Change Password</h3></div>
           <div className="space-y-4">
-            <div><label className="mb-1.5 block text-sm font-medium text-[var(--ink)]">Current Password</label><input type="password" value={current} onChange={e => setCurrent(e.target.value)} placeholder="••••••••" className="w-full rounded-lg border border-[var(--border)] px-3 py-2.5 text-sm outline-none focus:border-[var(--brand)]" /></div>
-            <div><label className="mb-1.5 block text-sm font-medium text-[var(--ink)]">New Password</label><input type="password" value={next} onChange={e => setNext(e.target.value)} placeholder="At least 8 characters" className="w-full rounded-lg border border-[var(--border)] px-3 py-2.5 text-sm outline-none focus:border-[var(--brand)]" /></div>
+            <div><label className="mb-1.5 block text-sm font-medium text-[var(--ink)]">Current Password</label><input type="password" value={current} onChange={e => setCurrent(e.target.value)} autoComplete="current-password" placeholder="••••••••" className="w-full rounded-lg border border-[var(--border)] px-3 py-2.5 text-sm outline-none focus:border-[var(--brand)]" /></div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-[var(--ink)]">New Password</label>
+              <input type="password" value={next} onChange={e => setNext(e.target.value)} maxLength={MAX_PASSWORD_LENGTH} placeholder={PASSWORD_HINT} className="w-full rounded-lg border border-[var(--border)] px-3 py-2.5 text-sm outline-none focus:border-[var(--brand)]" />
+              {/* This form previously promised only "At least 8 characters" and
+                  checked nothing, so the server's real policy arrived as a
+                  surprise rejection after the user had already committed. */}
+              <PasswordChecklist value={next} />
+            </div>
             <div className="flex items-center gap-3">
-              <button onClick={savePassword} disabled={savingPw || !current || !next} className="rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-dark)] disabled:opacity-50">{savingPw ? "Updating…" : "Update Password"}</button>
+              <button onClick={savePassword} disabled={savingPw || !current || !passwordMeetsRules(next)} className="rounded-lg bg-[var(--brand)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--brand-dark)] disabled:opacity-50">{savingPw ? "Updating…" : "Update Password"}</button>
               {pwMsg && <span className={`text-sm ${pwErr ? "text-red-600" : "text-[var(--brand)]"}`}>{pwMsg}</span>}
             </div>
           </div>

@@ -8,12 +8,17 @@ import { readJson } from "@/server/http";
 import { generateRecommendationsBodySchema } from "@/server/validation/schemas";
 import { generateRecommendations, RecommendationError } from "@/server/courses/recommend";
 import { GapAnalysisError } from "@/server/gaps/gapAnalysis";
+import { assertEmployeeAccess } from "@/lib/authz";
 
-const WRITE_ROLES = ["manager", "admin", "author"];
+// Writes Recommendation rows for the named employee. Managers only within their
+// own department; authors have no mandate over employee records.
+const WRITE_ROLES = ["manager", "admin"];
 
 export const POST = route(async (req: Request, ctx: { params: Promise<{ employeeId: string }> }) => {
-  requireAuth(req, WRITE_ROLES);
+  const auth = requireAuth(req, WRITE_ROLES);
   const { employeeId } = await ctx.params;
+
+  await assertEmployeeAccess(auth, employeeId);
 
   const body = generateRecommendationsBodySchema.parse(await readJson(req).catch(() => ({})));
 

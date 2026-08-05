@@ -36,6 +36,12 @@ function corsHeaders(origin: string | null): Record<string, string> {
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Access-Control-Allow-Credentials": "true",
     "Access-Control-Max-Age": "86400",
+    // Cross-origin JS can only read the CORS-safelisted response headers unless
+    // they are named here. `Retry-After` is NOT on that list, so without this
+    // the frontend's `res.headers.get("Retry-After")` returns null on a 429 and
+    // the throttle message degrades to a vague "try again in a moment". It reads
+    // fine from curl, which has no CORS — this only reproduces in a browser.
+    "Access-Control-Expose-Headers": "Retry-After",
     // Caches/proxies must not serve one origin's CORS response to another origin.
     Vary: "Origin",
   };
@@ -47,8 +53,30 @@ function corsHeaders(origin: string | null): Record<string, string> {
   return headers;
 }
 
+/**
+ * Response headers for the API itself.
+ *
+ * Set here rather than in next.config so they also land on the 204 preflight,
+ * and so there is one place that decorates every /api response.
+ *
+ * `no-store` matters most: every authenticated response carries personal data —
+ * names, CPD records, skill levels, certificates — and without it a shared proxy
+ * or the browser's bfcache may retain one user's response and serve it after
+ * they sign out.
+ */
+const SECURITY_HEADERS: Record<string, string> = {
+  "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "no-referrer",
+  // The API renders no HTML; nothing here should ever be framed or executed.
+  "X-Frame-Options": "DENY",
+  "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'; sandbox",
+  "Cache-Control": "no-store, no-cache, must-revalidate",
+  Pragma: "no-cache",
+};
+
 function withCors(res: NextResponse, origin: string | null): NextResponse {
   for (const [key, value] of Object.entries(corsHeaders(origin))) res.headers.set(key, value);
+  for (const [key, value] of Object.entries(SECURITY_HEADERS)) res.headers.set(key, value);
   return res;
 }
 

@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { getToken, clearAuth } from "@/lib/authClient";
+import { passwordRules } from "@/lib/password-rules";
 import { swrCache } from "@/lib/swr-cache";
 import { GraduationCap, Lock, Eye, EyeOff, CheckCircle } from "lucide-react";
 
@@ -13,11 +14,8 @@ export default function SetPasswordPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const rules = [
-    { label: "At least 8 characters", ok: password.length >= 8 },
-    { label: "One uppercase letter", ok: /[A-Z]/.test(password) },
-    { label: "One number", ok: /\d/.test(password) },
-  ];
+  // Mirrors backend/src/lib/password-policy.ts — see the note on the register page.
+  const rules = passwordRules(password);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

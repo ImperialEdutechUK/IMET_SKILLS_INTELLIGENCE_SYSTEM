@@ -6,6 +6,7 @@ import { TrendingUp, Star, Target, PlusCircle, CheckCircle2, ArrowUpRight, Plus,
 import PageHeader from "@/components/ui/PageHeader";
 import KpiCard from "@/components/ui/KpiCard";
 import EmptyState from "@/components/ui/EmptyState";
+import { tabKeyDown } from "@/lib/tabKeys";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
 import { useApi, apiSend, ApiError } from "@/lib/api";
@@ -141,7 +142,7 @@ export default function MySkillsPage() {
         <div className="mb-6 flex items-start gap-3 rounded-2xl border border-[var(--brand)]/30 bg-[var(--brand-tint)] p-4">
           <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[var(--brand-dark)]" />
           <p className="flex-1 text-sm text-[var(--brand-dark)]">{notice}</p>
-          <button onClick={() => setNotice("")} className="text-[var(--brand-dark)]/60 hover:text-[var(--brand-dark)]"><X className="h-4 w-4" /></button>
+          <button onClick={() => setNotice("")} aria-label="Dismiss" className="text-[var(--brand-dark)] hover:opacity-70"><X className="h-4 w-4" /></button>
         </div>
       )}
 
@@ -218,9 +219,9 @@ export default function MySkillsPage() {
         />
       ) : (
       <>
-      <div data-tour="skills-tabs" className="mb-6 flex flex-wrap gap-6 border-b border-[var(--border)]">
+      <div data-tour="skills-tabs" role="tablist" aria-label="Skills views" onKeyDown={(e) => tabKeyDown(e, ["overview", "improve"] as Tab[], tab, setTab)} className="mb-6 flex flex-wrap gap-6 border-b border-[var(--border)]">
         {([["overview", "Overview"], ["improve", "Skills to improve"]] as [Tab, string][]).map(([k, l]) => (
-          <button key={k} onClick={() => setTab(k)}
+          <button key={k} role="tab" aria-selected={tab === k} tabIndex={tab === k ? 0 : -1} onClick={() => setTab(k)}
             className={`-mb-px border-b-2 pb-2.5 text-sm font-medium transition-colors ${tab === k ? "border-[var(--brand)] text-[var(--brand)]" : "border-transparent text-[var(--muted)] hover:text-[var(--ink)]"}`}>{l}</button>
         ))}
       </div>

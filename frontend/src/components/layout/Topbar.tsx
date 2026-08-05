@@ -1,19 +1,27 @@
 "use client";
-import { Search } from "lucide-react";
+import { Search, Menu } from "lucide-react";
 import Avatar from "@/components/ui/Avatar";
 import NotificationBell from "@/components/layout/NotificationBell";
 import GamificationPill from "@/components/gamification/GamificationPill";
 import type { SessionUser } from "@/types";
 
-export default function Topbar({ user }: { user: SessionUser }) {
+export default function Topbar({ user, onMenu }: { user: SessionUser; onMenu?: () => void }) {
   // Only managers/admins can search people; employees/authors see a scope that
   // matches what their role can actually reach.
   const canSearchPeople = user.role === "manager" || user.role === "admin";
   // Everyone who learns carries their level/XP in the header on every page.
   const showGame = user.role !== "admin";
   return (
-    <header className="flex h-16 items-center justify-between border-b border-[var(--border)] bg-white px-6">
-      <div data-tour="topbar-search" className="relative w-72">
+    <header className="flex h-16 items-center justify-between gap-3 border-b border-[var(--border)] bg-white px-4 sm:px-6">
+      <button
+        type="button"
+        onClick={onMenu}
+        aria-label="Open menu"
+        className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-[var(--ink)] transition-colors hover:bg-slate-100 lg:hidden"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
+      <div data-tour="topbar-search" className="relative min-w-0 flex-1 sm:w-72 sm:flex-none">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <input
           placeholder={canSearchPeople ? "Search courses, skills, people…" : "Search courses, skills…"}

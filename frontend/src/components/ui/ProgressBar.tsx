@@ -4,11 +4,13 @@
 // and "worse" on another — callers label the axis.
 export type BarTone = "brand" | "positive" | "warning" | "critical";
 
+// Fills are darkened so each clears WCAG 1.4.11 (≥3:1) against the light track:
+// brand 4.56, emerald-600 3.44, amber-700 4.58, rose-600 4.29.
 const FILL: Record<BarTone, string> = {
   brand: "bg-[var(--brand)]",
-  positive: "bg-emerald-500",
-  warning: "bg-amber-500",
-  critical: "bg-rose-500",
+  positive: "bg-emerald-600",
+  warning: "bg-amber-700",
+  critical: "bg-rose-600",
 };
 
 export default function ProgressBar({

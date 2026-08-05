@@ -33,7 +33,7 @@ export default function GamificationPill() {
       <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white text-sm shadow-sm">{g.current?.emoji ?? "🌱"}</span>
       <span className="leading-tight">
         <span className="flex items-center gap-1.5">
-          <span className="text-[9px] font-semibold uppercase tracking-wide text-[var(--brand)]/70">You</span>
+          <span className="text-[9px] font-semibold uppercase tracking-wide text-[var(--brand-dark)]">You</span>
           <span className="text-xs font-bold text-[var(--brand-dark)]">Lv {g.level}</span>
           <span className="text-[10px] font-semibold text-[var(--brand)]">{g.xp} XP</span>
         </span>

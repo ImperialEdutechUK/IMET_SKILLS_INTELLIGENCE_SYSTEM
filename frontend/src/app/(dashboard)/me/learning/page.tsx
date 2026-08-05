@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { BookOpen, Clock, CheckCircle2, ChevronRight, PlayCircle, Plus, ExternalLink, X, History, Award } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
 import KpiCard from "@/components/ui/KpiCard";
+import { tabKeyDown } from "@/lib/tabKeys";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
 import AchievementsBento from "@/components/gamification/AchievementsBento";
 import CertificateProofModal, { CertificateFileField } from "@/components/certificates/CertificateProofModal";
@@ -145,7 +146,7 @@ export default function MyLearningPage() {
       />
 
       {/* Tabs — counts live in the labels, so no separate stat card row is needed */}
-      <div data-tour="learning-tabs" className="mb-6 flex flex-wrap gap-6 border-b border-[var(--border)]">
+      <div data-tour="learning-tabs" role="tablist" aria-label="My learning views" onKeyDown={(e) => tabKeyDown(e, TABS.map((t) => t.key), tab, setTab)} className="mb-6 flex flex-wrap gap-6 border-b border-[var(--border)]">
         {TABS.map((t) => {
           const counts: Record<Tab, number> = {
             not_started: data.stats.notStarted,
@@ -154,7 +155,7 @@ export default function MyLearningPage() {
             certificates: certificates.length,
           };
           return (
-            <button key={t.key} onClick={() => setTab(t.key)}
+            <button key={t.key} role="tab" aria-selected={tab === t.key} tabIndex={tab === t.key ? 0 : -1} onClick={() => setTab(t.key)}
               className={`-mb-px border-b-2 pb-2.5 text-sm font-medium transition-colors ${tab === t.key ? "border-[var(--brand)] text-[var(--brand)]" : "border-transparent text-[var(--muted)] hover:text-[var(--ink)]"}`}>
               {t.label}{counts[t.key] > 0 ? ` (${counts[t.key]})` : ""}
             </button>

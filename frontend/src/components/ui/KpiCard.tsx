@@ -45,7 +45,7 @@ export default function KpiCard({
         {label}
         {definition && <span onClick={(e) => e.preventDefault()}><MetricInfo label={label} definition={definition} /></span>}
       </p>
-      {sublabel && <p className="mt-0.5 text-xs text-[var(--muted)]/80">{sublabel}</p>}
+      {sublabel && <p className="mt-0.5 text-xs text-[var(--muted)]">{sublabel}</p>}
     </>
   );
   const cls = `${CARD} group flex h-full flex-col p-5`;

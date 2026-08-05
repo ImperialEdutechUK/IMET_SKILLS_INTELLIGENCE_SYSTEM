@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { TrendingUp, Download, ArrowRight, GraduationCap, Target, CheckCircle2, ScrollText, BarChart3 } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
+import { tabKeyDown } from "@/lib/tabKeys";
 import Icon3D, { TONES, type Icon3DTone } from "@/components/dashboard/Icon3D";
 import LearnAreaChart from "@/components/charts/LearnAreaChart";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
@@ -106,13 +107,13 @@ export default function ManagerReportsPage() {
                   <p className="text-xs text-[var(--muted)]">{INSIGHT_TABS.find((t) => t.key === tab)?.label} view · tap to switch</p>
                 </div>
               </div>
-              <div role="tablist" aria-label="Team insights view" className="flex max-w-full overflow-x-auto rounded-xl bg-[var(--brand-tint)] p-1">
+              <div role="tablist" aria-label="Team insights view" onKeyDown={(e) => tabKeyDown(e, INSIGHT_TABS.map((t) => t.key), tab, setTab)} className="flex max-w-full overflow-x-auto rounded-xl bg-[var(--brand-tint)] p-1">
                 {INSIGHT_TABS.map((t) => {
                   const Icon = t.icon;
                   const active = tab === t.key;
                   return (
-                    <button key={t.key} role="tab" aria-selected={active} onClick={() => setTab(t.key)}
-                      className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition ${active ? "bg-white text-[var(--brand-dark)] shadow-sm" : "text-[var(--brand-dark)]/70 hover:text-[var(--brand-dark)]"}`}>
+                    <button key={t.key} role="tab" aria-selected={active} tabIndex={active ? 0 : -1} onClick={() => setTab(t.key)}
+                      className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition ${active ? "bg-white text-[var(--brand-dark)] shadow-sm" : "text-[var(--brand-dark)] hover:bg-white/50"}`}>
                       <Icon className="h-4 w-4" /> {t.label}
                     </button>
                   );

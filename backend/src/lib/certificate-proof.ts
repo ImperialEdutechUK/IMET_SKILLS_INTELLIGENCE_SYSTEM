@@ -11,6 +11,9 @@ export const CERTIFICATE_ISSUERS = ["LinkedIn Learning", "Coursera", "edX", "Oth
 const MAX_FILE_DATA_CHARS = 3_800_000;
 const MAX_URL_CHARS = 2_000;
 
+/** Non-scriptable certificate formats only. Deliberately not `image/*`. */
+const ALLOWED_FILE_TYPES = /^data:(application\/pdf|image\/(jpeg|jpg|png|webp));base64,/i;
+
 export interface ParsedProof {
   fileUrl: string;
   certificateUrl: string;
@@ -31,11 +34,23 @@ export function parseCertificateProof(
   if (!fileUrl) {
     return { ok: false, error: "Upload the certificate PDF or image — it's required." };
   }
-  if (!/^data:(application\/pdf|image\/[a-z0-9.+-]+);base64,/i.test(fileUrl)) {
-    return { ok: false, error: "The certificate must be a PDF or an image file." };
+  // An explicit allowlist, not `image/*`. The old pattern accepted any image
+  // subtype, which included image/svg+xml — SVG is a scriptable document, and
+  // this value is stored and later handed to <img>, to a blob: URL, and to an
+  // <a href> that managers and admins click. It is rendered through <img> today,
+  // which does not execute embedded script, but that is one refactor away from
+  // being untrue and the file has no business being an SVG in the first place.
+  if (!ALLOWED_FILE_TYPES.test(fileUrl)) {
+    return { ok: false, error: "The certificate must be a PDF, JPEG, PNG or WebP file." };
   }
   if (fileUrl.length > MAX_FILE_DATA_CHARS) {
     return { ok: false, error: "That file is too large. Use a certificate under 2.5 MB." };
+  }
+  // Reject anything that is not well-formed base64 before it is stored: a
+  // malformed payload only fails later, in the browser, as a broken viewer.
+  const payload = fileUrl.slice(fileUrl.indexOf(",") + 1);
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(payload)) {
+    return { ok: false, error: "That upload was corrupted. Please try attaching it again." };
   }
 
   const certificateUrl = typeof body.certificateUrl === "string" ? body.certificateUrl.trim() : "";

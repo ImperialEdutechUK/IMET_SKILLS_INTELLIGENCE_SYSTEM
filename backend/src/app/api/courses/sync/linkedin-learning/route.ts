@@ -13,8 +13,16 @@ import { route, requireAuth, ok, badRequest } from "@/server/http";
 import { parseDocument } from "@/server/parsing/documentParser";
 import { LinkedInLearningConnector } from "@/server/connectors/linkedin";
 import { importCoursesBulk } from "@/server/connectors/bulkImporter";
+import { ALLOWED_SPREADSHEET_EXTENSIONS, checkBufferSize, checkUpload } from "@/lib/upload-limits";
 
 const WRITE_ROLES = ["manager", "admin", "author"];
+
+/**
+ * A full LinkedIn Learning library export is legitimately large — larger than
+ * the general document limit — so this one route gets a wider bound rather than
+ * no bound at all.
+ */
+const MAX_EXPORT_BYTES = 50 * 1024 * 1024;
 
 export const POST = route(async (req: Request) => {
   requireAuth(req, WRITE_ROLES);
@@ -29,8 +37,12 @@ export const POST = route(async (req: Request) => {
   const form = await req.formData();
   const file = form.get("file");
   if (!(file instanceof File)) throw badRequest("Missing 'file' in form-data.");
+  const upload = checkUpload(file, ALLOWED_SPREADSHEET_EXTENSIONS, MAX_EXPORT_BYTES);
+  if (!upload.ok) throw badRequest(upload.error!);
 
   const buffer = Buffer.from(await file.arrayBuffer());
+  const size = checkBufferSize(buffer, MAX_EXPORT_BYTES);
+  if (!size.ok) throw badRequest(size.error!);
   const parsed = await parseDocument(buffer, file.name, file.type || undefined);
 
   let rows: Record<string, unknown>[] = [];

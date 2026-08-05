@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { verifyToken } from "@/lib/verifyToken";
+import { canAccessDepartment } from "@/lib/authz";
 import { getTeamSummary, getTeamMembers } from "@/lib/team-queries";
 
 export async function GET(
@@ -13,6 +14,15 @@ export async function GET(
   }
 
   const { departmentId } = await params;
+
+  // Managers are scoped to their OWN department. Without this a manager could
+  // read any other department's members, CPD standing and activity feed simply
+  // by changing the id in the URL — the route authenticated the caller's role
+  // but never checked the object they were asking for.
+  if (!canAccessDepartment(authUser, departmentId)) {
+    return NextResponse.json({ error: "You do not have access to this department." }, { status: 403 });
+  }
+
   const department = await prisma.department.findUnique({ where: { id: departmentId } });
   if (!department) {
     return NextResponse.json({ error: "Department not found." }, { status: 404 });

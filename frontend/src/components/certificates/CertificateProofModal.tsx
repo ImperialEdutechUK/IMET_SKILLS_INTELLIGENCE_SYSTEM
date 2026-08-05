@@ -38,6 +38,12 @@ export interface CertificatePayload {
 const MAX_BYTES = 2.5 * 1024 * 1024; // 2.5 MB
 
 /**
+ * Formats the backend accepts (lib/certificate-proof.ts). Notably NOT `image/*`:
+ * SVG is a scriptable document and has no place as a certificate artefact.
+ */
+const ACCEPTED_TYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"];
+
+/**
  * The upload control on its own, so any form that needs proof of completion (this
  * modal, "Add a Course" set to Completed) reads the file the same way: same formats,
  * same size cap, same data-URL shape the backend validates.
@@ -56,6 +62,13 @@ export function CertificateFileField({
     onError("");
     if (!file) { onPicked("", ""); return; }
     if (file.size > MAX_BYTES) { onError("File must be under 2.5 MB. Try a smaller PDF or image."); return; }
+    // Mirrors the server's allowlist (lib/certificate-proof.ts) so the learner
+    // is told here rather than after the upload round-trips. The server remains
+    // the control — `accept` and this check are both trivially bypassed.
+    if (!ACCEPTED_TYPES.includes(file.type)) {
+      onError("Use a PDF, JPEG, PNG or WebP file.");
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => onPicked(String(reader.result), file.name);
     reader.onerror = () => onError("Could not read that file.");
@@ -76,7 +89,7 @@ export function CertificateFileField({
   return (
     <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-[var(--border)] px-3 py-3 text-sm text-[var(--muted)] hover:border-[var(--brand)] hover:text-[var(--ink)]">
       <Upload className="h-4 w-4" /> Choose a PDF or image (max 2.5 MB)
-      <input type="file" accept="application/pdf,image/*" className="hidden"
+      <input type="file" accept={ACCEPTED_TYPES.join(",")} className="hidden"
         onChange={(e) => handle(e.target.files?.[0])} />
     </label>
   );

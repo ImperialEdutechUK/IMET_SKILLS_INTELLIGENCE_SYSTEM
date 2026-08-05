@@ -4,13 +4,21 @@
  */
 import { route, requireAuth, ok, notFound } from "@/server/http";
 import { prisma } from "@/lib/db";
+import { assertDepartmentAccess } from "@/lib/authz";
 import { numberToLevel, type GapStatus } from "@/lib/levels";
 
-const PRIVILEGED = ["manager", "admin", "author"];
+// Authors are content-only: they curate the course catalogue and have no
+// business reading named employees' skill gaps, which is what this endpoint
+// returns. They were included here alongside manager/admin; they are not any more.
+const PRIVILEGED = ["manager", "admin"];
 
 export const GET = route(async (req: Request, ctx: { params: Promise<{ departmentId: string }> }) => {
-  requireAuth(req, PRIVILEGED);
+  const auth = requireAuth(req, PRIVILEGED);
   const { departmentId } = await ctx.params;
+
+  // Per-employee gap detail for a whole department, named. A manager may only
+  // pull their own; previously any manager could pull any department's.
+  assertDepartmentAccess(auth, departmentId);
 
   const department = await prisma.department.findUnique({ where: { id: departmentId } });
   if (!department) throw notFound("Department not found.");

@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AuthShell from "@/components/auth/AuthShell";
+import { formatRetryAfter } from "@/lib/api";
+import { passwordRules } from "@/lib/password-rules";
 import { Mail, Lock, User, Briefcase, Eye, EyeOff, ArrowRight, CheckCircle, AlertCircle } from "lucide-react";
 
 interface Dept {
@@ -32,11 +34,10 @@ export default function RegisterPage() {
       .catch(() => setDepts([]));
   }, []);
 
-  const rules = [
-    { label: "At least 8 characters", ok: password.length >= 8 },
-    { label: "One uppercase letter", ok: /[A-Z]/.test(password) },
-    { label: "One number", ok: /\d/.test(password) },
-  ];
+  // Single source of truth, mirroring backend/src/lib/password-policy.ts. The
+  // server additionally refuses common passwords and any password containing
+  // the user's own name or email — those arrive in the error line.
+  const rules = passwordRules(password);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -54,6 +55,17 @@ export default function RegisterPage() {
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
+      // Registration is throttled per IP. Say how long, rather than leaving the
+      // user to retry into the same wall.
+      if (res.status === 429) {
+        const seconds = Number(res.headers.get("Retry-After"));
+        setError(
+          `${data.error ?? "Too many registration attempts."} Try again ${formatRetryAfter(
+            Number.isFinite(seconds) ? seconds : undefined,
+          )}.`,
+        );
+        return;
+      }
       setError(data.error ?? "Registration failed. Try again.");
       return;
     }

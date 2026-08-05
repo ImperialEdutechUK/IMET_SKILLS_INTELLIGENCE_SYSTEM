@@ -11,6 +11,7 @@ import { coerceRows } from "@/server/connectors/coerce";
 import { ManualCourseImportConnector } from "@/server/connectors/manual";
 import { importCourses, type CourseCatalogueInput } from "@/server/connectors/importer";
 import { toCourseSource } from "@/server/connectors/types";
+import { ALLOWED_SPREADSHEET_EXTENSIONS, checkBufferSize, checkUpload } from "@/lib/upload-limits";
 
 const WRITE_ROLES = ["manager", "admin", "author"];
 
@@ -46,10 +47,14 @@ export const POST = route(async (req: Request) => {
     const form = await req.formData();
     const file = form.get("file");
     if (!(file instanceof File)) throw badRequest("Missing 'file' in form-data.");
+    const upload = checkUpload(file, ALLOWED_SPREADSHEET_EXTENSIONS);
+    if (!upload.ok) throw badRequest(upload.error!);
     const approveAll = form.get("approveAll") === "true";
     const publish = form.get("publish") !== "false"; // default publish on
 
     const buffer = Buffer.from(await file.arrayBuffer());
+    const size = checkBufferSize(buffer);
+    if (!size.ok) throw badRequest(size.error!);
     const parsed = await parseDocument(buffer, file.name, file.type || undefined);
 
     let rows: Record<string, unknown>[] = [];

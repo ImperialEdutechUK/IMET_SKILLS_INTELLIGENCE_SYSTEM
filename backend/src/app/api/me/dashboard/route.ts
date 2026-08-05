@@ -60,16 +60,14 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Account not found." }, { status: 404 });
   }
 
+  // Unread notifications (e.g. a manager's learning reminder) stay unread so the
+  // banner persists across dashboard loads. They're cleared only when the
+  // employee acknowledges them — opening the bell, or dismissing a banner
+  // (both via /api/notifications) — not merely by viewing the dashboard.
   const unreadNotifications = await prisma.notification.findMany({
     where: { userId: user.id, readAt: null },
     orderBy: { createdAt: "desc" },
   });
-  if (unreadNotifications.length > 0) {
-    await prisma.notification.updateMany({
-      where: { userId: user.id, readAt: null },
-      data: { readAt: new Date() },
-    });
-  }
 
   // Role-based gaps from the deterministic engine. Falls back to the employee's own
   // self-set targets when no role profile has been analysed for them yet.

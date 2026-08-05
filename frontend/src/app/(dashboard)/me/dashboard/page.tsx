@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { BookOpen, Target, Award, Sparkles, Bell, Check, ScrollText, TrendingUp, PieChart, ArrowRight } from "lucide-react";
+import { BookOpen, Target, Award, Sparkles, Bell, Check, ScrollText, TrendingUp, PieChart, ArrowRight, X } from "lucide-react";
 import LearnAreaChart from "@/components/charts/LearnAreaChart";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
 import { computeGamification } from "@/lib/gamification";
@@ -41,6 +41,20 @@ export default function EmployeeDashboardPage() {
   const certCount = certData?.certificates?.length ?? 0;
   const [enrolled, setEnrolled] = useState<Record<string, boolean>>({});
   const [enrolling, setEnrolling] = useState<Record<string, boolean>>({});
+  const [dismissing, setDismissing] = useState<Record<string, boolean>>({});
+
+  // Dismiss one reminder banner → mark just that notification read. The dashboard
+  // and the bell both refetch, so the banner disappears and the bell count drops.
+  const dismiss = async (id: string) => {
+    setDismissing((s) => ({ ...s, [id]: true }));
+    try {
+      await apiSend("/api/notifications", "POST", { id }, {
+        invalidates: ["/api/me/dashboard", "/api/notifications"],
+      });
+    } catch {
+      setDismissing((s) => ({ ...s, [id]: false }));  // re-enable so they can retry
+    }
+  };
 
   const enrol = async (courseId: string) => {
     setEnrolling((s) => ({ ...s, [courseId]: true }));
@@ -78,13 +92,22 @@ export default function EmployeeDashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Reminders / notifications from a manager land here first. */}
+      {/* Reminders / notifications from a manager land here first. They persist
+          until the employee acknowledges them — dismiss here, or open the bell. */}
       {data.notifications.length > 0 && (
         <div className="space-y-2">
           {data.notifications.map((n) => (
             <div key={n.id} className="flex items-start gap-3 rounded-xl border border-[var(--brand)]/30 bg-[var(--brand-tint)] p-4">
               <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--brand)] text-white"><Bell className="h-4 w-4" /></span>
-              <div><p className="text-sm font-semibold text-[var(--ink)]">{n.title}</p><p className="mt-0.5 text-sm text-[var(--muted)]">{n.body}</p></div>
+              <div className="min-w-0 flex-1"><p className="text-sm font-semibold text-[var(--ink)]">{n.title}</p><p className="mt-0.5 text-sm text-[var(--muted)]">{n.body}</p></div>
+              <button
+                onClick={() => dismiss(n.id)}
+                disabled={dismissing[n.id]}
+                aria-label="Dismiss notification"
+                className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-[var(--brand-dark)] transition-colors hover:bg-[var(--brand)]/10 disabled:opacity-50"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
           ))}
         </div>

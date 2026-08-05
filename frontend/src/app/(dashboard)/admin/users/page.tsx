@@ -53,7 +53,7 @@ export default function UserManagementPage() {
   const departments = Object.keys(groups).sort((a, b) => (a === "Unassigned" ? 1 : b === "Unassigned" ? -1 : a.localeCompare(b)));
 
   return (
-    <div className="-m-6 min-h-full bg-white p-6 lg:p-8">
+    <div>
       <div className="mx-auto max-w-5xl">
         <div className="mb-1 flex items-center gap-2.5">
           <h1 className="text-[1.65rem] font-bold tracking-tight text-[var(--ink)]">User management</h1>

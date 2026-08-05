@@ -13,6 +13,8 @@ interface LearnDonutChartProps {
   label?: string;
   sublabel?: string;
   height?: number;
+  /** The chart draws its own legend. Set false when the caller renders one, so the two don't duplicate. */
+  showLegend?: boolean;
 }
 
 export default function LearnDonutChart({
@@ -20,6 +22,7 @@ export default function LearnDonutChart({
   label,
   sublabel,
   height = 160,
+  showLegend = true,
 }: LearnDonutChartProps) {
   return (
     <div className="flex items-center gap-4">
@@ -54,15 +57,17 @@ export default function LearnDonutChart({
           </div>
         )}
       </div>
-      <ul className="min-w-0 flex-1 space-y-2">
-        {data.map((seg) => (
-          <li key={seg.name} className="flex items-center gap-2 text-sm">
-            <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: seg.color }} />
-            <span className="min-w-0 flex-1 truncate text-[var(--muted)]" title={seg.name}>{seg.name}</span>
-            <span className="shrink-0 pl-1 font-medium tabular-nums text-[var(--ink)]">{seg.value.toLocaleString()}</span>
-          </li>
-        ))}
-      </ul>
+      {showLegend && (
+        <ul className="min-w-0 flex-1 space-y-2">
+          {data.map((seg) => (
+            <li key={seg.name} className="flex items-center gap-2 text-sm">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: seg.color }} />
+              <span className="min-w-0 flex-1 truncate text-[var(--muted)]" title={seg.name}>{seg.name}</span>
+              <span className="shrink-0 pl-1 font-medium tabular-nums text-[var(--ink)]">{seg.value.toLocaleString()}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

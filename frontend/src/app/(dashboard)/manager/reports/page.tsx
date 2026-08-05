@@ -141,6 +141,7 @@ export default function ManagerReportsPage() {
                   label={`${data.stats.coursesCompleted + data.stats.coursesInProgress}`}
                   sublabel="courses"
                   height={220}
+                  showLegend={false}   // the LegendRow list below is this chart's legend
                 />
                 <div className="space-y-3">
                   <LegendRow color="#3f9d75" label="Completed" value={data.stats.coursesCompleted} />

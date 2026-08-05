@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { TrendingUp, Download, ArrowRight, GraduationCap, Target, CheckCircle2, ScrollText, BarChart3 } from "lucide-react";
+import { TrendingUp, Download, ArrowRight, GraduationCap, Target, ScrollText, BarChart3 } from "lucide-react";
 import PageHeader from "@/components/ui/PageHeader";
 import { tabKeyDown } from "@/lib/tabKeys";
 import Icon3D, { TONES, type Icon3DTone } from "@/components/dashboard/Icon3D";
@@ -31,7 +31,6 @@ interface ReportData {
 const REPORT_CARDS: { title: string; desc: string; href: string; icon: typeof GraduationCap; tone: Icon3DTone }[] = [
   { title: "Team Learning Report", desc: "Course enrolments, completions, progress and each person's skill gaps.", href: "/manager/team-learning?from=reports", icon: GraduationCap, tone: TONES.blue },
   { title: "Team Skills Report", desc: "Skill levels across your team and who needs improvement.", href: "/manager/team-skills?from=reports", icon: Target, tone: TONES.emerald },
-  { title: "Completion Rate Report", desc: "How much of your team's learning is finished versus in progress.", href: "/manager/reports", icon: CheckCircle2, tone: TONES.violet },
 ];
 
 export default function ManagerReportsPage() {

@@ -89,7 +89,7 @@ export default function LandingPage() {
       </section>
 
       {/* Features */}
-      <section id="features" className="border-t border-[var(--border)]">
+      <section id="features" className="scroll-mt-24 border-t border-[var(--border)]">
         <div className="mx-auto max-w-7xl px-6 py-20 lg:px-10 lg:py-28">
           <h2 className="max-w-2xl text-4xl font-black tracking-tight sm:text-5xl">Everything iMET needs to close skill gaps.</h2>
           <div className="mt-14 grid grid-cols-1 gap-x-12 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
@@ -108,7 +108,7 @@ export default function LandingPage() {
       </section>
 
       {/* Closing CTA */}
-      <section id="how" className="border-t border-[var(--border)]">
+      <section id="how" className="scroll-mt-24 border-t border-[var(--border)]">
         <div className="mx-auto max-w-7xl px-6 py-24 text-center lg:px-10 lg:py-32">
           <h2 className="mx-auto max-w-3xl font-black leading-[0.95] tracking-[-0.02em]" style={{ fontSize: "clamp(2.5rem,6vw,4.5rem)" }}>See your organisation&apos;s<br />skills, clearly.</h2>
           <p className="mx-auto mt-6 max-w-lg text-lg text-[var(--muted)]">AI-matched courses, live skill-gap tracking, CPD and certificates — for every employee, manager and HR lead.</p>

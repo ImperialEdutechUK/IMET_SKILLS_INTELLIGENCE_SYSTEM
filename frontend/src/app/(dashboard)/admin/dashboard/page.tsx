@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ChevronRight, TrendingUp, Target } from "lucide-react";
+import { ChevronRight, TrendingUp, Target, Users, BookOpen, AlertTriangle, CheckCircle2 } from "lucide-react";
 import LearnAreaChart from "@/components/charts/LearnAreaChart";
 import { useApi } from "@/lib/api";
 import { PageSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
@@ -45,29 +44,29 @@ const HEALTH_LABEL: Record<Health, string> = {
 
 export default function AdminAnalyticsDashboard() {
   const { data, error, isLoading, isRefreshing, refresh } = useApi<Data>("/api/admin/dashboard");
-  const [filled, setFilled] = useState(false); // drives the one entrance animation
-
-  useEffect(() => { const t = setTimeout(() => setFilled(true), 60); return () => clearTimeout(t); }, []);
 
   if (isLoading) return <PageSkeleton cards={4} />;
   if (!data) return <ErrorPanel message={error?.message ?? "Could not load dashboard."} onRetry={refresh} />;
 
   const h = data.orgHealth;
   const behind = h.atRisk + h.attention;
-  const onTrack = Math.max(0, h.totalMembers - behind);
   const completed = data.departments.reduce((s, d) => s + d.coursesCompleted, 0);
-  const pct = (n: number) => (h.totalMembers ? (n / h.totalMembers) * 100 : 0);
+  // Not started = employees with no courses and no CPD, summed across departments.
+  // Kept as its own population so no-data people aren't triaged as "at risk".
+  const notStarted = data.departments.reduce((s, d) => s + d.notStarted, 0);
+  const onTrack = Math.max(0, h.totalMembers - behind - notStarted);
 
-  // The single verdict HR reads first.
+  // The single verdict HR reads first — same language and treatment as the manager view.
   const verdict = h.totalMembers === 0
-    ? { tone: "text-slate-500", line: "No employees have been added to any department yet." }
+    ? { icon: Users, iconWrap: "bg-slate-100 text-slate-500", accent: "from-slate-50", word: "No employees yet", line: "No employees have been added to any department yet." }
     : h.atRisk > 0
-      ? { tone: "text-rose-600", line: `${behind} of ${h.totalMembers} ${behind === 1 ? "person is" : "people are"} behind on their learning.` }
+      ? { icon: AlertTriangle, iconWrap: "bg-rose-50 text-rose-600", accent: "from-rose-50/70", word: "Needs attention", line: `${behind} of ${h.totalMembers} ${behind === 1 ? "person is" : "people are"} behind on their learning.` }
       : h.attention > 0
-        ? { tone: "text-amber-600", line: `${behind} of ${h.totalMembers} ${behind === 1 ? "person needs" : "people need"} a nudge to stay on pace.` }
-        : { tone: "text-emerald-600", line: `All ${h.totalMembers} employees are on pace with their learning.` };
-  const headline = h.totalMembers === 0 ? "No employees yet"
-    : h.atRisk > 0 ? "Needs attention" : h.attention > 0 ? "Mostly on track" : "On track";
+        ? { icon: AlertTriangle, iconWrap: "bg-amber-50 text-amber-600", accent: "from-amber-50/70", word: "Mostly on track", line: `${behind} of ${h.totalMembers} ${behind === 1 ? "person needs" : "people need"} a nudge to stay on pace.` }
+        : notStarted > 0
+          ? { icon: BookOpen, iconWrap: "bg-slate-100 text-slate-500", accent: "from-slate-50", word: "Ready to begin", line: `Everyone active is on pace. ${notStarted} of ${h.totalMembers} ${notStarted === 1 ? "person hasn't" : "people haven't"} started yet.` }
+          : { icon: CheckCircle2, iconWrap: "bg-emerald-50 text-emerald-600", accent: "from-emerald-50/70", word: "On track", line: `All ${h.totalMembers} employees are on pace with their learning.` };
+  const VerdictIcon = verdict.icon;
 
   // Only departments with people are worth HR's scan; the empty ones are noise.
   // Staffed departments sort worst-first so problems surface without hunting.
@@ -88,37 +87,43 @@ export default function AdminAnalyticsDashboard() {
           <RefreshingBadge show={isRefreshing} />
         </div>
 
-        {/* Verdict — the answer, first.
-            data-tour: onboarding-tour anchor only — no behaviour change. */}
-        <section data-tour="adm-verdict" className={`${CARD} mb-8 p-6 sm:p-7`}>
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="max-w-lg">
-              <p className={`text-2xl font-bold tracking-tight ${verdict.tone}`}>{headline}</p>
-              <p className="mt-1.5 text-[15px] leading-relaxed text-[var(--muted)]">{verdict.line}</p>
+        {/* Verdict — the answer, first. Matches the manager dashboard: status icon
+            tile + soft corner wash keyed to health, then a divided breakdown panel
+            in place of a bar. data-tour: onboarding-tour anchor only. */}
+        <section data-tour="adm-verdict" className={`${CARD} relative mb-8 overflow-hidden`}>
+          {/* Soft status wash — a quiet tint bleeding from the corner, keyed to health. */}
+          <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${verdict.accent} to-transparent to-40%`} aria-hidden />
+          <div className="relative p-6 sm:p-7">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+              {/* Status icon tile + headline */}
+              <div className="flex items-start gap-4">
+                <span className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl ${verdict.iconWrap}`}>
+                  <VerdictIcon className="h-6 w-6" strokeWidth={2} />
+                </span>
+                <div className="min-w-0">
+                  <h2 className="text-xl font-bold tracking-tight text-[var(--ink)] sm:text-[1.4rem]">{verdict.word}</h2>
+                  <p className="mt-1 max-w-lg text-[15px] leading-relaxed text-[var(--muted)]">{verdict.line}</p>
+                </div>
+              </div>
+              {/* Quiet supporting figures — subordinate to the verdict */}
+              <div className="flex gap-8">
+                <Figure value={data.totalEmployees} label="Employees" />
+                <Figure value={completed} label="Courses done" />
+                <Figure value={data.certificatesEarned} label="Certificates" />
+              </div>
             </div>
-            {/* Quiet supporting figures — subordinate to the verdict */}
-            <div className="flex gap-8">
-              <Figure value={data.totalEmployees} label="Employees" />
-              <Figure value={completed} label="Courses done" />
-              <Figure value={data.certificatesEarned} label="Certificates" />
-            </div>
-          </div>
 
-          {/* Single glanceable health bar */}
-          {h.totalMembers > 0 && (
-            <div className="mt-6">
-              <div className="flex h-3 w-full overflow-hidden rounded-full bg-slate-100">
-                <span className="h-full bg-emerald-500 transition-[width] duration-700 ease-out" style={{ width: `${filled ? pct(onTrack) : 0}%` }} />
-                <span className="h-full bg-amber-500 transition-[width] duration-700 ease-out" style={{ width: `${filled ? pct(h.attention) : 0}%` }} />
-                <span className="h-full bg-rose-500 transition-[width] duration-700 ease-out" style={{ width: `${filled ? pct(h.atRisk) : 0}%` }} />
+            {/* Breakdown — one refined panel, four divided populations. "Not started"
+                is separated from "at risk" so no-data isn't triaged. */}
+            {h.totalMembers > 0 && (
+              <div className="mt-6 grid grid-cols-2 divide-[var(--border)] overflow-hidden rounded-2xl border border-[var(--border)] bg-white/70 sm:grid-cols-4 sm:divide-x">
+                <BreakdownStat tone="emerald" label="On track" value={onTrack} total={h.totalMembers} />
+                <BreakdownStat tone="amber" label="Behind pace" value={h.attention} total={h.totalMembers} />
+                <BreakdownStat tone="rose" label="At risk" value={h.atRisk} total={h.totalMembers} />
+                <BreakdownStat tone="slate" label="Not started" value={notStarted} total={h.totalMembers} />
               </div>
-              <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1.5 text-[13px]">
-                <Legend color="bg-emerald-500" label="On track" value={onTrack} />
-                <Legend color="bg-amber-500" label="Behind pace" value={h.attention} />
-                <Legend color="bg-rose-500" label="At risk" value={h.atRisk} />
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </section>
 
         {/* Departments — the actionable scan, worst first */}
@@ -215,11 +220,30 @@ function Figure({ value, label }: { value: number; label: string }) {
   );
 }
 
-function Legend({ color, label, value }: { color: string; label: string; value: number }) {
+type BreakdownTone = "emerald" | "amber" | "rose" | "slate";
+const STATUS_TONE: Record<BreakdownTone, { dot: string; num: string }> = {
+  emerald: { dot: "bg-emerald-500", num: "text-[var(--ink)]" },
+  amber: { dot: "bg-amber-500", num: "text-[var(--ink)]" },
+  rose: { dot: "bg-rose-500", num: "text-rose-600" },
+  slate: { dot: "bg-slate-400", num: "text-[var(--ink)]" },
+};
+
+// One status column inside the breakdown panel: a coloured dot + micro-label, a
+// big neutral count, and its share of the organisation. The colour lives in the
+// dot, not a filled block, so the row reads as one refined unit.
+function BreakdownStat({ tone, label, value, total }: { tone: BreakdownTone; label: string; value: number; total: number }) {
+  const t = STATUS_TONE[tone];
+  const share = total ? Math.round((value / total) * 100) : 0;
   return (
-    <span className="inline-flex items-center gap-1.5 text-[var(--muted)]">
-      <span className={`h-2 w-2 rounded-full ${color}`} />
-      <span className="font-medium text-[var(--ink)]">{value}</span> {label}
-    </span>
+    <div className="px-5 py-4">
+      <div className="flex items-center gap-2">
+        <span className={`h-2 w-2 shrink-0 rounded-full ${t.dot}`} />
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)]">{label}</span>
+      </div>
+      <p className={`nums-tabular mt-2.5 text-[1.75rem] font-bold leading-none tracking-tight ${t.num}`}>
+        {value}<span className="text-base font-medium text-[var(--muted)]"> / {total}</span>
+      </p>
+      <p className="nums-tabular mt-1.5 text-xs text-[var(--muted)]">{share}% of staff</p>
+    </div>
   );
 }

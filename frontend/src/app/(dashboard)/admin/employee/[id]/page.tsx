@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useMemo, useState } from "react";
 import { ArrowLeft, BookOpen, Target, Award, ExternalLink, FileText } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import Icon3D, { TONES } from "@/components/dashboard/Icon3D";
 import AchievementsBento from "@/components/gamification/AchievementsBento";
+import { CertificateViewer, type GalleryCertificate } from "@/components/certificates/CertificateGallery";
 import { useApi } from "@/lib/api";
 import { PageSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
 
@@ -61,6 +63,19 @@ export default function AdminEmployeeDetailPage() {
     id ? `/api/admin/employee/${id}` : null,
     // Never show one employee's figures under another's name.
     { keepPreviousData: false },
+  );
+
+  // Above the early returns so hook order stays stable across load states.
+  const [certViewIndex, setCertViewIndex] = useState<number | null>(null);
+  const certs = useMemo(() => data?.certificateList ?? [], [data]);
+  // Same shape the learner's shelf feeds the viewer. CPD hours aren't part of the
+  // admin payload; 0 simply omits that chip in the viewer's header.
+  const galleryCerts = useMemo<GalleryCertificate[]>(
+    () => certs.map((c) => ({
+      id: c.id, title: c.title, issuer: c.issuer, issuedDate: c.issuedDate,
+      cpdHours: 0, fileUrl: c.fileUrl, certificateUrl: c.certificateUrl,
+    })),
+    [certs],
   );
 
   if (isLoading) return <PageSkeleton cards={3} />;
@@ -162,12 +177,12 @@ export default function AdminEmployeeDetailPage() {
 
       {/* Certificates — read-only list with links */}
       <div className="mt-6 rounded-2xl border border-[var(--border)] bg-white">
-        <div className="border-b border-[var(--border)] p-5"><h3 className="font-semibold text-[var(--ink)]">Certificates <span className="text-sm font-normal text-[var(--muted)]">({data.certificateList.length})</span></h3></div>
-        {data.certificateList.length === 0 ? (
+        <div className="border-b border-[var(--border)] p-5"><h3 className="font-semibold text-[var(--ink)]">Certificates <span className="text-sm font-normal text-[var(--muted)]">({certs.length})</span></h3></div>
+        {certs.length === 0 ? (
           <p className="p-5 text-sm text-[var(--muted)]">No certificates yet.</p>
         ) : (
           <ul className="divide-y divide-[var(--border)]">
-            {data.certificateList.map((c) => (
+            {certs.map((c, i) => (
               <li key={c.id} className="flex items-center gap-3 px-5 py-3">
                 <Icon3D icon={Award} tone={TONES.violet} size="sm" />
                 <div className="min-w-0 flex-1">
@@ -175,10 +190,16 @@ export default function AdminEmployeeDetailPage() {
                   <p className="text-xs text-[var(--muted)]">{c.issuer}{c.issuedDate ? ` · ${c.issuedDate}` : ""}</p>
                 </div>
                 <CertStatusBadge status={c.status} />
+                {/* Opens the document in the same viewer the learner and manager use.
+                    A stored `data:` URL can't be navigated to in a tab — Chrome blocks it. */}
                 {c.fileUrl && (
-                  <a href={c.fileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--ink)] hover:bg-slate-50">
+                  <button
+                    type="button"
+                    onClick={() => setCertViewIndex(i)}
+                    className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--ink)] hover:bg-slate-50"
+                  >
                     <FileText className="h-3.5 w-3.5" /> View
-                  </a>
+                  </button>
                 )}
                 {c.certificateUrl && (
                   <a href={c.certificateUrl} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--ink)] hover:bg-slate-50">
@@ -190,6 +211,17 @@ export default function AdminEmployeeDetailPage() {
           </ul>
         )}
       </div>
+
+      {/* Guarded on the row still existing — a background refresh can shorten the
+          list while the viewer is open. */}
+      {certViewIndex !== null && galleryCerts[certViewIndex] && (
+        <CertificateViewer
+          certificates={galleryCerts}
+          index={certViewIndex}
+          onIndexChange={setCertViewIndex}
+          onClose={() => setCertViewIndex(null)}
+        />
+      )}
     </div>
   );
 }

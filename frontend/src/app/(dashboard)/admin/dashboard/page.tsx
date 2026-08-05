@@ -107,9 +107,9 @@ export default function AdminAnalyticsDashboard() {
               </div>
               {/* Quiet supporting figures — subordinate to the verdict */}
               <div className="flex gap-8">
-                <Figure value={data.totalEmployees} label="Employees" />
-                <Figure value={completed} label="Courses done" />
-                <Figure value={data.certificatesEarned} label="Certificates" />
+                <Figure value={data.totalEmployees} label="Employees" href="/admin/users" />
+                <Figure value={completed} label="Courses done" href="/admin/departments" />
+                <Figure value={data.certificatesEarned} label="Certificates" href="/admin/departments" />
               </div>
             </div>
 
@@ -117,10 +117,10 @@ export default function AdminAnalyticsDashboard() {
                 is separated from "at risk" so no-data isn't triaged. */}
             {h.totalMembers > 0 && (
               <div className="mt-6 grid grid-cols-2 divide-[var(--border)] overflow-hidden rounded-2xl border border-[var(--border)] bg-white/70 sm:grid-cols-4 sm:divide-x">
-                <BreakdownStat tone="emerald" label="On track" value={onTrack} total={h.totalMembers} />
-                <BreakdownStat tone="amber" label="Behind pace" value={h.attention} total={h.totalMembers} />
-                <BreakdownStat tone="rose" label="At risk" value={h.atRisk} total={h.totalMembers} />
-                <BreakdownStat tone="slate" label="Not started" value={notStarted} total={h.totalMembers} />
+                <BreakdownStat tone="emerald" label="On track" value={onTrack} total={h.totalMembers} href="/admin/departments" />
+                <BreakdownStat tone="amber" label="Behind pace" value={h.attention} total={h.totalMembers} href="/admin/departments" />
+                <BreakdownStat tone="rose" label="At risk" value={h.atRisk} total={h.totalMembers} href="/admin/departments" />
+                <BreakdownStat tone="slate" label="Not started" value={notStarted} total={h.totalMembers} href="/admin/departments" />
               </div>
             )}
           </div>
@@ -172,16 +172,16 @@ export default function AdminAnalyticsDashboard() {
 
         {/* Two quiet supporting insights */}
         <div data-tour="adm-insights" className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <section className={`${CARD} p-5`}>
+          <Link href="/admin/departments" className={`${CARD} block p-5 transition hover:-translate-y-0.5 hover:shadow-lg`}>
             <div className="mb-4 flex items-center gap-2 text-[var(--ink)]">
               <TrendingUp className="h-4 w-4 text-[var(--brand)]" />
               <h2 className="text-sm font-semibold">Completions</h2>
               <span className="ml-auto text-xs text-[var(--muted)]">Last 6 months</span>
             </div>
             <LearnAreaChart data={data.learningActivity} xKey="month" dataKeys={[{ key: "completions", label: "completions", color: "#2e7d5b" }]} unit="" height={190} />
-          </section>
+          </Link>
 
-          <section className={`${CARD} p-5`}>
+          <Link href="/admin/departments" className={`${CARD} block p-5 transition hover:-translate-y-0.5 hover:shadow-lg`}>
             <div className="mb-4 flex items-center gap-2 text-[var(--ink)]">
               <Target className="h-4 w-4 text-[var(--brand)]" />
               <h2 className="text-sm font-semibold">Biggest skill gaps</h2>
@@ -204,20 +204,23 @@ export default function AdminAnalyticsDashboard() {
                 ))}
               </ul>
             )}
-          </section>
+          </Link>
         </div>
       </div>
     </div>
   );
 }
 
-function Figure({ value, label }: { value: number; label: string }) {
-  return (
-    <div>
+function Figure({ value, label, href }: { value: number; label: string; href?: string }) {
+  const inner = (
+    <>
       <p className="nums-tabular text-[1.55rem] font-bold leading-none tracking-tight text-[var(--ink)]">{value.toLocaleString()}</p>
       <p className="mt-1 text-xs text-[var(--muted)]">{label}</p>
-    </div>
+    </>
   );
+  return href
+    ? <Link href={href} className="group rounded-lg transition-opacity hover:opacity-70">{inner}</Link>
+    : <div>{inner}</div>;
 }
 
 type BreakdownTone = "emerald" | "amber" | "rose" | "slate";
@@ -231,11 +234,11 @@ const STATUS_TONE: Record<BreakdownTone, { dot: string; num: string }> = {
 // One status column inside the breakdown panel: a coloured dot + micro-label, a
 // big neutral count, and its share of the organisation. The colour lives in the
 // dot, not a filled block, so the row reads as one refined unit.
-function BreakdownStat({ tone, label, value, total }: { tone: BreakdownTone; label: string; value: number; total: number }) {
+function BreakdownStat({ tone, label, value, total, href }: { tone: BreakdownTone; label: string; value: number; total: number; href?: string }) {
   const t = STATUS_TONE[tone];
   const share = total ? Math.round((value / total) * 100) : 0;
-  return (
-    <div className="px-5 py-4">
+  const inner = (
+    <>
       <div className="flex items-center gap-2">
         <span className={`h-2 w-2 shrink-0 rounded-full ${t.dot}`} />
         <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)]">{label}</span>
@@ -244,6 +247,9 @@ function BreakdownStat({ tone, label, value, total }: { tone: BreakdownTone; lab
         {value}<span className="text-base font-medium text-[var(--muted)]"> / {total}</span>
       </p>
       <p className="nums-tabular mt-1.5 text-xs text-[var(--muted)]">{share}% of staff</p>
-    </div>
+    </>
   );
+  return href
+    ? <Link href={href} className="block px-5 py-4 transition-colors hover:bg-slate-50/80">{inner}</Link>
+    : <div className="px-5 py-4">{inner}</div>;
 }

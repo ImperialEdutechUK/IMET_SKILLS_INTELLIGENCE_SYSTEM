@@ -35,8 +35,11 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       return;
     }
     const isMe = pathname.startsWith("/me");
+    // Routes every signed-in role may reach, outside their role area (e.g. the
+    // global search results page behind the top-bar box).
+    const isShared = pathname === "/search" || pathname.startsWith("/search/");
     const ownPrefix = ROLE_PREFIX[u.role];
-    const inOwnArea = isMe || (ownPrefix && pathname.startsWith(ownPrefix));
+    const inOwnArea = isMe || isShared || (ownPrefix && pathname.startsWith(ownPrefix));
     if (!inOwnArea) {
       router.replace(ownDashboard(u.role));
       return;

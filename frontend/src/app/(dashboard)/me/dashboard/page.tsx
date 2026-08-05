@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { BookOpen, Target, Award, Sparkles, Bell, Check, ScrollText, TrendingUp, PieChart, ArrowRight } from "lucide-react";
+import { BookOpen, Target, Award, Sparkles, Bell, Check, ScrollText, TrendingUp, PieChart, ArrowRight, X } from "lucide-react";
 import LearnAreaChart from "@/components/charts/LearnAreaChart";
 import LearnDonutChart from "@/components/charts/LearnDonutChart";
 import { computeGamification } from "@/lib/gamification";
 import { useApi, apiSend } from "@/lib/api";
 import { PageSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
+import ClickableCard from "@/components/ui/ClickableCard";
 
 interface Rec {
   id: string; courseId: string; title: string; source: string; category: string;
@@ -40,6 +41,20 @@ export default function EmployeeDashboardPage() {
   const certCount = certData?.certificates?.length ?? 0;
   const [enrolled, setEnrolled] = useState<Record<string, boolean>>({});
   const [enrolling, setEnrolling] = useState<Record<string, boolean>>({});
+  const [dismissing, setDismissing] = useState<Record<string, boolean>>({});
+
+  // Dismiss one reminder banner → mark just that notification read. The dashboard
+  // and the bell both refetch, so the banner disappears and the bell count drops.
+  const dismiss = async (id: string) => {
+    setDismissing((s) => ({ ...s, [id]: true }));
+    try {
+      await apiSend("/api/notifications", "POST", { id }, {
+        invalidates: ["/api/me/dashboard", "/api/notifications"],
+      });
+    } catch {
+      setDismissing((s) => ({ ...s, [id]: false }));  // re-enable so they can retry
+    }
+  };
 
   const enrol = async (courseId: string) => {
     setEnrolling((s) => ({ ...s, [courseId]: true }));
@@ -77,13 +92,22 @@ export default function EmployeeDashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Reminders / notifications from a manager land here first. */}
+      {/* Reminders / notifications from a manager land here first. They persist
+          until the employee acknowledges them — dismiss here, or open the bell. */}
       {data.notifications.length > 0 && (
         <div className="space-y-2">
           {data.notifications.map((n) => (
             <div key={n.id} className="flex items-start gap-3 rounded-xl border border-[var(--brand)]/30 bg-[var(--brand-tint)] p-4">
               <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[var(--brand)] text-white"><Bell className="h-4 w-4" /></span>
-              <div><p className="text-sm font-semibold text-[var(--ink)]">{n.title}</p><p className="mt-0.5 text-sm text-[var(--muted)]">{n.body}</p></div>
+              <div className="min-w-0 flex-1"><p className="text-sm font-semibold text-[var(--ink)]">{n.title}</p><p className="mt-0.5 text-sm text-[var(--muted)]">{n.body}</p></div>
+              <button
+                onClick={() => dismiss(n.id)}
+                disabled={dismissing[n.id]}
+                aria-label="Dismiss notification"
+                className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-[var(--brand-dark)] transition-colors hover:bg-[var(--brand)]/10 disabled:opacity-50"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
           ))}
         </div>
@@ -118,7 +142,7 @@ export default function EmployeeDashboardPage() {
 
       {/* ROW 2 — learning-activity chart (wide) + recommendations sidebar. */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div data-tour="dashboard-activity" className="rounded-2xl border border-[var(--border)] bg-white p-5 lg:col-span-2">
+        <ClickableCard href="/me/reports" data-tour="dashboard-activity" ariaLabel="Open reports" className="rounded-2xl border border-[var(--border)] bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-md lg:col-span-2">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <span className="grid h-9 w-9 place-items-center rounded-xl bg-emerald-50 text-emerald-600"><TrendingUp className="h-5 w-5" /></span>
@@ -127,7 +151,7 @@ export default function EmployeeDashboardPage() {
                 <p className="text-xs text-[var(--muted)]">Course starts &amp; completions · last 8 weeks</p>
               </div>
             </div>
-            <Link href="/me/reports" className="text-sm font-medium text-[var(--brand)] hover:text-[var(--brand-dark)]">Reports</Link>
+            <Link href="/me/reports" onClick={(e) => e.stopPropagation()} className="text-sm font-medium text-[var(--brand)] hover:text-[var(--brand-dark)]">Reports</Link>
           </div>
           <LearnAreaChart
             data={data.weeklyActivity}
@@ -142,16 +166,16 @@ export default function EmployeeDashboardPage() {
           {activityTotal === 0 && (
             <p className="mt-2 text-center text-xs text-[var(--muted)]">No activity yet — add a course and your trend will start to build.</p>
           )}
-        </div>
+        </ClickableCard>
 
         {/* Recommendations sidebar — the "Recent Orders" sidebar pattern. */}
-        <div data-tour="dashboard-recommended" className="flex flex-col rounded-2xl border border-[var(--border)] bg-white p-5">
+        <ClickableCard href="/me/recommendations" data-tour="dashboard-recommended" ariaLabel="Open all recommendations" className="flex flex-col rounded-2xl border border-[var(--border)] bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-md">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <span className="grid h-9 w-9 place-items-center rounded-xl bg-purple-50 text-purple-600"><Sparkles className="h-5 w-5" /></span>
               <h3 className="font-semibold text-[var(--ink)]">Recommended</h3>
             </div>
-            <Link href="/me/recommendations" className="text-sm font-medium text-[var(--brand)] hover:text-[var(--brand-dark)]">All</Link>
+            <Link href="/me/recommendations" onClick={(e) => e.stopPropagation()} className="text-sm font-medium text-[var(--brand)] hover:text-[var(--brand-dark)]">All</Link>
           </div>
           {data.topRecs.length === 0 ? (
             <p className="text-sm text-[var(--muted)]">No recommendations yet.</p>
@@ -166,7 +190,7 @@ export default function EmployeeDashboardPage() {
                       <span className="truncate text-xs text-[var(--muted)]">{rec.category}</span>
                       <span className="shrink-0 rounded-full bg-[var(--brand-tint)] px-2 py-0.5 text-[10px] font-medium text-[var(--brand-dark)]">{rec.matchLabel}</span>
                     </div>
-                    <button onClick={() => enrol(rec.courseId)} disabled={isEnrolled || enrolling[rec.courseId]}
+                    <button onClick={(e) => { e.stopPropagation(); enrol(rec.courseId); }} disabled={isEnrolled || enrolling[rec.courseId]}
                       className={`mt-2 inline-flex w-full items-center justify-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium ${isEnrolled ? "bg-[var(--brand-tint)] text-[var(--brand-dark)]" : "bg-[var(--brand)] text-white hover:bg-[var(--brand-dark)]"} disabled:opacity-70`}>
                       {isEnrolled ? <><Check className="h-3.5 w-3.5" /> Added</> : enrolling[rec.courseId] ? "Adding…" : "Add to My Learning"}
                     </button>
@@ -175,19 +199,19 @@ export default function EmployeeDashboardPage() {
               })}
             </ul>
           )}
-        </div>
+        </ClickableCard>
       </div>
 
       {/* ROW 3 — my-courses table (wide) + course-status donut. */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* Data table — "Latest Projects" / "Recent Orders" pattern. */}
-        <div data-tour="dashboard-courses" className="rounded-2xl border border-[var(--border)] bg-white lg:col-span-2">
+        <ClickableCard href="/me/learning" data-tour="dashboard-courses" ariaLabel="Open My Learning" className="rounded-2xl border border-[var(--border)] bg-white transition hover:-translate-y-0.5 hover:shadow-md lg:col-span-2">
           <div className="flex items-center justify-between border-b border-[var(--border)] p-5">
             <div className="flex items-center gap-2.5">
               <span className="grid h-9 w-9 place-items-center rounded-xl bg-blue-50 text-blue-600"><BookOpen className="h-5 w-5" /></span>
               <h3 className="font-semibold text-[var(--ink)]">My courses</h3>
             </div>
-            <Link href="/me/learning" className="text-sm font-medium text-[var(--brand)] hover:text-[var(--brand-dark)]">View all</Link>
+            <Link href="/me/learning" onClick={(e) => e.stopPropagation()} className="text-sm font-medium text-[var(--brand)] hover:text-[var(--brand-dark)]">View all</Link>
           </div>
           {data.inProgress.length === 0 ? (
             <p className="p-5 text-sm text-[var(--muted)]">No active courses yet. Add one from your recommendations to get started.</p>
@@ -225,7 +249,7 @@ export default function EmployeeDashboardPage() {
                           </div>
                         </td>
                         <td className="px-5 py-3.5 text-right">
-                          <Link href="/me/learning" className="inline-flex items-center gap-1 text-sm font-medium text-[var(--brand)] hover:text-[var(--brand-dark)]">
+                          <Link href="/me/learning" onClick={(e) => e.stopPropagation()} className="inline-flex items-center gap-1 text-sm font-medium text-[var(--brand)] hover:text-[var(--brand-dark)]">
                             {notStarted ? "Start" : "Continue"} <ArrowRight className="h-3.5 w-3.5" />
                           </Link>
                         </td>
@@ -236,10 +260,10 @@ export default function EmployeeDashboardPage() {
               </table>
             </div>
           )}
-        </div>
+        </ClickableCard>
 
         {/* Donut with legend — "Browser Usage" / "Order By Device" pattern. */}
-        <div data-tour="dashboard-status" className="rounded-2xl border border-[var(--border)] bg-white p-5">
+        <ClickableCard href="/me/learning" data-tour="dashboard-status" ariaLabel="Open My Learning" className="rounded-2xl border border-[var(--border)] bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-md">
           <div className="mb-4 flex items-center gap-2.5">
             <span className="grid h-9 w-9 place-items-center rounded-xl bg-sky-50 text-sky-600"><PieChart className="h-5 w-5" /></span>
             <div>
@@ -251,12 +275,12 @@ export default function EmployeeDashboardPage() {
             <div className="flex h-[170px] flex-col items-center justify-center text-center">
               <BookOpen className="h-8 w-8 text-slate-300" />
               <p className="mt-2 text-sm text-[var(--muted)]">No courses yet.</p>
-              <Link href="/me/recommendations" className="mt-1 text-xs font-semibold text-[var(--brand)] hover:text-[var(--brand-dark)]">Browse recommendations →</Link>
+              <Link href="/me/recommendations" onClick={(e) => e.stopPropagation()} className="mt-1 text-xs font-semibold text-[var(--brand)] hover:text-[var(--brand-dark)]">Browse recommendations →</Link>
             </div>
           ) : (
             <LearnDonutChart data={statusSegments} label={String(totalCourses)} sublabel="courses" height={170} />
           )}
-        </div>
+        </ClickableCard>
       </div>
     </div>
   );

@@ -29,13 +29,23 @@ export async function GET(req: Request) {
   });
 }
 
-// POST /api/notifications  → mark all of the current user's notifications read.
+// POST /api/notifications  → mark the current user's notifications read.
+// Body `{ id }` marks just that one (banner dismiss); no body marks all (bell).
 export async function POST(req: Request) {
   const authUser = verifyToken(req);
   if (!authUser) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
 
+  let id: string | undefined;
+  try {
+    const body = await req.json();
+    if (body && typeof body.id === "string") id = body.id;
+  } catch {
+    // No JSON body → mark all read.
+  }
+
   await prisma.notification.updateMany({
-    where: { userId: authUser.id, readAt: null },
+    // Always scoped to this user, so an id can only clear one's own notification.
+    where: { userId: authUser.id, readAt: null, ...(id ? { id } : {}) },
     data: { readAt: new Date() },
   });
   return NextResponse.json({ ok: true });

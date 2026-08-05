@@ -70,8 +70,8 @@ export default function LandingPage() {
             <div className="absolute -left-4 top-8 opacity-30"><Sunburst size={120} /></div>
 
             {/* Hero image — frame matches the image's ratio so nothing is cropped */}
-            <div className="absolute right-0 top-[68px] w-[480px] max-w-full overflow-hidden rounded-[1.75rem] border border-[var(--border)] shadow-[0_30px_60px_-30px_rgba(15,27,45,.3)]" style={{ aspectRatio: "2024 / 1382" }}>
-              <Image src="/hero-team.png" alt="A team using LearnSmart AI's skills intelligence platform" fill sizes="480px" priority className="object-cover" />
+            <div className="absolute right-0 top-[68px] w-[480px] max-w-full overflow-hidden rounded-[1.75rem] border border-[var(--border)] shadow-[0_30px_60px_-30px_rgba(15,27,45,.3)]" style={{ aspectRatio: "1672 / 941" }}>
+              <Image src="/home.png" alt="A team reviewing their skills insights and learning progress in LearnSmart AI" fill sizes="480px" priority className="object-cover" />
             </div>
 
             {/* Brand accent circle — corner accent, clear of faces */}

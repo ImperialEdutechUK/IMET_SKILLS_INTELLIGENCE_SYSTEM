@@ -124,10 +124,10 @@ export default function ManagerDashboardPage() {
             {stats.teamMembers > 0 && (
               <>
                 <div className="mt-6 grid grid-cols-2 divide-[var(--border)] overflow-hidden rounded-2xl border border-[var(--border)] bg-white/70 sm:grid-cols-4 sm:divide-x">
-                  <BreakdownStat tone="emerald" label="On track" value={onTrack} total={stats.teamMembers} />
-                  <BreakdownStat tone="amber" label="Behind pace" value={stats.attention} total={stats.teamMembers} />
-                  <BreakdownStat tone="rose" label="At risk" value={stats.atRisk} total={stats.teamMembers} />
-                  <BreakdownStat tone="slate" label="Not started" value={notStarted} total={stats.teamMembers} />
+                  <BreakdownStat tone="emerald" label="On track" value={onTrack} total={stats.teamMembers} href="/manager/team-learning" />
+                  <BreakdownStat tone="amber" label="Behind pace" value={stats.attention} total={stats.teamMembers} href="/manager/team-learning" />
+                  <BreakdownStat tone="rose" label="At risk" value={stats.atRisk} total={stats.teamMembers} href="/manager/team-learning" />
+                  <BreakdownStat tone="slate" label="Not started" value={notStarted} total={stats.teamMembers} href="/manager/team-learning" />
                 </div>
                 <p className="mt-3 flex items-center gap-1.5 text-xs text-[var(--muted)]">
                   Expected pace: about {stats.expectedWeeklyHours}h per week to stay on the annual CPD target.
@@ -260,11 +260,11 @@ const STATUS_TONE: Record<BreakdownTone, { dot: string; num: string }> = {
 // One status column inside the breakdown panel: a coloured dot + micro-label,
 // a big neutral count, and its share of the team. Clean and quiet — the colour
 // lives in the dot, not a filled block, so the row reads as one refined unit.
-function BreakdownStat({ tone, label, value, total }: { tone: BreakdownTone; label: string; value: number; total: number }) {
+function BreakdownStat({ tone, label, value, total, href }: { tone: BreakdownTone; label: string; value: number; total: number; href?: string }) {
   const t = STATUS_TONE[tone];
   const share = total ? Math.round((value / total) * 100) : 0;
-  return (
-    <div className="px-5 py-4">
+  const inner = (
+    <>
       <div className="flex items-center gap-2">
         <span className={`h-2 w-2 shrink-0 rounded-full ${t.dot}`} />
         <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)]">{label}</span>
@@ -273,8 +273,11 @@ function BreakdownStat({ tone, label, value, total }: { tone: BreakdownTone; lab
         {value}<span className="text-base font-medium text-[var(--muted)]"> / {total}</span>
       </p>
       <p className="nums-tabular mt-1.5 text-xs text-[var(--muted)]">{share}% of team</p>
-    </div>
+    </>
   );
+  return href
+    ? <Link href={href} className="block px-5 py-4 transition-colors hover:bg-slate-50/80">{inner}</Link>
+    : <div className="px-5 py-4">{inner}</div>;
 }
 
 function ActIcon({ type }: { type?: string }) {

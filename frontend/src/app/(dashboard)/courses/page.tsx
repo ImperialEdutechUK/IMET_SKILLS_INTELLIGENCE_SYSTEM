@@ -39,7 +39,6 @@ interface Facets {
   categories: Facet[];
   levels: Facet[];
   sources: Facet[];
-  costs: Facet[];
 }
 
 interface CourseCard {
@@ -69,7 +68,7 @@ interface CatalogueData {
 }
 
 /** The filter keys this page owns in the query string. */
-const FILTER_KEYS = ["q", "provider", "category", "level", "source", "cost"] as const;
+const FILTER_KEYS = ["q", "provider", "category", "level", "source"] as const;
 
 const SORT_OPTIONS = [
   { value: "title", label: "Title (A–Z)" },
@@ -139,7 +138,6 @@ function BrowseCourses() {
         : key === "category" ? facets?.categories
         : key === "level" ? facets?.levels
         : key === "source" ? facets?.sources
-        : key === "cost" ? facets?.costs
         : undefined;
       return list?.find((f) => f.value === value)?.label ?? value;
     },
@@ -213,7 +211,6 @@ function BrowseCourses() {
           <FilterSelect label="Provider" allLabel="All providers" value={params.get("provider") ?? ""} onChange={(v) => update({ provider: v || null })} options={facetOptions(facets?.providers)} />
           <FilterSelect label="Platform" allLabel="All platforms" value={params.get("source") ?? ""} onChange={(v) => update({ source: v || null })} options={facetOptions(facets?.sources)} />
           <FilterSelect label="Level" allLabel="Any level" value={params.get("level") ?? ""} onChange={(v) => update({ level: v || null })} options={facetOptions(facets?.levels)} />
-          <FilterSelect label="Cost" allLabel="Any cost" value={params.get("cost") ?? ""} onChange={(v) => update({ cost: v || null })} options={facetOptions(facets?.costs)} />
         </div>
 
         {activeFilters.length > 0 && (

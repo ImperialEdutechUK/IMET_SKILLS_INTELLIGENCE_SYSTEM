@@ -13,6 +13,7 @@ import { withLock } from "@/lib/locks";
 import { numberToLevel } from "@/lib/levels";
 import { rankCourses, selectDiverseTop, compareCourseScore, type ScoringGap, type ScoringCourse, type CourseScore } from "./scoring";
 import { runGapAnalysis, GapAnalysisError, loadSelfAssessedGaps } from "@/server/gaps/gapAnalysis";
+import { dislikeFilter } from "./dislikes";
 import { explainRecommendations } from "@/server/ai/skillExtraction";
 import { isConfigured } from "@/server/ai/aiClient";
 
@@ -154,6 +155,11 @@ export async function generateRecommendations(
       approved: true,
       status: "published",
       courseSkills: { some: { skillId: { in: gapSkillIds } } },
+      // A course the employee thumbs-downed is blocked for them permanently —
+      // including on lists a manager generates on their behalf. Excluding it
+      // from the candidate set (rather than filtering after ranking) means the
+      // next-best course in the ranking takes the slot it would have held.
+      ...dislikeFilter(userId),
     },
     include: { courseSkills: true },
   });
@@ -294,7 +300,10 @@ export async function getRecommendations(userId: string) {
   if (!user) throw new RecommendationError("Employee not found.");
 
   const recs = await prisma.recommendation.findMany({
-    where: { userId, dismissed: false },
+    // `course.dislikes` backstops the delete in `dislikeCourse`, covering a
+    // dislike that landed while a generation was in flight and re-persisted the
+    // pick. A disliked course is never shown to this employee.
+    where: { userId, dismissed: false, course: { dislikes: { none: { userId } } } },
     orderBy: [{ rank: "asc" }, { matchScore: "desc" }],
     include: { course: { include: { category: true } } },
   });

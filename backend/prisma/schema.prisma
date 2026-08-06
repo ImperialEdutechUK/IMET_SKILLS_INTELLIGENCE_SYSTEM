@@ -149,6 +149,7 @@ model User {
 
   passwordTokens PasswordToken[]
   enrollments    Enrollment[]
+  courseDislikes CourseDislike[]
   cpdRecords     CpdRecord[]
   certificates   Certificate[]
   userSkills     UserSkill[]
@@ -235,6 +236,7 @@ model Course {
   courseSkills    CourseSkill[]
   enrollments     Enrollment[]
   recommendations Recommendation[]
+  dislikes        CourseDislike[]
   learningPathItems LearningPathItem[]
 
   @@unique([externalSource, externalId])
@@ -423,6 +425,25 @@ model Recommendation {
   course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@unique([userId, courseId])
+}
+
+/// A course this employee thumbs-downed. Permanent, per-user block: every
+/// candidate query in the engine filters these out, so the course can never be
+/// recommended to THIS user again — no one else is affected and the catalogue
+/// row itself is never touched. Deliberately a separate table rather than
+/// `Recommendation.dismissed`, because Recommendation rows are deleted and
+/// rewritten on every generation, so a flag on them could not survive.
+model CourseDislike {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@index([userId])
 }
 
 // ── Recommendation engine: documents, roles, gaps, aliases ───────────────────

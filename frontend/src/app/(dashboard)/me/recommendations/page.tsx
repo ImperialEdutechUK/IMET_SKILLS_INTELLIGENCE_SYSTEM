@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   Sparkles, Upload, CheckCircle2, AlertCircle, Loader2, Star,
   ArrowRight, RotateCcw, Download, ChevronDown, Flag, MessagesSquare,
+  ThumbsDown, Undo2,
 } from "lucide-react";
 import { getToken } from "@/lib/authClient";
 
@@ -60,6 +61,11 @@ export default function RecommendationChatPage() {
   // Results board only: docks the conversation into a side panel that can be
   // collapsed to give the recommendations the full width.
   const [convoCollapsed, setConvoCollapsed] = useState(false);
+  // Thumbs-down: the course currently being blocked (row spinner), and the last
+  // blocked one so it can be undone from the banner.
+  const [dislikingId, setDislikingId] = useState<string | null>(null);
+  const [lastDisliked, setLastDisliked] = useState<{ courseId: string; title: string } | null>(null);
+  const [undoing, setUndoing] = useState(false);
 
   const bubbleId = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -205,11 +211,71 @@ export default function RecommendationChatPage() {
     }
   }
 
+  // ── Thumbs-down ──────────────────────────────────────────────────────────────
+  //
+  // Blocks the course for THIS employee permanently, then re-shortlists so the
+  // freed slot is filled by the next-best course in the ranking. The same
+  // preference answers are sent back, so the replacement is ranked on the same
+  // basis as the picks around it. Undo lifts the block and re-shortlists again.
+
+  async function sendDislike(method: "POST" | "DELETE", courseId: string): Promise<ChatResult | null> {
+    const res = await fetch(`${API}/api/me/course-dislikes`, {
+      method,
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+      body: JSON.stringify({ courseId, answers, limit: 5 }),
+    });
+    const data: ChatResult = await res.json();
+    return res.ok ? data : null;
+  }
+
+  async function dislike(rec: Recommendation) {
+    setDislikingId(rec.courseId);
+    try {
+      const data = await sendDislike("POST", rec.courseId);
+      if (!data) {
+        addBot("I couldn't hide that course just now. Please try again.");
+        return;
+      }
+      setResult(data);
+      setLastDisliked({ courseId: rec.courseId, title: rec.title });
+      // Nothing left to show — say why in the transcript, since the results
+      // board (and its banner) is replaced by the conversation view.
+      if (data.recommendations.length === 0) {
+        addBot(data.note ?? "That was the last course I had for your current gaps.");
+      }
+    } catch {
+      addBot("I couldn't hide that course just now. Please try again.");
+    } finally {
+      setDislikingId(null);
+    }
+  }
+
+  async function undoDislike() {
+    if (!lastDisliked) return;
+    setUndoing(true);
+    try {
+      const data = await sendDislike("DELETE", lastDisliked.courseId);
+      if (!data) {
+        addBot("I couldn't restore that course just now. Please try again.");
+        return;
+      }
+      setResult(data);
+      setLastDisliked(null);
+    } catch {
+      addBot("I couldn't restore that course just now. Please try again.");
+    } finally {
+      setUndoing(false);
+    }
+  }
+
   function startOver() {
     setAnswers({});
     setMultiSel([]);
     setResult(null);
     setConvoCollapsed(false);
+    // The block itself is permanent and survives this — only the undo
+    // affordance for the last one goes away with the list it belonged to.
+    setLastDisliked(null);
     addUser("Start over");
     // Return to the upload step (flowIndex 0), not straight to the questions —
     // documents change over time (new CPD entries, updated skills), so let the
@@ -254,6 +320,27 @@ export default function RecommendationChatPage() {
           </button>
         )}
       </div>
+
+      {/* Thumbs-down confirmation. Sits outside the board/chat branch so it
+          survives a dislike that empties the list. */}
+      {lastDisliked && (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[var(--border)] bg-slate-50 px-4 py-2.5 text-xs text-[var(--ink)]">
+          <span className="flex items-start gap-2">
+            <ThumbsDown className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--muted)]" />
+            <span>
+              I won&apos;t recommend <span className="font-semibold">{lastDisliked.title}</span> to you again.
+            </span>
+          </span>
+          <button
+            onClick={undoDislike}
+            disabled={undoing}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[var(--border)] bg-white px-2.5 py-1.5 font-medium text-[var(--ink)] hover:bg-slate-50 disabled:opacity-60"
+          >
+            {undoing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Undo2 className="h-3.5 w-3.5" />}
+            {undoing ? "Undoing…" : "Undo"}
+          </button>
+        </div>
+      )}
 
       {showBoard ? (
         <div className={convoCollapsed ? "" : "grid items-start gap-4 lg:grid-cols-[300px_minmax(0,1fr)]"}>
@@ -307,7 +394,14 @@ export default function RecommendationChatPage() {
                 </span>
               </div>
               {result.recommendations.map((rec) => (
-                <CourseRow key={rec.courseId} rec={rec} defaultOpen={rec.rank === 1} />
+                <CourseRow
+                  key={rec.courseId}
+                  rec={rec}
+                  defaultOpen={rec.rank === 1}
+                  onDislike={dislike}
+                  disliking={dislikingId === rec.courseId}
+                  disabled={dislikingId !== null || undoing}
+                />
               ))}
             </div>
           </section>
@@ -507,7 +601,17 @@ function QuestionPanel({
 
 // ── Result row (ranked list on the results board) ─────────────────────────────
 
-function CourseRow({ rec, defaultOpen = false }: { rec: Recommendation; defaultOpen?: boolean }) {
+function CourseRow({
+  rec, defaultOpen = false, onDislike, disliking = false, disabled = false,
+}: {
+  rec: Recommendation;
+  defaultOpen?: boolean;
+  onDislike: (rec: Recommendation) => void;
+  /** This row is the one being blocked right now. */
+  disliking?: boolean;
+  /** Some row is mid-request — don't let a second one start. */
+  disabled?: boolean;
+}) {
   const high = rec.matchLabel === "high";
   const top = rec.rank === 1;
   // Additive only: enrol this recommended course so it appears in My Learning and
@@ -531,6 +635,9 @@ function CourseRow({ rec, defaultOpen = false }: { rec: Recommendation; defaultO
   // list stays scannable. Skills beyond the first expand inline via "+N more".
   const [showWhy, setShowWhy] = useState(defaultOpen);
   const [showAllSkills, setShowAllSkills] = useState(false);
+  // Thumbs-down is permanent, so it asks once before firing rather than acting
+  // on a single stray click.
+  const [confirmDislike, setConfirmDislike] = useState(false);
   const topGap = rec.gapsCovered[0];
   const extraGaps = rec.gapsCovered.length - 1;
 
@@ -599,15 +706,51 @@ function CourseRow({ rec, defaultOpen = false }: { rec: Recommendation; defaultO
           >
             {enrolled ? <><CheckCircle2 className="h-3.5 w-3.5" /> Added</> : enrolling ? "Adding…" : "+ Add to My Learning"}
           </button>
-          {rec.externalUrl ? (
-            <a href={rec.externalUrl} target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs font-medium text-[var(--muted)] transition hover:text-[var(--brand)]">
-              View course <ArrowRight className="h-3 w-3" />
-            </a>
-          ) : (
-            <span className="inline-flex items-center gap-1 text-xs text-[var(--muted)]" title="Internal course — ask your L&D team">
-              <AlertCircle className="h-3 w-3" /> Internal
-            </span>
+          <div className="flex w-full items-center justify-end gap-3">
+            {rec.externalUrl ? (
+              <a href={rec.externalUrl} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs font-medium text-[var(--muted)] transition hover:text-[var(--brand)]">
+                View course <ArrowRight className="h-3 w-3" />
+              </a>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-xs text-[var(--muted)]" title="Internal course — ask your L&D team">
+                <AlertCircle className="h-3 w-3" /> Internal
+              </span>
+            )}
+            <button
+              onClick={() => setConfirmDislike(true)}
+              disabled={disabled || confirmDislike}
+              aria-label={`Don't recommend ${rec.title} again`}
+              title="Not for me — don't recommend this again"
+              className="rounded-lg border border-[var(--border)] p-1.5 text-[var(--muted)] transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-40"
+            >
+              {disliking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ThumbsDown className="h-3.5 w-3.5" />}
+            </button>
+          </div>
+
+          {/* Confirm — the block is permanent for this employee, so it's worth
+              one deliberate click. Undo lives on the banner above the list. */}
+          {confirmDislike && (
+            <div className="w-full rounded-lg border border-[var(--border)] bg-slate-50 p-2 text-left">
+              <p className="text-[11px] leading-snug text-[var(--muted)]">
+                Stop recommending this course to you? I&apos;ll put the next best match in its place.
+              </p>
+              <div className="mt-1.5 flex gap-1.5">
+                <button
+                  onClick={() => { setConfirmDislike(false); onDislike(rec); }}
+                  disabled={disabled}
+                  className="rounded-md bg-rose-600 px-2.5 py-1 text-[11px] font-medium text-white transition hover:bg-rose-700 disabled:opacity-60"
+                >
+                  Yes, hide it
+                </button>
+                <button
+                  onClick={() => setConfirmDislike(false)}
+                  className="rounded-md border border-[var(--border)] bg-white px-2.5 py-1 text-[11px] font-medium text-[var(--ink)] transition hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           )}
         </div>
       </div>

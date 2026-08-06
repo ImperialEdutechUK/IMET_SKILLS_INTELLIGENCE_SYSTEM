@@ -152,5 +152,16 @@ export const recommendationChatBodySchema = z
   })
   .default({});
 
+// ── Course dislikes ("never recommend this to me again") ──────────────────────
+
+// `answers` mirrors the chat body: the route re-runs the advisor after recording
+// the dislike so the freed slot is backfilled, and passing the same preferences
+// back keeps the replacement consistent with the rest of the list.
+export const courseDislikeBodySchema = z.object({
+  courseId: z.string().min(1, "courseId is required."),
+  answers: chatAnswersSchema,
+  limit: z.number().int().positive().max(6).optional(),
+});
+
 /** Document types an employee may upload for themselves via the chat. */
 export const employeeDocumentTypeSchema = z.enum(["SKILL_MATRIX", "CPD_RECORD", "DAILY_REPORT"]);

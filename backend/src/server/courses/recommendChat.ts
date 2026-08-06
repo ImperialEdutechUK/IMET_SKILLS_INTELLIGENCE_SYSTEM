@@ -24,6 +24,7 @@ import { withLock } from "@/lib/locks";
 import { numberToLevel } from "@/lib/levels";
 import { rankCourses, selectDiverseTop, type ScoringGap, type ScoringCourse, type CourseScore } from "./scoring";
 import { runGapAnalysis, GapAnalysisError, loadSelfAssessedGaps } from "@/server/gaps/gapAnalysis";
+import { dislikeFilter } from "./dislikes";
 import { generateJson, isConfigured, activeProvider } from "@/server/ai/aiClient";
 import {
   PREFERENCE_QUESTIONS,
@@ -257,6 +258,11 @@ export async function generateChatRecommendations(
       // (not_started enrollments stay eligible: merely adding a course to My
       // Learning shouldn't hide it from future recommendations.)
       enrollments: { none: { userId, status: { in: ["completed", "in_progress"] } } },
+      // Courses this employee thumbs-downed are blocked for them permanently.
+      // Excluding them here (rather than filtering after ranking) is what makes
+      // the backfill work: the slot a disliked course used to hold is taken by
+      // the next-best candidate in the same ranking.
+      ...dislikeFilter(userId),
     },
     include: { courseSkills: true, category: true, _count: { select: { enrollments: true } } },
   });
@@ -530,11 +536,17 @@ async function loadStoredRecommendations(
             where: { userId, status: { in: ["completed", "in_progress"] } },
             select: { id: true },
           },
+          // This user's dislike, if any. `dislikeCourse` already deletes the
+          // stored pick, so this normally finds nothing — it's the backstop for
+          // a dislike landing while a generation was in flight and re-persisting
+          // the course. Counting it as a drop makes the caller regenerate, which
+          // backfills the slot.
+          dislikes: { where: { userId }, select: { id: true } },
         },
       },
     },
   });
-  const kept = recs.filter((r) => r.course.enrollments.length === 0);
+  const kept = recs.filter((r) => r.course.enrollments.length === 0 && r.course.dislikes.length === 0);
   const recommendations: ChatRecommendation[] = kept.map((r, i) => ({
     rank: i + 1,
     courseId: r.courseId,

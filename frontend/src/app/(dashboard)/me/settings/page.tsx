@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { User, Lock, Bell, Compass, ChevronDown } from "lucide-react";
+import { User, Lock, Bell, Compass } from "lucide-react";
 import { getUser } from "@/lib/authClient";
 import { requestTourReplay, tourFor } from "@/lib/onboarding";
 import { useApi, apiSend, ApiError } from "@/lib/api";
@@ -96,15 +96,19 @@ export default function SettingsPage() {
               <input id="email" value={email} disabled className={`${inputClass} bg-slate-50 text-[var(--muted)]`} />
             </Field>
             {/* Department is org data, not a preference: manager dashboards and
-                approvals are scoped by it, so it is shown in its settled state
-                rather than offered as something the account holder can pick. */}
+                approvals are scoped by it, so no role can pick their own. It was
+                a disabled <select>, but a dropdown affordance on a field with
+                exactly one, unchangeable option only invites a click that does
+                nothing — it now reads as the fact it is, matching Email above. */}
             <Field label="Department" htmlFor="department">
-              <div className="relative">
-                <select id="department" disabled title="Your department is set by an administrator." className={`${inputClass} appearance-none pr-10 disabled:text-[var(--ink)]`}>
-                  <option>{department}</option>
-                </select>
-                <ChevronDown aria-hidden className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" />
-              </div>
+              <input
+                id="department"
+                value={department || "Not assigned"}
+                readOnly
+                disabled
+                className={`${inputClass} bg-slate-50 text-[var(--muted)]`}
+              />
+              <p className="mt-1.5 text-xs text-[var(--muted)]">Set by an administrator.</p>
             </Field>
             <div className="flex flex-wrap items-center gap-3 pt-1">
               <button onClick={saveName} disabled={savingName || !loaded} className={primaryButtonClass}>{savingName ? "Saving…" : "Save Changes"}</button>

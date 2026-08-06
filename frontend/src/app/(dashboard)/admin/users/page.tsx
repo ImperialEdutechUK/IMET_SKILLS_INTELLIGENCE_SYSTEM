@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Search, ChevronRight, KeyRound, Users, UserCheck, Clock, Building2 } from "lucide-react";
+import { Search, ChevronRight, KeyRound, Trash2, Users, UserCheck, Clock, Building2 } from "lucide-react";
 import Avatar from "@/components/ui/Avatar";
 import { useApi } from "@/lib/api";
+import { getUser } from "@/lib/authClient";
 import { TableSkeleton, RefreshingBadge, ErrorPanel } from "@/components/ui/DataState";
 import PasswordResetDialog, { type ResetTarget } from "@/components/admin/PasswordResetDialog";
+import DeleteUserDialog, { type DeleteTarget } from "@/components/admin/DeleteUserDialog";
 import Pagination, { pageSlice } from "@/components/ui/Pagination";
 import KpiCard from "@/components/ui/KpiCard";
 
@@ -33,12 +35,16 @@ export default function UserManagementPage() {
   const { data, error, isLoading, isRefreshing, refresh } = useApi<Data>("/api/admin/users");
   const [search, setSearch] = useState("");
   const [resetTarget, setResetTarget] = useState<ResetTarget | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [page, setPage] = useState(1);
   // A new search resets to the first page.
   useEffect(() => { setPage(1); }, [search]);
 
   if (isLoading) return <TableSkeleton rows={8} />;
   if (!data) return <ErrorPanel message={error?.message ?? "Could not load users."} onRetry={refresh} />;
+
+  // The signed-in admin cannot delete their own account (the API refuses too).
+  const myId = getUser()?.id;
 
   const q = search.trim().toLowerCase();
   const filtered = data.users.filter((u) => u.fullName.toLowerCase().includes(q) || (u.email ?? "").toLowerCase().includes(q) || u.department.toLowerCase().includes(q) || u.role.toLowerCase().includes(q));
@@ -129,10 +135,19 @@ export default function UserManagementPage() {
                           <button
                             onClick={() => setResetTarget(user)}
                             title={`Issue a password reset code for ${user.fullName}`}
-                            className="mx-3 shrink-0 rounded-lg border border-transparent p-2 text-slate-400 transition-colors hover:border-[var(--border)] hover:bg-white hover:text-[var(--brand-dark)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]"
+                            className="ml-3 shrink-0 rounded-lg border border-transparent p-2 text-slate-400 transition-colors hover:border-[var(--border)] hover:bg-white hover:text-[var(--brand-dark)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)]"
                           >
                             <KeyRound className="h-4 w-4" />
                             <span className="sr-only">Reset password for {user.fullName}</span>
+                          </button>
+                          <button
+                            onClick={() => setDeleteTarget(user)}
+                            disabled={user.id === myId}
+                            title={user.id === myId ? "You cannot delete the account you are signed in with" : `Delete ${user.fullName} permanently`}
+                            className="mr-3 shrink-0 rounded-lg border border-transparent p-2 text-slate-400 transition-colors hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:border-transparent disabled:hover:bg-transparent disabled:hover:text-slate-400"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Delete {user.fullName}</span>
                           </button>
                         </li>
                       );
@@ -151,6 +166,9 @@ export default function UserManagementPage() {
 
       {resetTarget && (
         <PasswordResetDialog target={resetTarget} onClose={() => setResetTarget(null)} />
+      )}
+      {deleteTarget && (
+        <DeleteUserDialog target={deleteTarget} onClose={() => setDeleteTarget(null)} />
       )}
     </div>
   );

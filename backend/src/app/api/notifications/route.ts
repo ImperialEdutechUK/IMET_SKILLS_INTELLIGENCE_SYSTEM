@@ -50,3 +50,28 @@ export async function POST(req: Request) {
   });
   return NextResponse.json({ ok: true });
 }
+
+// DELETE /api/notifications  → remove the current user's notifications for good.
+// Body `{ id }` removes just that one; no id removes all of them.
+//
+// Distinct from POST: marking read only clears the unread badge, the entries
+// stay in the list. This is the "clear" the bell's bin icon performs.
+export async function DELETE(req: Request) {
+  const authUser = verifyToken(req);
+  if (!authUser) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
+
+  let id: string | undefined;
+  try {
+    const body = await req.json();
+    if (body && typeof body.id === "string") id = body.id;
+  } catch {
+    // No JSON body → clear all.
+  }
+
+  // Scoped to this user, so an id can never reach someone else's notification;
+  // a wrong id simply deletes nothing.
+  const { count } = await prisma.notification.deleteMany({
+    where: { userId: authUser.id, ...(id ? { id } : {}) },
+  });
+  return NextResponse.json({ ok: true, deleted: count });
+}

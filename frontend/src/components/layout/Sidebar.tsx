@@ -2,17 +2,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useRouter } from "next/navigation";
-import { clearAuth } from "@/lib/authClient";
-import { swrCache } from "@/lib/swr-cache";
-import { GraduationCap, LogOut, ArrowLeft, ChevronDown } from "lucide-react";
+import { GraduationCap, ArrowLeft, ChevronDown } from "lucide-react";
 import { navFor, departmentNav } from "@/lib/nav";
-import Avatar from "@/components/ui/Avatar";
+import ProfileMenu from "@/components/layout/ProfileMenu";
 import type { NavSection, SessionUser } from "@/types";
 
 export default function Sidebar({ user, mobileOpen = false, onClose }: { user: SessionUser; mobileOpen?: boolean; onClose?: () => void }) {
   const pathname = usePathname();
-  const router = useRouter();
   const deptMatch = pathname.match(/^\/manager\/departments\/([^/]+)/);
   const inDepartment = user.role === "manager" && !!deptMatch;
   const departmentId = deptMatch?.[1] ?? null;
@@ -51,21 +47,11 @@ export default function Sidebar({ user, mobileOpen = false, onClose }: { user: S
         ))}
       </nav>
 
+      {/* The account row is the trigger for the same menu the top-bar avatar
+          opens (Settings + Log Out); it drops upward since it sits at the foot
+          of the rail. */}
       <div data-tour="sidebar-account" className="border-t border-[var(--border)] p-3">
-        <div className="flex items-center gap-3 rounded-lg px-3 py-2">
-          <Avatar name={user.fullName} size={36} />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-[var(--ink)]">{user.fullName}</p>
-            <p className="truncate text-xs capitalize text-[var(--muted)]">{user.role}</p>
-          </div>
-        </div>
-        <button
-          onClick={() => { clearAuth(); swrCache.clear(); router.push("/login"); }}
-          className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-[var(--muted)] transition-colors hover:bg-red-50 hover:text-red-600"
-        >
-          <LogOut className="h-4 w-4" />
-          Log Out
-        </button>
+        <ProfileMenu user={user} variant="sidebar" onNavigate={onClose} />
       </div>
     </aside>
   );

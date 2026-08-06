@@ -6,6 +6,10 @@ import { clientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 const EMAIL_DOMAIN = "@imperiallearning.co.uk";
 
+/** Shown when the address already has an account (pending, active or otherwise). */
+const EMAIL_TAKEN =
+  "This email has already been used to create an account. Try signing in, or reset your password.";
+
 /** Bounds on free-text fields, so a registration cannot carry a novel. */
 const MAX_NAME_LENGTH = 120;
 const MAX_POSITION_LENGTH = 120;
@@ -78,14 +82,25 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Selected department not found." }, { status: 400 });
   }
 
+  // A duplicate address is reported plainly rather than absorbed: someone who
+  // already registered must be told so, instead of being shown a success screen
+  // for an account that was never created and then failing to sign in.
+  //
+  // The cost is that this endpoint confirms whether an address is registered.
+  // The per-IP throttle above (LIMIT/WINDOW_MS) is what keeps that from being a
+  // usable enumeration channel for the whole @imperiallearning.co.uk domain.
+  //
+  // Checked before hashing so a duplicate does not pay bcrypt's cost factor.
+  const existing = await prisma.user.findUnique({
+    where: { email: normalizedEmail },
+    select: { id: true },
+  });
+  if (existing) {
+    return NextResponse.json({ error: EMAIL_TAKEN }, { status: 409 });
+  }
+
   const passwordHash = await hash(password, 12);
 
-  // Let the unique constraint decide, and answer identically whether the address
-  // was free or already taken. The old code returned a distinct 409 for an
-  // existing account, which turned this endpoint into an account-existence
-  // oracle for the whole @imperiallearning.co.uk domain. Registrations require
-  // admin approval anyway, so a silent no-op costs a genuine duplicate nothing
-  // beyond the message below.
   try {
     await prisma.user.create({
       data: {
@@ -99,9 +114,13 @@ export async function POST(req: Request) {
       },
     });
   } catch (err) {
-    // ONLY a duplicate address is absorbed. Anything else is a real failure and
-    // must surface rather than be reported to the user as a success.
-    if (!isUniqueViolation(err)) throw err;
+    // Backstop for two requests racing past the check above — the unique
+    // constraint is the only thing that actually settles it. Anything else is a
+    // real failure and must surface rather than be reported as a success.
+    if (isUniqueViolation(err)) {
+      return NextResponse.json({ error: EMAIL_TAKEN }, { status: 409 });
+    }
+    throw err;
   }
 
   return NextResponse.json({

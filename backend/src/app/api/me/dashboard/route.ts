@@ -49,7 +49,10 @@ export async function GET(req: Request) {
       cpdRecords: { select: { hours: true } },
       userSkills: { include: { skill: { select: { name: true } } } },
       recommendations: {
-        where: { dismissed: false },
+        // A thumbs-downed course is blocked for this employee everywhere, not
+        // just in the advisor. Disliking already deletes the stored pick; this
+        // filter covers a dislike that raced an in-flight generation.
+        where: { dismissed: false, course: { dislikes: { none: { userId: authUser.id } } } },
         orderBy: { matchScore: "desc" },
         include: { course: { include: { category: true } } },
       },

@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, BookOpen, Target, ScrollText, Sparkles,
+  LayoutDashboard, BookOpen, Target, ScrollText, Sparkles, Compass,
   BarChart3, Users, UserCog, UserCheck, Library, ClipboardCheck, Tags, Settings, Trophy, Building2,
 } from "lucide-react";
 import type { NavSection, Role } from "@/types";
@@ -10,6 +10,7 @@ export const navConfig: Record<Role, NavSection[]> = {
       items: [
         { label: "Dashboard", href: "/me/dashboard", icon: LayoutDashboard },
         { label: "My Learning", href: "/me/learning", icon: BookOpen },
+        { label: "Browse Courses", href: "/courses", icon: Compass },
         { label: "My Skills", href: "/me/skills", icon: Target },
         { label: "AI Recommendations", href: "/me/recommendations", icon: Sparkles },
         { label: "Reports", href: "/me/reports", icon: BarChart3 },
@@ -35,6 +36,7 @@ export const navConfig: Record<Role, NavSection[]> = {
       title: "Personal",
       items: [
         { label: "My Learning", href: "/me/learning", icon: BookOpen },
+        { label: "Browse Courses", href: "/courses", icon: Compass },
         { label: "My Skills", href: "/me/skills", icon: Target },
         { label: "AI Recommendations", href: "/me/recommendations", icon: Sparkles },
         { label: "Settings", href: "/me/settings", icon: Settings },
@@ -58,6 +60,7 @@ export const navConfig: Record<Role, NavSection[]> = {
       title: "Personal",
       items: [
         { label: "My Learning", href: "/me/learning", icon: BookOpen },
+        { label: "Browse Courses", href: "/courses", icon: Compass },
         { label: "My Skills", href: "/me/skills", icon: Target },
         { label: "AI Recommendations", href: "/me/recommendations", icon: Sparkles },
         { label: "Settings", href: "/me/settings", icon: Settings },
@@ -78,6 +81,7 @@ export const navConfig: Record<Role, NavSection[]> = {
       title: "Personal",
       items: [
         { label: "My Learning", href: "/me/learning", icon: BookOpen },
+        { label: "Browse Courses", href: "/courses", icon: Compass },
         { label: "Settings", href: "/me/settings", icon: Settings },
       ],
     },

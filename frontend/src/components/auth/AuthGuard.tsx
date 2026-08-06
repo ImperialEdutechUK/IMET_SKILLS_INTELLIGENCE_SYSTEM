@@ -18,6 +18,14 @@ function ownDashboard(role: string) {
   return role === "employee" ? "/me/dashboard" : `/${role}/dashboard`;
 }
 
+/**
+ * Routes every signed-in role may reach, outside their own role area: the
+ * global search results page behind the top-bar box, and the course catalogue
+ * browser. Both are read-only views of data that belongs to nobody in
+ * particular, so there is one page rather than one copy per role.
+ */
+const SHARED_ROUTES = ["/search", "/courses"];
+
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -35,9 +43,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       return;
     }
     const isMe = pathname.startsWith("/me");
-    // Routes every signed-in role may reach, outside their role area (e.g. the
-    // global search results page behind the top-bar box).
-    const isShared = pathname === "/search" || pathname.startsWith("/search/");
+    const isShared = SHARED_ROUTES.some((r) => pathname === r || pathname.startsWith(`${r}/`));
     const ownPrefix = ROLE_PREFIX[u.role];
     const inOwnArea = isMe || isShared || (ownPrefix && pathname.startsWith(ownPrefix));
     if (!inOwnArea) {

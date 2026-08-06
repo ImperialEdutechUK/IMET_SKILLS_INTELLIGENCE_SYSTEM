@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Search, Menu } from "lucide-react";
-import Avatar from "@/components/ui/Avatar";
+import ProfileMenu from "@/components/layout/ProfileMenu";
 import NotificationBell from "@/components/layout/NotificationBell";
 import GamificationPill from "@/components/gamification/GamificationPill";
 import type { SessionUser } from "@/types";
@@ -53,7 +53,7 @@ export default function Topbar({ user, onMenu }: { user: SessionUser; onMenu?: (
       <div className="flex items-center gap-3">
         {showGame && <GamificationPill />}
         <NotificationBell />
-        <Avatar name={user.fullName} size={36} />
+        <ProfileMenu user={user} variant="topbar" />
       </div>
     </header>
   );

@@ -20,7 +20,7 @@ async function main() {
   console.log("🌱 Seeding LearnSmart AI database…");
 
   const depts = await Promise.all(
-    ["CDD", "Sales", "Marketing", "Customer Service", "IT", "Finance", "Operations", "Academic"].map((name) =>
+    ["CDD", "Sales", "Marketing", "Customer Service", "IT", "Finance", "Operations", "Academic", "HR"].map((name) =>
       prisma.department.upsert({ where: { name }, update: {}, create: { name } })
     )
   );
@@ -136,7 +136,7 @@ async function main() {
     },
   });
 
-  const deptNames = ["CDD", "Sales", "Marketing", "Customer Service", "IT", "Finance", "Operations", "Academic"];
+  const deptNames = ["CDD", "Sales", "Marketing", "Customer Service", "IT", "Finance", "Operations", "Academic", "HR"];
 
   const namedEmployeeDefs: { name: string; email: string; dept: string }[] = [];
 

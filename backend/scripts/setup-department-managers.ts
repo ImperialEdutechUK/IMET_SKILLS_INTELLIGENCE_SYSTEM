@@ -19,6 +19,7 @@ const MANAGERS: { dept: string; email: string; password: string }[] = [
   { dept: "Finance", email: "finance.manager@imperiallearning.co.uk", password: "Fin@Imet#2026Ty" },
   { dept: "Operations", email: "operations.manager@imperiallearning.co.uk", password: "Ops@Imet#2026Hs" },
   { dept: "Academic", email: "academic.manager@imperiallearning.co.uk", password: "Acad@Imet#2026Pm" },
+  { dept: "HR", email: "hr.manager@imperiallearning.co.uk", password: "Hr@Imet#2026Dv" },
 ];
 
 async function main() {

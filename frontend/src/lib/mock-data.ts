@@ -1,6 +1,6 @@
 // LearnSmart AI — comprehensive mock data for all dashboards
 
-export const DEPARTMENTS = ["CDD", "Sales", "Marketing", "Customer Service", "IT", "Finance", "Operations", "Academic"];
+export const DEPARTMENTS = ["CDD", "Sales", "Marketing", "Customer Service", "IT", "Finance", "Operations", "Academic", "HR"];
 
 export const CATEGORIES = ["Leadership", "Data & Analytics", "Project Management", "Compliance", "AI & Technology", "Communication", "Finance", "Customer Service"];
 

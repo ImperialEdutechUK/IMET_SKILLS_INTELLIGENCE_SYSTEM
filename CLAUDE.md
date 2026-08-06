@@ -41,8 +41,10 @@ Gap formula: `Gap = RoleProfile required level − UserSkill current level`. Cou
   - Finance: finance.manager@imperiallearning.co.uk / `Fin@Imet#2026Ty`
   - Operations: operations.manager@imperiallearning.co.uk / `Ops@Imet#2026Hs`
   - Academic: academic.manager@imperiallearning.co.uk / `Acad@Imet#2026Pm`
+  - HR: hr.manager@imperiallearning.co.uk / `Hr@Imet#2026Dv` (department-scoped manager — NOT the org-wide `HR@imet.lk` admin account)
 - The old single manager (`manager@`, Sarah) and the `employee@` (Emma) demo account were **removed**. Real employee data now lives with **Nandika (CDD)**; employees self-register and are approved.
-- CDD id: `cmr3k8ghy0001b3gq417f0kkn` · Marketing id: `cmr3k8gjm0005b3gqrbw5q0r1`
+- CDD id: `cmr3k8ghy0001b3gq417f0kkn` · Marketing id: `cmr3k8gjm0005b3gqrbw5q0r1` · HR id: `cmshckc6z000084f5kyyijv4l`
+- ⚠️ Adding a department to the live DB: `npx tsx --env-file=.env scripts/add-hr-department.ts`-style additive script (Department + its CpdTarget), then re-run `setup-department-managers.ts`. Never `prisma db seed` on live.
 - ⚠️ Re-provision managers with `npx tsx --env-file=.env scripts/setup-department-managers.ts` (idempotent). Do NOT run `npx prisma db seed` on the live demo DB — it recreates the removed demo employees and the old single manager.
 
 ## Get a test token

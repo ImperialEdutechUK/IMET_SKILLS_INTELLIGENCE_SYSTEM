@@ -2,10 +2,9 @@
 
 import {
   BellRing, BookOpen, Building2, CheckCircle2, Download, LayoutDashboard, MousePointerClick,
-  Plus, ScrollText, ShieldCheck, Sparkles, Target, TrendingUp, Trophy, UserCheck, UserCog,
+  Plus, ScrollText, ShieldCheck, Sparkles, Target, TrendingUp, Trophy, UserCog,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { isOrgViewer } from "@/lib/nav";
 
 // Onboarding tour: step definitions + the state we keep in the browser.
 //
@@ -435,41 +434,13 @@ export const managerTourSteps: TourStep[] = [
 
 /**
  * The admin tour. Org-wide rather than one department: the verdict, the
- * departments to drill into, then the two screens admins actually work in —
- * the roster and the approvals queue.
- *
- * `includeApprovals` is false for the HR/Director variant of the admin role,
- * which has no Pending Approvals item in its sidebar (see `isOrgViewer`). The
- * approvals steps are left out entirely rather than pointing at a menu item
- * that will never appear.
+ * departments to drill into, then the roster admins actually work in.
+ * (There is no approvals queue any more — employees self-register and are
+ * active immediately, so the tour no longer has an approvals leg.)
  */
-export function adminTourSteps(includeApprovals: boolean): TourStep[] {
-  const approvals: TourStep[] = [
-    {
-      id: "adm-go-approvals",
-      path: "/admin/users",
-      target: '[data-tour="sidebar-nav"] a[href="/admin/approvals"]',
-      label: "Try it",
-      icon: MousePointerClick,
-      title: "One more: Pending Approvals",
-      body: "Click it — new registrations wait here.",
-      placement: "right",
-      advanceOn: "click",
-    },
-    {
-      id: "adm-approvals",
-      path: "/admin/approvals",
-      target: '[data-tour="adm-approvals"]',
-      label: "Pending Approvals",
-      icon: UserCheck,
-      title: "Approve or reject, one by one",
-      body: "Employees register themselves and cannot sign in until you approve them here.",
-      placement: "top",
-    },
-  ];
-
+export function adminTourSteps(): TourStep[] {
   // Where the tour has ended up by the time it points at the personal section.
-  const lastPath = includeApprovals ? "/admin/approvals" : "/admin/users";
+  const lastPath = "/admin/users";
 
   return [
     // ── Organisation dashboard ───────────────────────────────────────────────
@@ -532,7 +503,7 @@ export function adminTourSteps(includeApprovals: boolean): TourStep[] {
       label: "User Management",
       icon: UserCog,
       title: "Who is on the platform",
-      body: "Totals across every department. The pending figure is a link — it takes you to the approvals queue.",
+      body: "Totals across every department: users, active accounts and departments at a glance.",
       placement: "bottom",
     },
     {
@@ -545,9 +516,6 @@ export function adminTourSteps(includeApprovals: boolean): TourStep[] {
       body: "Search by name, department or role. Click an employee to open their record.",
       placement: "top",
     },
-
-    // ── Approvals (skipped for the HR/Director variant) ──────────────────────
-    ...(includeApprovals ? approvals : []),
 
     // ── Your own learning ────────────────────────────────────────────────────
     {
@@ -607,7 +575,7 @@ export function tourFor(user: { role: string; email: string }): TourPlan | null 
       };
     case "admin":
       return {
-        steps: adminTourSteps(!isOrgViewer(user)),
+        steps: adminTourSteps(),
         startPath: "/admin/dashboard",
         readyAnchor: '[data-tour="adm-verdict"]',
       };

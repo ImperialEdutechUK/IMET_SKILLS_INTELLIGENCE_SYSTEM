@@ -91,12 +91,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid credentials." }, { status: 401 });
   }
 
-  if (user.status === "pending_approval") {
-    return NextResponse.json({ error: "Your account is pending admin approval." }, { status: 403 });
-  }
-  // Deactivated accounts previously still authenticated: the only status the
-  // route rejected was pending_approval, so setting a leaver to `inactive` did
-  // not actually lock them out.
+  // Self-registration now activates accounts immediately, so pending_approval
+  // is no longer issued — but the enum value still exists, and any status
+  // outside the allow-list (inactive, or a stray legacy pending_approval row)
+  // must not hold a session.
   if (!LOGIN_ALLOWED_STATUSES.has(user.status)) {
     return NextResponse.json(
       { error: "This account is not active. Contact your administrator." },

@@ -76,21 +76,21 @@ export default function RegisterPage() {
     return (
       <AuthShell
         title={<>You&apos;re<br /><span className="text-[var(--brand)]">on the roster!</span></>}
-        subtitle="One quick approval and your learning game begins — XP, badges and AI-picked courses await."
+        subtitle="Your learning game begins now — XP, badges and AI-picked courses await."
       >
         <div className="w-full max-w-md rounded-3xl border border-[var(--border)] bg-white p-8 text-center shadow-sm">
           <span className="gam-float mx-auto grid h-14 w-14 place-items-center rounded-2xl text-white shadow-sm" style={{ background: "linear-gradient(135deg,#5cb891,#3f9d75)" }}>
             <CheckCircle className="h-6 w-6" />
           </span>
-          <h1 className="mt-4 text-2xl font-bold text-[var(--ink)]">Registration Submitted</h1>
+          <h1 className="mt-4 text-2xl font-bold text-[var(--ink)]">Registration Successful</h1>
           <p className="mt-3 text-sm text-[var(--muted)]">
-            Your account is pending admin approval. You&apos;ll be able to sign in once an administrator approves your registration.
+            Your account has been created. Sign in with your email and password to get started.
           </p>
           <button
             onClick={() => router.push("/login")}
             className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--brand)] py-3 text-sm font-medium text-white hover:bg-[var(--brand-dark)]"
           >
-            <ArrowRight className="h-4 w-4" /> Go to Login
+            <ArrowRight className="h-4 w-4" /> Go to Sign In
           </button>
         </div>
       </AuthShell>
@@ -100,7 +100,7 @@ export default function RegisterPage() {
   return (
     <AuthShell
       title={<>Create Your<br /><span className="text-[var(--brand)]">Account</span></>}
-      subtitle="Register your details, then sign in once an administrator approves your account."
+      subtitle="Register your details, then sign in straight away — no approval needed."
     >
       <div className="w-full max-w-md">
         <div className="rounded-3xl border border-[var(--border)] bg-white p-8 shadow-sm">

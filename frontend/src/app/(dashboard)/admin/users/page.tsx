@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Search, ChevronRight, KeyRound, Trash2, Users, UserCheck, Clock, Building2 } from "lucide-react";
+import { Search, ChevronRight, KeyRound, Trash2, Users, UserCheck, Building2 } from "lucide-react";
 import Avatar from "@/components/ui/Avatar";
 import { useApi } from "@/lib/api";
 import { getUser } from "@/lib/authClient";
@@ -23,13 +23,12 @@ const roleConfig: Record<string, string> = {
 };
 const statusConfig: Record<string, string> = {
   active: "bg-emerald-50 text-emerald-700",
-  pending_approval: "bg-amber-50 text-amber-700",
   invited: "bg-blue-50 text-blue-700",
   inactive: "bg-slate-100 text-slate-500",
 };
 
 interface User { id: string; fullName: string; email?: string; department: string; lastActive: string; role: string; status: string; }
-interface Data { total: number; active: number; pending: number; departmentCount: number; users: User[]; }
+interface Data { total: number; active: number; departmentCount: number; users: User[]; }
 
 export default function UserManagementPage() {
   const { data, error, isLoading, isRefreshing, refresh } = useApi<Data>("/api/admin/users");
@@ -65,18 +64,13 @@ export default function UserManagementPage() {
           <h1 className="text-[1.65rem] font-bold tracking-tight text-[var(--ink)]">User management</h1>
           <RefreshingBadge show={isRefreshing} />
         </div>
-        <p className="mb-6 text-sm text-[var(--muted)]">Everyone on the platform, grouped by department. New people self-register and wait under Pending approvals. Use the key icon to issue a one-time password reset code for someone who is locked out.</p>
+        <p className="mb-6 text-sm text-[var(--muted)]">Everyone on the platform, grouped by department. New people self-register and can sign in straight away. Use the key icon to issue a one-time password reset code for someone who is locked out.</p>
 
-        {/* Summary — one polished KPI tile per figure. Pending is a clickable
-            shortcut to approvals. data-tour: onboarding-tour anchor only. */}
-        <div data-tour="adm-users-summary" className="mb-7 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {/* Summary — one polished KPI tile per figure. data-tour:
+            onboarding-tour anchor only. */}
+        <div data-tour="adm-users-summary" className="mb-7 grid grid-cols-2 gap-4 lg:grid-cols-3">
           <KpiCard icon={Users} label="Total users" value={data.total} sublabel="On the platform" />
-          <KpiCard icon={UserCheck} label="Active" value={data.active} status="positive" sublabel="Approved &amp; signed in" />
-          {data.pending > 0 ? (
-            <KpiCard icon={Clock} label="Pending approval" value={data.pending} status="warning" sublabel="Review sign-ups →" href="/admin/approvals" />
-          ) : (
-            <KpiCard icon={Clock} label="Pending" value={0} sublabel="None waiting" />
-          )}
+          <KpiCard icon={UserCheck} label="Active" value={data.active} status="positive" sublabel="Can sign in" />
           <KpiCard icon={Building2} label="Departments" value={data.departmentCount} sublabel="Across the org" />
         </div>
 

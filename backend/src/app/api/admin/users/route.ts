@@ -19,7 +19,6 @@ export async function GET(req: Request) {
   return NextResponse.json({
     total: users.length,
     active: users.filter((u) => u.status === "active").length,
-    pending: users.filter((u) => u.status === "pending_approval").length,
     departmentCount,
     users: users.map((u) => ({
       id: u.id,

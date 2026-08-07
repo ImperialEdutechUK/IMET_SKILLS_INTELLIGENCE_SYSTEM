@@ -6,7 +6,7 @@ import { clientIp, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 const EMAIL_DOMAIN = "@imperiallearning.co.uk";
 
-/** Shown when the address already has an account (pending, active or otherwise). */
+/** Shown when the address already has an account (active or otherwise). */
 const EMAIL_TAKEN =
   "This email has already been used to create an account. Try signing in, or reset your password.";
 
@@ -107,8 +107,11 @@ export async function POST(req: Request) {
         email: normalizedEmail,
         fullName: fullName.trim(),
         position: typeof position === "string" && position.trim() ? position.trim() : null,
+        // Accounts are live immediately — there is no admin approval step. The
+        // domain restriction above (@imperiallearning.co.uk) plus the per-IP
+        // throttle are what gate who can create an account.
         role: "employee",
-        status: "pending_approval",
+        status: "active",
         passwordHash,
         departmentId,
       },
@@ -125,6 +128,6 @@ export async function POST(req: Request) {
 
   return NextResponse.json({
     ok: true,
-    message: "Registration received. An administrator will review your account.",
+    message: "Registration successful. You can now sign in.",
   });
 }

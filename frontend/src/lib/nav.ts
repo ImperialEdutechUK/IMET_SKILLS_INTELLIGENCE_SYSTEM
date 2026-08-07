@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, BookOpen, Target, ScrollText, Sparkles, Compass,
-  BarChart3, Users, UserCog, UserCheck, Library, ClipboardCheck, Tags, Settings, Trophy, Building2,
+  BarChart3, UserCog, Library, ClipboardCheck, Tags, Settings, Trophy, Building2,
 } from "lucide-react";
 import type { NavSection, Role } from "@/types";
 
@@ -51,7 +51,6 @@ export const navConfig: Record<Role, NavSection[]> = {
         { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
         { label: "Departments", href: "/admin/departments", icon: Building2 },
         { label: "User Management", href: "/admin/users", icon: UserCog },
-        { label: "Pending Approvals", href: "/admin/approvals", icon: UserCheck },
       ],
     },
     {
@@ -90,22 +89,18 @@ export const navConfig: Record<Role, NavSection[]> = {
 
 
 // HR / Director are the `admin` role (no schema change) but get an org-wide,
-// read-only variant of the admin nav — everything except Pending Approvals.
-// They are identified by email since there is no separate role.
+// read-only variant of the admin experience (see isOrgViewer callers). They are
+// identified by email since there is no separate role. Their sidebar is now
+// identical to the admin one — the Pending Approvals item that used to be
+// filtered out no longer exists (registration is self-service).
 export const ORG_VIEWER_EMAILS = ["hr@imet.lk", "director@imet.lk"];
 
 export function isOrgViewer(user: { role: string; email: string }): boolean {
   return user.role === "admin" && ORG_VIEWER_EMAILS.includes(user.email.toLowerCase());
 }
 
-// Resolve the sidebar nav for a user, applying the HR/Director variant.
+// Resolve the sidebar nav for a user.
 export function navFor(user: { role: Role; email: string }): NavSection[] {
-  if (isOrgViewer(user)) {
-    return navConfig.admin.map((section) => ({
-      ...section,
-      items: section.items.filter((i) => i.href !== "/admin/approvals"),
-    }));
-  }
   return navConfig[user.role];
 }
 

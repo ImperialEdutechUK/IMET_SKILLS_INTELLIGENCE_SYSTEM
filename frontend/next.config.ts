@@ -30,6 +30,33 @@ const apiOrigin = (() => {
 // fetch, which looks like "the backend is down" rather than a CSP problem. Fail
 // loudly at build time instead of shipping that.
 if (!apiOrigin) {
+  // TEMPORARY DIAGNOSTIC — remove once the preview build is green.
+  // The value is set as a Sensitive variable and so cannot be read back in the
+  // dashboard; this reports what the BUILD actually receives, which
+  // distinguishes "never arrived" from "arrived malformed" from "arrived under
+  // a slightly different key". Prints no secrets: only key names, a length, and
+  // a short prefix of a URL that is public in the client bundle anyway.
+  const raw = process.env.NEXT_PUBLIC_API_URL;
+  const publicKeys = Object.keys(process.env)
+    .filter((k) => k.startsWith("NEXT_PUBLIC"))
+    .sort();
+  console.error("\n── NEXT_PUBLIC_API_URL diagnostic ──");
+  console.error("  VERCEL_ENV            :", process.env.VERCEL_ENV ?? "(unset)");
+  console.error("  VERCEL_GIT_COMMIT_REF :", process.env.VERCEL_GIT_COMMIT_REF ?? "(unset)");
+  console.error("  VERCEL_TARGET_ENV     :", process.env.VERCEL_TARGET_ENV ?? "(unset)");
+  console.error("  key in process.env    :", "NEXT_PUBLIC_API_URL" in process.env);
+  console.error("  typeof value          :", typeof raw);
+  console.error("  length                :", raw === undefined ? "n/a" : String(raw).length);
+  console.error(
+    "  first 12 chars        :",
+    raw === undefined ? "n/a" : JSON.stringify(String(raw).slice(0, 12))
+  );
+  console.error(
+    "  all NEXT_PUBLIC* keys :",
+    publicKeys.length ? publicKeys.join(", ") : "(none present)"
+  );
+  console.error("────────────────────────────────────\n");
+
   const message =
     "NEXT_PUBLIC_API_URL is missing or not a valid URL. The Content-Security-Policy " +
     "connect-src would block all API requests from the browser.";

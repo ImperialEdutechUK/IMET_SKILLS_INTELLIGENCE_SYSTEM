@@ -14,54 +14,71 @@ import type { NextConfig } from "next";
  */
 const isProduction = process.env.NODE_ENV === "production";
 
-const apiOrigin = (() => {
-  const raw = process.env.NEXT_PUBLIC_API_URL;
+/**
+ * Which backend each deployment talks to.
+ *
+ * Owned here rather than in the Vercel dashboard. A dashboard value can be
+ * marked Sensitive (so it cannot be read back to check), scoped to a single
+ * git branch (silently shadowing a working entry), or left stale by a redeploy
+ * of an older commit — and all three surface as the same opaque "missing or
+ * not a valid URL" build failure with no way to see what was actually set.
+ *
+ * VERCEL_ENV is injected by Vercel on every build ("production" | "preview" |
+ * "development"), so this mapping cannot be mistyped, mis-scoped, or hidden,
+ * and it is reviewable in a pull request.
+ *
+ * These URLs are not secrets: the API origin is compiled into the client bundle
+ * and published in the CSP below, so it is readable by anyone using the site.
+ */
+const API_URL_BY_ENV: Record<string, string> = {
+  production: "https://imetskillsintelligencesystem-production.up.railway.app",
+  preview: "https://imetskillsintelligencesystem-staging.up.railway.app",
+  development: "http://localhost:3001",
+};
+
+function validOrigin(raw: string | undefined): string {
   if (!raw) return "";
   try {
-    return new URL(raw).origin;
+    return new URL(raw.trim()).origin;
   } catch {
     return "";
   }
-})();
+}
+
+/**
+ * NEXT_PUBLIC_API_URL still wins when it is a VALID url, so local dev and
+ * one-off overrides keep working. When it is absent or malformed it is ignored
+ * rather than fatal — a broken dashboard entry can no longer take the build
+ * down, it just falls through to the mapping above.
+ */
+const apiOrigin =
+  validOrigin(process.env.NEXT_PUBLIC_API_URL) ||
+  validOrigin(
+    process.env.VERCEL_ENV
+      ? API_URL_BY_ENV[process.env.VERCEL_ENV]
+      : API_URL_BY_ENV.development
+  );
 
 // `connect-src` is baked in at BUILD time. If NEXT_PUBLIC_API_URL is not present
 // in the build environment, the policy silently narrows to 'self' and the
 // browser blocks every call to the API — the app loads and then fails at each
 // fetch, which looks like "the backend is down" rather than a CSP problem. Fail
 // loudly at build time instead of shipping that.
+// Only reachable if VERCEL_ENV holds a value with no entry above (a new Vercel
+// environment). Naming it is the whole point: the old failure said only
+// "missing or not a valid URL", which was true for four different causes.
 if (!apiOrigin) {
-  // TEMPORARY DIAGNOSTIC — remove once the preview build is green.
-  // The value is set as a Sensitive variable and so cannot be read back in the
-  // dashboard; this reports what the BUILD actually receives, which
-  // distinguishes "never arrived" from "arrived malformed" from "arrived under
-  // a slightly different key". Prints no secrets: only key names, a length, and
-  // a short prefix of a URL that is public in the client bundle anyway.
-  const raw = process.env.NEXT_PUBLIC_API_URL;
-  const publicKeys = Object.keys(process.env)
-    .filter((k) => k.startsWith("NEXT_PUBLIC"))
-    .sort();
-  console.error("\n── NEXT_PUBLIC_API_URL diagnostic ──");
-  console.error("  VERCEL_ENV            :", process.env.VERCEL_ENV ?? "(unset)");
-  console.error("  VERCEL_GIT_COMMIT_REF :", process.env.VERCEL_GIT_COMMIT_REF ?? "(unset)");
-  console.error("  VERCEL_TARGET_ENV     :", process.env.VERCEL_TARGET_ENV ?? "(unset)");
-  console.error("  key in process.env    :", "NEXT_PUBLIC_API_URL" in process.env);
-  console.error("  typeof value          :", typeof raw);
-  console.error("  length                :", raw === undefined ? "n/a" : String(raw).length);
-  console.error(
-    "  first 12 chars        :",
-    raw === undefined ? "n/a" : JSON.stringify(String(raw).slice(0, 12))
-  );
-  console.error(
-    "  all NEXT_PUBLIC* keys :",
-    publicKeys.length ? publicKeys.join(", ") : "(none present)"
-  );
-  console.error("────────────────────────────────────\n");
-
   const message =
-    "NEXT_PUBLIC_API_URL is missing or not a valid URL. The Content-Security-Policy " +
-    "connect-src would block all API requests from the browser.";
+    `Could not resolve the API origin. VERCEL_ENV=${process.env.VERCEL_ENV ?? "(unset)"} ` +
+    `has no entry in API_URL_BY_ENV (${Object.keys(API_URL_BY_ENV).join(", ")}), and ` +
+    `NEXT_PUBLIC_API_URL is missing or not a valid absolute URL. The ` +
+    `Content-Security-Policy connect-src would block all API requests from the browser.`;
   if (isProduction) throw new Error(message);
   console.warn(`\n⚠  ${message} (dev build continuing)\n`);
+} else {
+  console.log(
+    `▲ API origin: ${apiOrigin} (VERCEL_ENV=${process.env.VERCEL_ENV ?? "local"})`
+  );
 }
 
 const csp = [
@@ -116,6 +133,12 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   // Do not advertise the framework version to scanners.
   poweredByHeader: false,
+  // Client components read process.env.NEXT_PUBLIC_API_URL directly (see
+  // src/lib/api.ts and the auth pages). Inlining the RESOLVED origin here keeps
+  // the browser bundle, the CSP connect-src, and the mapping above in agreement
+  // — otherwise a missing dashboard variable would build a page whose every
+  // fetch went to "undefined/api/...".
+  env: { NEXT_PUBLIC_API_URL: apiOrigin },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

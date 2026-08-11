@@ -17,8 +17,8 @@
  * deployment; add more via CORS_ORIGIN (comma-separated) without a code change.
  *
  * Vercel PREVIEW deployments get a different generated hostname per branch, so
- * they are matched by team-scoped suffix rather than listed — see
- * PREVIEW_SUFFIXES below.
+ * they are matched by team-scoped suffix rather than listed — opt-in per
+ * environment via CORS_PREVIEW_SUFFIX, see previewSuffixes() below.
  */
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -35,7 +35,7 @@ const ALLOWED_ORIGINS = new Set(
 );
 
 /**
- * Vercel preview deployments.
+ * Vercel preview deployments — OFF unless CORS_PREVIEW_SUFFIX is set.
  *
  * Every branch gets its own generated hostname
  * (`imet-skills-intelligence-git-<branch>-<team>.vercel.app`), so previews cannot
@@ -43,17 +43,24 @@ const ALLOWED_ORIGINS = new Set(
  * until someone edited this file. They are matched by their team-scoped suffix
  * instead.
  *
- * This is deliberately NOT `*.vercel.app`. The `-<team>-projects.vercel.app`
- * suffix is owned by the Vercel team: no other account can deploy a project
- * under it, so the match cannot be satisfied by a hostname we do not control.
- * Add more suffixes via CORS_PREVIEW_SUFFIX (comma-separated).
+ * There is deliberately NO default. Set CORS_PREVIEW_SUFFIX on the STAGING
+ * service only (`-imperialedutechuks-projects.vercel.app`). A default would ship
+ * to production on the next merge to main and let any preview deployment in the
+ * Vercel team call the production API with credentials — wider than production
+ * needs, and easy to forget. Unset, production keeps its strict allowlist.
+ *
+ * The suffix is also deliberately not `.vercel.app`: `-<team>-projects.vercel.app`
+ * is owned by the Vercel team, so no other account can deploy under it.
+ *
+ * Read per request rather than at module load so the value can be changed on the
+ * host without a rebuild, and so tests can vary it.
  */
-const DEFAULT_PREVIEW_SUFFIXES = ["-imperialedutechuks-projects.vercel.app"];
-
-const PREVIEW_SUFFIXES = [
-  ...DEFAULT_PREVIEW_SUFFIXES,
-  ...(process.env.CORS_PREVIEW_SUFFIX ?? "").split(",").map((s) => s.trim()),
-].filter(Boolean);
+function previewSuffixes(): string[] {
+  return (process.env.CORS_PREVIEW_SUFFIX ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
 
 function isAllowedOrigin(origin: string): boolean {
   if (ALLOWED_ORIGINS.has(origin)) return true;
@@ -72,7 +79,7 @@ function isAllowedOrigin(origin: string): boolean {
   // endsWith alone would let "evil-imperialedutechuks-projects.vercel.app"
   // through only if it really were under that team — which Vercel prevents —
   // but require a non-empty subdomain prefix regardless.
-  return PREVIEW_SUFFIXES.some(
+  return previewSuffixes().some(
     (suffix) => url.hostname.endsWith(suffix) && url.hostname.length > suffix.length
   );
 }

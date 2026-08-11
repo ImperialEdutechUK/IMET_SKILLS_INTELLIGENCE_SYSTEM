@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import { middleware } from "./middleware";
 import type { NextRequest } from "next/server";
 
@@ -42,16 +42,33 @@ describe("CORS", () => {
    * preflight against Railway. Preview hostnames are generated per branch, so
    * the allowlist has to match the team-scoped suffix rather than a fixed URL —
    * and must still refuse lookalikes that merely contain it.
+   *
+   * Previews are opt-in per environment: CORS_PREVIEW_SUFFIX is set on the
+   * staging service and left unset on production, so the first test below is
+   * the one that guards production's posture after a merge to main.
    */
   const PREVIEW =
     "https://imet-skills-intelligence-git-108767-imperialedutechuks-projects.vercel.app";
+  const SUFFIX = "-imperialedutechuks-projects.vercel.app";
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("refuses preview origins when CORS_PREVIEW_SUFFIX is unset (production)", () => {
+    vi.stubEnv("CORS_PREVIEW_SUFFIX", "");
+    const res = middleware(request("http://localhost:3001/api/auth/login", { origin: PREVIEW }));
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBeNull();
+  });
 
   it("echoes a Vercel preview-branch origin", () => {
+    vi.stubEnv("CORS_PREVIEW_SUFFIX", SUFFIX);
     const res = middleware(request("http://localhost:3001/api/auth/login", { origin: PREVIEW }));
     expect(res.headers.get("Access-Control-Allow-Origin")).toBe(PREVIEW);
   });
 
   it("answers the preflight for a preview origin", () => {
+    vi.stubEnv("CORS_PREVIEW_SUFFIX", SUFFIX);
     const res = middleware(
       request("http://localhost:3001/api/auth/login", { method: "OPTIONS", origin: PREVIEW })
     );
@@ -60,6 +77,7 @@ describe("CORS", () => {
   });
 
   it("refuses preview-lookalike origins", () => {
+    vi.stubEnv("CORS_PREVIEW_SUFFIX", SUFFIX);
     const forgeries = [
       // Suffix present, but as a prefix of an attacker-owned domain.
       "https://imet-skills-intelligence-git-x-imperialedutechuks-projects.vercel.app.evil.com",

@@ -15,6 +15,10 @@
  * (a comma-separated list is invalid), so we keep an allowlist and echo back the
  * request's Origin when it matches. Defaults cover local dev and the known Vercel
  * deployment; add more via CORS_ORIGIN (comma-separated) without a code change.
+ *
+ * Vercel PREVIEW deployments get a different generated hostname per branch, so
+ * they are matched by team-scoped suffix rather than listed — see
+ * PREVIEW_SUFFIXES below.
  */
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -29,6 +33,49 @@ const ALLOWED_ORIGINS = new Set(
     ...(process.env.CORS_ORIGIN ?? "").split(",").map((o) => o.trim()),
   ].filter(Boolean)
 );
+
+/**
+ * Vercel preview deployments.
+ *
+ * Every branch gets its own generated hostname
+ * (`imet-skills-intelligence-git-<branch>-<team>.vercel.app`), so previews cannot
+ * be enumerated in a static allowlist — a new branch would be blocked by CORS
+ * until someone edited this file. They are matched by their team-scoped suffix
+ * instead.
+ *
+ * This is deliberately NOT `*.vercel.app`. The `-<team>-projects.vercel.app`
+ * suffix is owned by the Vercel team: no other account can deploy a project
+ * under it, so the match cannot be satisfied by a hostname we do not control.
+ * Add more suffixes via CORS_PREVIEW_SUFFIX (comma-separated).
+ */
+const DEFAULT_PREVIEW_SUFFIXES = ["-imperialedutechuks-projects.vercel.app"];
+
+const PREVIEW_SUFFIXES = [
+  ...DEFAULT_PREVIEW_SUFFIXES,
+  ...(process.env.CORS_PREVIEW_SUFFIX ?? "").split(",").map((s) => s.trim()),
+].filter(Boolean);
+
+function isAllowedOrigin(origin: string): boolean {
+  if (ALLOWED_ORIGINS.has(origin)) return true;
+
+  let url: URL;
+  try {
+    url = new URL(origin);
+  } catch {
+    return false;
+  }
+  // Reject anything that is not a bare origin (path, port, credentials); an
+  // Origin header is always scheme+host, so a mismatch here means a forgery
+  // attempt rather than a real browser request.
+  if (url.origin !== origin || url.protocol !== "https:") return false;
+
+  // endsWith alone would let "evil-imperialedutechuks-projects.vercel.app"
+  // through only if it really were under that team — which Vercel prevents —
+  // but require a non-empty subdomain prefix regardless.
+  return PREVIEW_SUFFIXES.some(
+    (suffix) => url.hostname.endsWith(suffix) && url.hostname.length > suffix.length
+  );
+}
 
 function corsHeaders(origin: string | null): Record<string, string> {
   const headers: Record<string, string> = {
@@ -45,9 +92,9 @@ function corsHeaders(origin: string | null): Record<string, string> {
     // Caches/proxies must not serve one origin's CORS response to another origin.
     Vary: "Origin",
   };
-  // Echo the caller's origin only when it's on the allowlist (never a wildcard,
-  // which is incompatible with Allow-Credentials).
-  if (origin && ALLOWED_ORIGINS.has(origin)) {
+  // Echo the caller's origin only when it's allowed (never a wildcard, which is
+  // incompatible with Allow-Credentials).
+  if (origin && isAllowedOrigin(origin)) {
     headers["Access-Control-Allow-Origin"] = origin;
   }
   return headers;

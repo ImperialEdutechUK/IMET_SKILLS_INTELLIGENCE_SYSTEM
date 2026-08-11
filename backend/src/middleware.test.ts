@@ -35,7 +35,49 @@ describe("CORS", () => {
     expect(res.headers.get("Access-Control-Allow-Origin")).toBeNull();
   });
 
+  /**
+   * Vercel preview deployments.
+   *
+   * PREVIEW is the real origin from the branch deploy that was failing its
+   * preflight against Railway. Preview hostnames are generated per branch, so
+   * the allowlist has to match the team-scoped suffix rather than a fixed URL —
+   * and must still refuse lookalikes that merely contain it.
+   */
+  const PREVIEW =
+    "https://imet-skills-intelligence-git-108767-imperialedutechuks-projects.vercel.app";
+
+  it("echoes a Vercel preview-branch origin", () => {
+    const res = middleware(request("http://localhost:3001/api/auth/login", { origin: PREVIEW }));
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe(PREVIEW);
+  });
+
+  it("answers the preflight for a preview origin", () => {
+    const res = middleware(
+      request("http://localhost:3001/api/auth/login", { method: "OPTIONS", origin: PREVIEW })
+    );
+    expect(res.status).toBe(204);
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe(PREVIEW);
+  });
+
+  it("refuses preview-lookalike origins", () => {
+    const forgeries = [
+      // Suffix present, but as a prefix of an attacker-owned domain.
+      "https://imet-skills-intelligence-git-x-imperialedutechuks-projects.vercel.app.evil.com",
+      // Any other Vercel project — the suffix must be the team's, not just .vercel.app.
+      "https://someone-elses-project.vercel.app",
+      // Right suffix, wrong scheme.
+      "http://imet-skills-intelligence-git-x-imperialedutechuks-projects.vercel.app",
+      // The suffix's own domain, with no branch subdomain in front of it.
+      "https://imperialedutechuks-projects.vercel.app",
+    ];
+    for (const origin of forgeries) {
+      const res = middleware(request("http://localhost:3001/api/departments", { origin }));
+      expect(res.headers.get("Access-Control-Allow-Origin"), origin).toBeNull();
+    }
+  });
+
   it("never answers with a wildcard (incompatible with credentials)", () => {
+
     for (const origin of [FRONTEND, "https://evil.example", undefined]) {
       const res = middleware(request("http://localhost:3001/api/departments", { origin }));
       expect(res.headers.get("Access-Control-Allow-Origin")).not.toBe("*");

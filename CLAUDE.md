@@ -19,10 +19,46 @@ Gap formula: `Gap = RoleProfile required level − UserSkill current level`. Cou
 1. **Only push to `yenushka-features`. NEVER `main`.**
 2. **NEVER touch the scraped course catalogue** (no delete/bulk-edit/overwrite). Real production data. Applies to the whole `Course` table regardless of its current row count.
 3. **NEVER run destructive DB ops** (`migrate reset`, `db push` altering columns, bulk deletes) without explicit OK. `db pull` + `generate` are safe.
-4. **NEVER commit secrets.** Keys/passwords only in `.env` (gitignored). The pasted OpenRouter key must be revoked.
+4. **NEVER commit secrets.** Keys/passwords only in `.env` / `.env.production` (both gitignored via `.env.*`). The pasted OpenRouter key must be revoked.
 5. **Backend & frontend in SEPARATE terminals.** Commands in the `npm run dev` tab kill the server. Empty curl + `JSONDecodeError` = backend down → `lsof -ti:3001 | xargs kill -9` then `npm run dev`.
 6. **CLI commands as numbered steps**, one per line.
 7. **Unexpected zeros → check data (re-seed) before assuming a code bug.**
+
+## Environments & schema migrations
+Two databases. **`.env` = STAGING** (`altaria…:58447`) — it is the default target of everything
+that auto-loads a bare `.env`: `npm run dev`, `tsx --env-file=.env`, `prisma.config.ts`,
+`sync-all.ts`. Production (`hayabusa…:21538`) is **never** the default; reach it only by naming it:
+
+1. `DOTENV_CONFIG_PATH=.env.production npx prisma <cmd>`
+
+Prisma 7 has **no `--env-file` flag** — `prisma.config.ts` does `import "dotenv/config"`, so
+`DOTENV_CONFIG_PATH` is the switch. Prisma 7 also renamed diff flags: `--to-schema-datamodel` →
+`--to-schema`, `--from-url` → `--from-config-datasource`.
+
+Schema changes are now **migration-based**, not `db push`. Baseline `0_init` (29 tables, 15 enums)
+is applied to BOTH databases (matching checksums). Workflow — develop on staging, promote to prod:
+
+1. Edit `prisma/schema.prisma`
+2. `npm run migrate:new -- --name <change>` — applies to staging, writes the migration file
+3. `npm run migrate:check` — scans the SQL for data-destroying statements
+4. Test against staging, then commit the migration file
+5. `npm run promote:prod` — dry run: shows pending migrations + the diff, applies nothing
+6. `npm run promote:prod -- --commit` — applies to production
+
+⚠️ **NEVER run `prisma migrate deploy` against prod directly.** Go through `promote:prod`; it is
+the only path with the safety gate. Steps 5–6 abort on destructive SQL, and step 6 additionally
+snapshots every table's row count before and after, failing if any table lost rows or vanished.
+
+### Column renames destroy data by default
+Prisma writes a rename as `ALTER TABLE "T" DROP COLUMN "old", ADD COLUMN "new"` — valid SQL that
+applies cleanly and silently empties the column. `migrate:check` blocks this pattern. When it
+fires, hand-edit the migration to the preserving form before promoting:
+
+```sql
+ALTER TABLE "Department" RENAME COLUMN "priority" TO "rank";   -- keeps the data
+```
+
+`--allow-destructive` overrides the gate. Only use it when the data loss is genuinely intended.
 
 ## Schema notes
 - Schema is **Nandika's version** — relations are **camelCase** (`requirements`, `roleProfile`, `skill`, `department`), not PascalCase.
@@ -44,8 +80,8 @@ Gap formula: `Gap = RoleProfile required level − UserSkill current level`. Cou
   - HR: hr.manager@imperiallearning.co.uk / `Hr@Imet#2026Dv` (department-scoped manager — NOT the org-wide `HR@imet.lk` admin account)
 - The old single manager (`manager@`, Sarah) and the `employee@` (Emma) demo account were **removed**. Real employee data now lives with **Nandika (CDD)**; employees self-register and are approved.
 - CDD id: `cmr3k8ghy0001b3gq417f0kkn` · Marketing id: `cmr3k8gjm0005b3gqrbw5q0r1` · HR id: `cmshckc6z000084f5kyyijv4l`
-- ⚠️ Adding a department to the live DB: `npx tsx --env-file=.env scripts/add-hr-department.ts`-style additive script (Department + its CpdTarget), then re-run `setup-department-managers.ts`. Never `prisma db seed` on live.
-- ⚠️ Re-provision managers with `npx tsx --env-file=.env scripts/setup-department-managers.ts` (idempotent). Do NOT run `npx prisma db seed` on the live demo DB — it recreates the removed demo employees and the old single manager.
+- ⚠️ Adding a department to the live DB: `DOTENV_CONFIG_PATH=.env.production npx tsx scripts/add-hr-department.ts`-style additive script (Department + its CpdTarget), then re-run `setup-department-managers.ts`. Never `prisma db seed` on live.
+- ⚠️ Re-provision managers with `npx tsx --env-file=.env scripts/setup-department-managers.ts` (staging) / `DOTENV_CONFIG_PATH=.env.production npx tsx scripts/setup-department-managers.ts` (prod) (idempotent). Do NOT run `npx prisma db seed` on the live demo DB — it recreates the removed demo employees and the old single manager.
 
 ## Get a test token
 ```
